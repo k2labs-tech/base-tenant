@@ -1,0 +1,12 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/**
+ * Base Tenant Package Styles
+ *
+ * These styles can be overridden by the parent application by creating
+ * a file at resources/css/vendor/base-tenant/overrides.css
+ */
+
+/* Package-specific custom styles */

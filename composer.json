@@ -1,0 +1,76 @@
+{
+    "name": "base/tenant",
+    "description": "Multi-tenant SaaS base package with subscriptions, RBAC, and team collaboration for Laravel 12",
+    "type": "library",
+    "keywords": [
+        "laravel",
+        "multi-tenant",
+        "saas",
+        "subscriptions",
+        "rbac",
+        "livewire",
+        "cashier"
+    ],
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Your Name",
+            "email": "your-email@example.com"
+        }
+    ],
+    "require": {
+        "php": "^8.4",
+        "illuminate/support": "^12.0",
+        "illuminate/database": "^12.0",
+        "illuminate/contracts": "^12.0",
+        "bacon/bacon-qr-code": "^3.0",
+        "laravel/cashier": "^16.0",
+        "laravel/sanctum": "^4.0",
+        "livewire/livewire": "^3.5",
+        "livewire/volt": "^1.0",
+        "livewire/flux": "^2.4",
+        "livewire/flux-pro": "^2.4",
+        "pragmarx/google2fa-laravel": "^2.3"
+    },
+    "require-dev": {
+        "orchestra/testbench": "^10.0",
+        "pestphp/pest": "^3.0",
+        "pestphp/pest-plugin-laravel": "^3.0",
+        "laravel/pint": "^1.13"
+    },
+    "autoload": {
+        "psr-4": {
+            "Base\\Tenant\\": "src/",
+            "Base\\Tenant\\Database\\Factories\\": "database/factories/",
+            "Base\\Tenant\\Database\\Seeders\\": "database/seeders/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Base\\Tenant\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Base\\Tenant\\BaseTenantServiceProvider"
+            ]
+        }
+    },
+    "config": {
+        "optimize-autoloader": true,
+        "preferred-install": "dist",
+        "sort-packages": true,
+        "allow-plugins": {
+            "pestphp/pest-plugin": true
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "repositories": [
+        {
+            "type": "composer",
+            "url": "https://composer.fluxui.dev"
+        }
+    ]
+}
