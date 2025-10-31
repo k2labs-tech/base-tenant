@@ -26,10 +26,14 @@
         "bacon/bacon-qr-code": "^3.0",
         "laravel/cashier": "^16.0",
         "laravel/sanctum": "^4.0",
+        "laravel/tinker": "^2.9",
+        "laravel/vapor-core": "^2.37",
+        "livewire/flux": "^2.4",
+        "livewire/flux-pro": "^2.4",
         "livewire/livewire": "^3.5",
         "livewire/volt": "^1.0",
-        "livewire/flux": "^2.4",
-        "pragmarx/google2fa-laravel": "^2.3"
+        "pragmarx/google2fa-laravel": "^2.3",
+        "spatie/laravel-flare": "^1.0"
     },
     "require-dev": {
         "orchestra/testbench": "^10.0",
@@ -66,10 +70,10 @@
     },
     "minimum-stability": "dev",
     "prefer-stable": true,
-    "repositories": [
-        {
-            "type": "composer",
-            "url": "https://composer.fluxui.dev"
-        }
-    ]
+    "repositories": {
+      "flux-pro": {
+        "type": "composer",
+        "url": "https://composer.fluxui.dev"
+      }
+    }
 }
