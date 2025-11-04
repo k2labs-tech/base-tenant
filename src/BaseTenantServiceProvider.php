@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant;
 
+use Base\Tenant\Console\Commands\InstallCommand;
 use Base\Tenant\Console\Commands\SyncRolesCommand;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
 use Base\Tenant\Http\Middleware\HasSubscription;
@@ -109,6 +110,7 @@ class BaseTenantServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 SyncRolesCommand::class,
+                InstallCommand::class,
             ]);
         }
     }
