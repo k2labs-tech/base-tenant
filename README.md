@@ -23,43 +23,51 @@ A comprehensive multi-tenant SaaS foundation package for Laravel 12 with built-i
 
 ## Installation
 
-1. Add the package repository to your `composer.json`:
+### Automatic Installation (Recommended)
 
-```json
-{
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/your-org/base-tenant"
-        }
-    ]
-}
-```
-
-2. Require the package:
+1. Add the package to your project:
 
 ```bash
 composer require base/tenant
 ```
 
-3. The package will auto-register via Laravel's package discovery.
-
-4. Run migrations:
+2. Run the interactive installer:
 
 ```bash
-php artisan migrate
+php artisan base-tenant:install
 ```
 
-5. Seed default roles:
+The installer will:
+- Ask configuration questions (multi-team, subscriptions, test user)
+- Show preview of all changes
+- Clean conflicting Laravel migrations
+- Update User model to extend base-tenant
+- Publish and configure settings
+- Run migrations and seed roles
+- Create test user (optional)
+
+**Non-Interactive Mode (CI/CD):**
 
 ```bash
-php artisan db:seed --class="Base\\Tenant\\Database\\Seeders\\InitialLoadSeeder"
+php artisan base-tenant:install --no-interaction
 ```
 
-6. Publish assets (optional):
+Uses default settings: single-team, no subscriptions, with test user.
+
+### Manual Installation
+
+If you prefer manual setup, see [Manual Integration Guide](docs/BASE_TENANT_INTEGRATION.md).
+
+## Quick Start
+
+After installation:
 
 ```bash
-php artisan vendor:publish --tag=base-tenant-assets
+# Start the development server
+php artisan serve
+
+# Visit http://127.0.0.1:8000/login
+# Login with: admin@test.com / password
 ```
 
 ## Configuration
