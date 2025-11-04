@@ -122,12 +122,65 @@ class InstallCommand extends Command
     }
 
     /**
-     * Phase 2: Show preview and get confirmation (placeholder)
+     * Phase 2: Show preview and get confirmation
      */
     protected function showPreviewAndConfirm(): bool
     {
-        // Will implement in next task
-        return true;
+        $this->components->twoColumnDetail('╔══════════════════════════════════════════════════════════════╗', '');
+        $this->components->twoColumnDetail('║  Base Tenant Installation Plan', '║');
+        $this->components->twoColumnDetail('╚══════════════════════════════════════════════════════════════╝', '');
+        $this->newLine();
+
+        // Configuration summary
+        $this->components->info('Configuration:');
+        $this->components->twoColumnDetail(
+            '  Multi-Team',
+            $this->multiTeam ? '<fg=green>Enabled</>' : '<fg=yellow>Disabled</>'
+        );
+        $this->components->twoColumnDetail(
+            '  Subscriptions',
+            $this->subscriptions ? '<fg=green>Enabled</>' : '<fg=yellow>Disabled</>'
+        );
+        $this->components->twoColumnDetail(
+            '  Test User',
+            $this->createTestUser ? '<fg=green>Yes (admin@test.com)</>' : '<fg=yellow>No</>'
+        );
+        $this->newLine();
+
+        // Files to be modified
+        $this->components->info('Files to be modified:');
+
+        foreach ($this->conflictingMigrations as $migration) {
+            $this->components->twoColumnDetail("  <fg=yellow>DELETE</>", $migration);
+        }
+
+        if (! $this->userModelConflict) {
+            $this->components->twoColumnDetail('  <fg=yellow>REPLACE</>', 'app/Models/User.php');
+        }
+
+        $this->components->twoColumnDetail('  <fg=green>CREATE</>', 'config/base-tenant.php');
+        $this->components->twoColumnDetail('  <fg=blue>UPDATE</>', '.env (BASE_TENANT_* variables)');
+        $this->newLine();
+
+        // Database operations
+        $this->components->info('Database operations:');
+        $this->components->twoColumnDetail('  <fg=green>✓</>', 'Run 17 package migrations');
+        $this->components->twoColumnDetail('  <fg=green>✓</>', 'Seed 7 default roles');
+        if ($this->createTestUser) {
+            $this->components->twoColumnDetail('  <fg=green>✓</>', 'Create test account and user');
+        }
+        $this->newLine();
+
+        $this->line('───────────────────────────────────────────────────────────────');
+        $this->newLine();
+
+        // Get confirmation
+        if ($this->option('no-interaction')) {
+            $this->components->info('Running in non-interactive mode. Proceeding with installation...');
+            return true;
+        }
+
+        return $this->components->confirm('⚠️  This will modify your application. Continue?', true);
     }
 
     /**
