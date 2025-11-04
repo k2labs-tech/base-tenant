@@ -184,11 +184,196 @@ class InstallCommand extends Command
     }
 
     /**
-     * Phase 3: Execute installation (placeholder)
+     * Phase 3: Execute installation
      */
     protected function executeInstallation(): int
     {
-        // Will implement in next task
-        return self::SUCCESS;
+        $this->components->twoColumnDetail('╔══════════════════════════════════════════════════════════════╗', '');
+        $this->components->twoColumnDetail('║  Installing Base Tenant...', '║');
+        $this->components->twoColumnDetail('╚══════════════════════════════════════════════════════════════╝', '');
+        $this->newLine();
+
+        $step = 1;
+        $totalSteps = 7;
+
+        try {
+            // Step 1: Clean migrations
+            $this->components->task("[{$step}/{$totalSteps}] Cleaning conflicting migrations", function () {
+                return $this->cleanConflictingMigrations();
+            });
+            $step++;
+
+            // Step 2: Update User model
+            $this->components->task("[{$step}/{$totalSteps}] Updating User model", function () {
+                return $this->updateUserModel();
+            });
+            $step++;
+
+            // Step 3: Publish config
+            $this->components->task("[{$step}/{$totalSteps}] Publishing configuration", function () {
+                return $this->publishConfiguration();
+            });
+            $step++;
+
+            // Step 4: Update environment
+            $this->components->task("[{$step}/{$totalSteps}] Updating environment variables", function () {
+                return $this->updateEnvironment();
+            });
+            $step++;
+
+            // Step 5: Run migrations
+            $this->components->task("[{$step}/{$totalSteps}] Running migrations", function () {
+                return $this->runMigrations();
+            });
+            $step++;
+
+            // Step 6: Seed roles
+            $this->components->task("[{$step}/{$totalSteps}] Seeding default roles", function () {
+                return $this->seedRoles();
+            });
+            $step++;
+
+            // Step 7: Create test data
+            $this->components->task("[{$step}/{$totalSteps}] Creating test data", function () {
+                return $this->createTestData();
+            });
+
+            // Success summary
+            $this->showSuccessSummary();
+
+            return self::SUCCESS;
+
+        } catch (\Exception $e) {
+            $this->newLine();
+            $this->components->error('Installation failed: '.$e->getMessage());
+            $this->components->warn('Please check the error above and try again.');
+            return self::FAILURE;
+        }
+    }
+
+    /**
+     * Clean conflicting migrations
+     */
+    protected function cleanConflictingMigrations(): bool
+    {
+        foreach ($this->conflictingMigrations as $migration) {
+            $fullPath = base_path($migration);
+            if (File::exists($fullPath)) {
+                File::delete($fullPath);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Update User model
+     */
+    protected function updateUserModel(): bool
+    {
+        if (! $this->userModelConflict) {
+            $this->userModelManager->replaceUserModel();
+        }
+
+        return true;
+    }
+
+    /**
+     * Publish configuration
+     */
+    protected function publishConfiguration(): bool
+    {
+        // Publish config
+        $this->callSilent('vendor:publish', [
+            '--tag' => 'base-tenant-config',
+            '--force' => true,
+        ]);
+
+        // Update config to use App\Models\User
+        $configPath = config_path('base-tenant.php');
+        if (File::exists($configPath)) {
+            $content = File::get($configPath);
+            $content = str_replace(
+                "'user' => env('BASE_TENANT_USER_MODEL', \\Base\\Tenant\\Models\\User::class)",
+                "'user' => env('BASE_TENANT_USER_MODEL', \\App\\Models\\User::class)",
+                $content
+            );
+            File::put($configPath, $content);
+        }
+
+        return true;
+    }
+
+    /**
+     * Update environment variables
+     */
+    protected function updateEnvironment(): bool
+    {
+        $this->environmentManager->addBaseTenantVariables(
+            $this->multiTeam,
+            $this->subscriptions
+        );
+
+        return true;
+    }
+
+    /**
+     * Run migrations
+     */
+    protected function runMigrations(): bool
+    {
+        $this->migrationRunner->runPackageMigrations();
+
+        return true;
+    }
+
+    /**
+     * Seed default roles
+     */
+    protected function seedRoles(): bool
+    {
+        $this->migrationRunner->seedDefaultRoles();
+
+        return true;
+    }
+
+    /**
+     * Create test data
+     */
+    protected function createTestData(): bool
+    {
+        $this->migrationRunner->createTestUser($this->createTestUser);
+
+        return true;
+    }
+
+    /**
+     * Show success summary
+     */
+    protected function showSuccessSummary(): void
+    {
+        $this->newLine();
+        $this->components->twoColumnDetail('╔══════════════════════════════════════════════════════════════╗', '');
+        $this->components->twoColumnDetail('║  Installation Complete! 🎉', '║');
+        $this->components->twoColumnDetail('╚══════════════════════════════════════════════════════════════╝', '');
+        $this->newLine();
+
+        if ($this->createTestUser) {
+            $this->components->info('Test Credentials:');
+            $this->components->twoColumnDetail('  Email', 'admin@test.com');
+            $this->components->twoColumnDetail('  Password', 'password');
+            $this->newLine();
+        }
+
+        $this->components->info('Next Steps:');
+        $this->line('  1. Start server: <fg=green>php artisan serve</>');
+        $this->line('  2. Visit: <fg=green>http://127.0.0.1:8000/login</>');
+        $this->line('  3. Review docs: <fg=green>vendor/base/tenant/README.md</>');
+        $this->newLine();
+
+        if ($this->subscriptions) {
+            $this->components->warn('Don\'t forget to add your Stripe keys to .env!');
+            $this->newLine();
+        }
     }
 }
