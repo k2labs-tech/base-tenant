@@ -13,21 +13,21 @@
 
 
     <!-- Scripts -->
-    <wireui:scripts />
-
     @livewireStyles
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    @livewireScriptConfig
     @fluxAppearance
     <style>
         [x-cloak] { display: none !important; }
     </style>
 </head>
 <body class="font-sans antialiased h-full bg-surface-50 text-primary-800 overflow-hidden">
-    <x-notifications />
+    <flux:toast />
     <div class="h-screen flex" x-data="{
         sidebarOpen: false,
-        sidebarCollapsed: localStorage.getItem('sidebarCollapsed') === 'true',
+        sidebarCollapsed: false,
+        init() {
+            this.sidebarCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+        },
         toggleSidebar() {
             this.sidebarCollapsed = !this.sidebarCollapsed;
             localStorage.setItem('sidebarCollapsed', this.sidebarCollapsed);
@@ -82,7 +82,7 @@
 
                 <!-- Navigation -->
                 <nav class="flex-1 px-4 py-4 space-y-1 overflow-y-auto overflow-x-hidden">
-                    @include('layouts.navigation-items')
+                    @include('base-tenant::layouts.navigation-items')
                 </nav>
 
                 <!-- User menu -->
@@ -160,7 +160,7 @@
                                     </button>
                                 </div>
 
-                                @include('layouts.navigation-dropdown')
+                                @include('base-tenant::layouts.navigation-dropdown')
                             </div>
                         </div>
                     </div>

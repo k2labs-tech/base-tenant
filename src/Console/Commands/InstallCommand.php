@@ -13,8 +13,7 @@ use Illuminate\Support\Facades\File;
 
 class InstallCommand extends Command
 {
-    protected $signature = 'base-tenant:install
-                            {--no-interaction : Run without any interaction}';
+    protected $signature = 'base-tenant:install';
 
     protected $description = 'Install and configure the Base Tenant package';
 
@@ -158,7 +157,9 @@ class InstallCommand extends Command
             $this->components->twoColumnDetail('  <fg=yellow>REPLACE</>', 'app/Models/User.php');
         }
 
+        $this->components->twoColumnDetail('  <fg=yellow>REPLACE</>', 'routes/web.php');
         $this->components->twoColumnDetail('  <fg=green>CREATE</>', 'config/base-tenant.php');
+        $this->components->twoColumnDetail('  <fg=green>CREATE</>', 'public/vendor/base-tenant/');
         $this->components->twoColumnDetail('  <fg=blue>UPDATE</>', '.env (BASE_TENANT_* variables)');
         $this->newLine();
 
@@ -197,9 +198,11 @@ class InstallCommand extends Command
         $totalSteps = 7;
 
         try {
-            // Step 1: Clean migrations
-            $this->components->task("[{$step}/{$totalSteps}] Cleaning conflicting migrations", function () {
-                return $this->cleanConflictingMigrations();
+            // Step 1: Clean migrations and routes
+            $this->components->task("[{$step}/{$totalSteps}] Cleaning conflicting files", function () {
+                $this->cleanConflictingMigrations();
+                $this->cleanConflictingRoutes();
+                return true;
             });
             $step++;
 
@@ -267,6 +270,30 @@ class InstallCommand extends Command
     }
 
     /**
+     * Clean conflicting routes
+     */
+    protected function cleanConflictingRoutes(): bool
+    {
+        $webRoutesPath = base_path('routes/web.php');
+
+        if (File::exists($webRoutesPath)) {
+            $stubPath = __DIR__.'/../../../stubs/web.php.stub';
+            $stub = File::get($stubPath);
+            File::put($webRoutesPath, $stub);
+        }
+
+        // Replace FortifyServiceProvider to disable Fortify routes
+        $fortifyProviderPath = app_path('Providers/FortifyServiceProvider.php');
+        if (File::exists($fortifyProviderPath)) {
+            $stubPath = __DIR__.'/../../../stubs/FortifyServiceProvider.php.stub';
+            $stub = File::get($stubPath);
+            File::put($fortifyProviderPath, $stub);
+        }
+
+        return true;
+    }
+
+    /**
      * Update User model
      */
     protected function updateUserModel(): bool
@@ -289,6 +316,18 @@ class InstallCommand extends Command
             '--force' => true,
         ]);
 
+        // Publish assets
+        $this->callSilent('vendor:publish', [
+            '--tag' => 'base-tenant-assets',
+            '--force' => true,
+        ]);
+
+        // Publish translations
+        $this->callSilent('vendor:publish', [
+            '--tag' => 'base-tenant-lang',
+            '--force' => true,
+        ]);
+
         // Update config to use App\Models\User
         $configPath = config_path('base-tenant.php');
         if (File::exists($configPath)) {
@@ -300,6 +339,12 @@ class InstallCommand extends Command
             );
             File::put($configPath, $content);
         }
+
+        // Update app.css to include base-tenant views
+        $this->updateAppCss();
+
+        // Update bootstrap/app.php to configure auth redirects
+        $this->updateBootstrap();
 
         return true;
     }
@@ -374,6 +419,97 @@ class InstallCommand extends Command
         if ($this->subscriptions) {
             $this->components->warn('Don\'t forget to add your Stripe keys to .env!');
             $this->newLine();
+        }
+    }
+
+    /**
+     * Update app.css to include base-tenant views in Tailwind scanning
+     */
+    protected function updateAppCss(): void
+    {
+        $cssPath = resource_path('css/app.css');
+
+        if (! File::exists($cssPath)) {
+            return;
+        }
+
+        $content = File::get($cssPath);
+
+        // Check if already configured
+        if (str_contains($content, 'vendor/base/tenant/resources/views')) {
+            return;
+        }
+
+        // Add source paths for both development (symlink) and production
+        $sourcePaths = "\n@source '../../base-tenant/resources/views/**/*.blade.php';\n@source '../../vendor/base/tenant/resources/views/**/*.blade.php';";
+
+        // Insert after the @source '../views'; line
+        if (str_contains($content, "@source '../views';")) {
+            $content = str_replace(
+                "@source '../views';",
+                "@source '../views';" . $sourcePaths,
+                $content
+            );
+
+            File::put($cssPath, $content);
+            $this->components->info('Updated app.css to include base-tenant views');
+        }
+    }
+
+    /**
+     * Update bootstrap/app.php to configure authentication redirects
+     */
+    protected function updateBootstrap(): void
+    {
+        $bootstrapPath = base_path('bootstrap/app.php');
+
+        if (! File::exists($bootstrapPath)) {
+            return;
+        }
+
+        $content = File::get($bootstrapPath);
+
+        // Check if already configured
+        if (str_contains($content, 'redirectGuestsTo') || str_contains($content, 'base-tenant.login')) {
+            return;
+        }
+
+        // Find the withMiddleware method and add the redirects
+        $search = '->withMiddleware(function (Middleware $middleware): void {
+        //
+    })';
+
+        $replace = '->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(\'base-tenant.login\');
+        $middleware->redirectUsersTo(\'base-tenant.dashboard\');
+    })';
+
+        if (str_contains($content, $search)) {
+            $content = str_replace($search, $replace, $content);
+            File::put($bootstrapPath, $content);
+            $this->components->info('Updated bootstrap/app.php to configure auth redirects');
+        } else {
+            // Try alternative pattern without the empty comment
+            $search2 = '->withMiddleware(function (Middleware $middleware): void {';
+
+            if (str_contains($content, $search2)) {
+                // Insert after the opening brace
+                $replace2 = '->withMiddleware(function (Middleware $middleware): void {
+        $middleware->redirectGuestsTo(\'base-tenant.login\');
+        $middleware->redirectUsersTo(\'base-tenant.dashboard\');';
+
+                $content = preg_replace(
+                    '/->withMiddleware\(function \(Middleware \$middleware\): void \{/',
+                    $replace2,
+                    $content,
+                    1
+                );
+
+                File::put($bootstrapPath, $content);
+                $this->components->info('Updated bootstrap/app.php to configure auth redirects');
+            } else {
+                $this->components->warn('Could not automatically update bootstrap/app.php. Please add auth redirects manually.');
+            }
         }
     }
 }

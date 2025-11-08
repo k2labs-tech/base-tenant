@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-base-tenant::app-layout>
     <x-slot name="header">
         {{ __('UI Component Kit') }}
     </x-slot>
@@ -445,4 +445,4 @@
             </x-modal>
         </div>
     </div>
-</x-app-layout>
+</x-base-tenant::app-layout>

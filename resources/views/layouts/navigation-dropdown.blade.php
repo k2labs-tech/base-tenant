@@ -16,15 +16,15 @@
     @endif
     <hr>
     <h5 class="block px-4 py-2 text-xs font-semibold text-primary-400 uppercase tracking-wider">@lang('app.dropdown.title.profile')</h5>
-    <x-dropdown-link :href="route('base-tenant.profile')">@lang('app.dropdown.link.profile')</x-dropdown-link>
-    <x-dropdown-link :href="route('base-tenant.dashboard')">@lang('app.dropdown.link.alerts')</x-dropdown-link>
+    <x-base-tenant::dropdown-link :href="route('base-tenant.profile')">@lang('app.dropdown.link.profile')</x-base-tenant::dropdown-link>
+    <x-base-tenant::dropdown-link :href="route('base-tenant.dashboard')">@lang('app.dropdown.link.alerts')</x-base-tenant::dropdown-link>
     <hr>
     @if(auth()->user()->hasRole('customer-admin'))
     <h5 class="block px-4 py-2 text-xs font-semibold text-primary-400 uppercase tracking-wider">@lang('app.dropdown.title.account')</h5>
-        <x-dropdown-link :href="route('base-tenant.dashboard')">@lang('app.dropdown.link.settings')</x-dropdown-link>
-        <x-dropdown-link :href="route('billing')">@lang('app.dropdown.link.billing')</x-dropdown-link>
+        <x-base-tenant::dropdown-link :href="route('base-tenant.dashboard')">@lang('app.dropdown.link.settings')</x-base-tenant::dropdown-link>
+        {{-- <x-base-tenant::dropdown-link :href="route('base-tenant.billing')">@lang('app.dropdown.link.billing')</x-base-tenant::dropdown-link> --}}
     @endif
     <hr>
-    <livewire:logout />
+    <livewire:base-tenant.logout />
 
 </div>

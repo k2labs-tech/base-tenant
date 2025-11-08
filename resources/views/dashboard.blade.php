@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-base-tenant::app-layout>
     <x-slot name="header">
         {{ __('app.dashboard.title') }}
     </x-slot>
@@ -215,4 +215,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-base-tenant::app-layout>

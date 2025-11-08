@@ -3,9 +3,14 @@
 declare(strict_types=1);
 
 use Base\Tenant\Http\Controllers\Auth\VerifyEmailController;
+use Base\Tenant\Livewire\Auth\ConfirmPassword;
+use Base\Tenant\Livewire\Auth\ForgotPassword;
+use Base\Tenant\Livewire\Auth\Login;
+use Base\Tenant\Livewire\Auth\Register;
+use Base\Tenant\Livewire\Auth\ResetPassword;
+use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\TwoFactorChallenge;
 use Illuminate\Support\Facades\Route;
-use Livewire\Volt\Volt;
 
 if (! config('base-tenant.routes.enabled', true)) {
     return;
@@ -17,16 +22,16 @@ $middleware = config('base-tenant.routes.middleware', ['web']);
 Route::prefix($prefix)->middleware($middleware)->group(function () {
     // Guest routes
     Route::middleware('guest')->group(function () {
-        Volt::route('register', 'base-tenant::pages.auth.register')
+        Route::get('register', Register::class)
             ->name('base-tenant.register');
 
-        Volt::route('login', 'base-tenant::pages.auth.login')
+        Route::get('login', Login::class)
             ->name('base-tenant.login');
 
-        Volt::route('forgot-password', 'base-tenant::pages.auth.forgot-password')
+        Route::get('forgot-password', ForgotPassword::class)
             ->name('base-tenant.password.request');
 
-        Volt::route('reset-password/{token}', 'base-tenant::pages.auth.reset-password')
+        Route::get('reset-password/{token}', ResetPassword::class)
             ->name('base-tenant.password.reset');
 
         Route::get('two-factor-challenge', TwoFactorChallenge::class)
@@ -35,14 +40,14 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
 
     // Authenticated routes
     Route::middleware('auth')->group(function () {
-        Volt::route('verify-email', 'base-tenant::pages.auth.verify-email')
+        Route::get('verify-email', VerifyEmail::class)
             ->name('base-tenant.verification.notice');
 
         Route::get('verify-email/{id}/{hash}', VerifyEmailController::class)
             ->middleware(['signed', 'throttle:6,1'])
             ->name('base-tenant.verification.verify');
 
-        Volt::route('confirm-password', 'base-tenant::pages.auth.confirm-password')
+        Route::get('confirm-password', ConfirmPassword::class)
             ->name('base-tenant.password.confirm');
 
         Route::post('logout', function () {

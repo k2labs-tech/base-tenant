@@ -71,7 +71,7 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "repositories": {
-      "flux-pro": {
+      "livewire/flux-pro": {
         "type": "composer",
         "url": "https://composer.fluxui.dev"
       }

@@ -1,6 +1,6 @@
 <?php
 
-use App\Livewire\Actions\Logout;
+use Base\Tenant\Livewire\Actions\Logout;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Volt\Component;
 

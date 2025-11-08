@@ -9,7 +9,7 @@ use Base\Tenant\Console\Commands\SyncRolesCommand;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
 use Base\Tenant\Http\Middleware\HasSubscription;
 use Base\Tenant\Http\Middleware\SetLocale;
-use Base\Tenant\Livewire\Actions\Logout;
+use Base\Tenant\Livewire\Logout;
 use Base\Tenant\Livewire\Alerts\Table as AlertsTable;
 use Base\Tenant\Livewire\EditUser;
 use Base\Tenant\Livewire\Forms\LoginForm;
@@ -61,6 +61,10 @@ class BaseTenantServiceProvider extends ServiceProvider
             __DIR__.'/../public' => public_path('vendor/base-tenant'),
         ], 'base-tenant-assets');
 
+        $this->publishes([
+            __DIR__.'/../resources/lang' => lang_path(),
+        ], 'base-tenant-lang');
+
         $this->registerMiddleware();
         $this->registerLivewireComponents();
         $this->registerBladeComponents();
@@ -84,6 +88,15 @@ class BaseTenantServiceProvider extends ServiceProvider
      */
     protected function registerLivewireComponents(): void
     {
+        // Auth components
+        Livewire::component('base-tenant.auth.login', \Base\Tenant\Livewire\Auth\Login::class);
+        Livewire::component('base-tenant.auth.register', \Base\Tenant\Livewire\Auth\Register::class);
+        Livewire::component('base-tenant.auth.forgot-password', \Base\Tenant\Livewire\Auth\ForgotPassword::class);
+        Livewire::component('base-tenant.auth.reset-password', \Base\Tenant\Livewire\Auth\ResetPassword::class);
+        Livewire::component('base-tenant.auth.confirm-password', \Base\Tenant\Livewire\Auth\ConfirmPassword::class);
+        Livewire::component('base-tenant.auth.verify-email', \Base\Tenant\Livewire\Auth\VerifyEmail::class);
+
+        // Other components
         Livewire::component('base-tenant.user-manager', UserManager::class);
         Livewire::component('base-tenant.edit-user', EditUser::class);
         Livewire::component('base-tenant.two-factor-authentication', TwoFactorAuthentication::class);
@@ -98,8 +111,8 @@ class BaseTenantServiceProvider extends ServiceProvider
      */
     protected function registerBladeComponents(): void
     {
-        Blade::component('base-tenant-app-layout', AppLayout::class);
-        Blade::component('base-tenant-guest-layout', GuestLayout::class);
+        Blade::component('base-tenant::app-layout', AppLayout::class);
+        Blade::component('base-tenant::guest-layout', GuestLayout::class);
     }
 
     /**

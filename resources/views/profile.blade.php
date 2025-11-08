@@ -1,4 +1,4 @@
-<x-app-layout>
+<x-base-tenant::app-layout>
     <x-slot name="header">
         {{ __('app.profile.title') }}
     </x-slot>
@@ -34,4 +34,4 @@
             </div>
         </div>
     </div>
-</x-app-layout>
+</x-base-tenant::app-layout>

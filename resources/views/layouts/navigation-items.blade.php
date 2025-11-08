@@ -52,7 +52,7 @@
                 </div>
             </div>
             <div class="flex justify-between items-center pt-1">
-                <x-mini-chart :data="[40, 65, 55, 80, 70, 90, 85]" color="accent" />
+                <x-base-tenant::mini-chart :data="[40, 65, 55, 80, 70, 90, 85]" color="accent" />
                 <span class="text-xs font-medium text-green-600">+23%</span>
             </div>
         </div>

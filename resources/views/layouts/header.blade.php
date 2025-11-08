@@ -27,7 +27,7 @@
                             @click="userDropdownMenu = !userDropdownMenu"
                             class="flex max-w-xs items-center rounded-full bg-sky-900 hover:bg-sky-700 text-white text-sm focus:outline-hidden"
                             id="user-menu-button" aria-expanded="false" aria-haspopup="true">
-                        <x-avatar sm label="{{ auth()->user()->initials }}" border="none" class="bg-sky-900 hover:bg-sky-700 text-white" />
+                        <x-base-tenant::avatar sm label="{{ auth()->user()->initials }}" border="none" class="bg-sky-900 hover:bg-sky-700 text-white" />
                     </button>
                 </div>
 
