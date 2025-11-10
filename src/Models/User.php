@@ -247,6 +247,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Get the user's initials (method version for compatibility).
+     */
+    public function initials(): string
+    {
+        return $this->initials; // Uses the accessor above
+    }
+
+    /**
      * Apply timezone to datetime.
      */
     public function applyTimeZone(mixed $dateTime): string
