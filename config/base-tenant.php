@@ -51,7 +51,7 @@ return [
         'default_price' => env('BASE_TENANT_SUBSCRIPTION_DEFAULT_PRICE', null),
         'success_url' => env('BASE_TENANT_SUBSCRIPTION_SUCCESS_URL', 'base-tenant.checkout.success'),
         'cancel_url' => env('BASE_TENANT_SUBSCRIPTION_CANCEL_URL', 'base-tenant.checkout.cancel'),
-        'trial_days' => env('BASE_TENANT_SUBSCRIPTION_TRIAL_DAYS', 14),
+        'trial_days' => (int) env('BASE_TENANT_SUBSCRIPTION_TRIAL_DAYS', 14),
     ],
 
     /*
