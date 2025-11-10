@@ -29,6 +29,8 @@ class ConflictDetector
         $conflicts = [];
         $patterns = [
             '*create_users_table.php',
+            '*create_cache_table.php',
+            '*create_jobs_table.php',
             '*two_factor*.php',
         ];
 
