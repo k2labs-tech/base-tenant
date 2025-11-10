@@ -565,8 +565,8 @@ class InstallCommand extends Command
     })';
 
         $replace = '->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo(\'base-tenant.login\');
-        $middleware->redirectUsersTo(\'base-tenant.dashboard\');
+        $middleware->redirectGuestsTo(fn () => route(\'base-tenant.login\'));
+        $middleware->redirectUsersTo(fn () => route(\'base-tenant.dashboard\'));
     })';
 
         if (str_contains($content, $search)) {
@@ -580,8 +580,8 @@ class InstallCommand extends Command
             if (str_contains($content, $search2)) {
                 // Insert after the opening brace
                 $replace2 = '->withMiddleware(function (Middleware $middleware): void {
-        $middleware->redirectGuestsTo(\'base-tenant.login\');
-        $middleware->redirectUsersTo(\'base-tenant.dashboard\');';
+        $middleware->redirectGuestsTo(fn () => route(\'base-tenant.login\'));
+        $middleware->redirectUsersTo(fn () => route(\'base-tenant.dashboard\'));';
 
                 $content = preg_replace(
                     '/->withMiddleware\(function \(Middleware \$middleware\): void \{/',
