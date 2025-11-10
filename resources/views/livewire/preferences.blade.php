@@ -146,8 +146,8 @@ new class extends Component
 
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('app.profile.preferences_updated'),
-            'description' => __('app.profile.preferences_updated_description'),
+            'title' => __('base-tenant::app.profile.preferences_updated'),
+            'description' => __('base-tenant::app.profile.preferences_updated_description'),
         ]);
     }
 }; ?>
@@ -155,11 +155,11 @@ new class extends Component
 <section>
     <header>
         <h2 class="text-lg font-medium text-primary-900">
-            {{ __('app.profile.preferences') }}
+            {{ __('base-tenant::app.profile.preferences') }}
         </h2>
 
         <p class="mt-1 text-sm text-primary-600">
-            {{ __('app.profile.preferences_description') }}
+            {{ __('base-tenant::app.profile.preferences_description') }}
         </p>
     </header>
 
@@ -167,7 +167,7 @@ new class extends Component
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Language -->
             <div>
-                <x-input-label for="locale" :value="__('app.profile.language')" />
+                <x-input-label for="locale" :value="__('base-tenant::app.profile.language')" />
                 <select wire:model="locale" id="locale" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @foreach($this->locales as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
@@ -178,7 +178,7 @@ new class extends Component
 
             <!-- Currency -->
             <div>
-                <x-input-label for="currency" :value="__('app.profile.currency')" />
+                <x-input-label for="currency" :value="__('base-tenant::app.profile.currency')" />
                 <select wire:model="currency" id="currency" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @foreach($this->currencies as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
@@ -189,7 +189,7 @@ new class extends Component
 
             <!-- Decimal Places -->
             <div>
-                <x-input-label for="decimal_places" :value="__('app.profile.decimal_places')" />
+                <x-input-label for="decimal_places" :value="__('base-tenant::app.profile.decimal_places')" />
                 <select wire:model="decimal_places" id="decimal_places" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @for($i = 0; $i <= 4; $i++)
                         <option value="{{ $i }}">{{ $i }}</option>
@@ -200,7 +200,7 @@ new class extends Component
 
             <!-- Timezone -->
             <div>
-                <x-input-label for="timezone" :value="__('app.profile.timezone')" />
+                <x-input-label for="timezone" :value="__('base-tenant::app.profile.timezone')" />
                 <select wire:model="timezone" id="timezone" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @foreach($this->timezones as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
@@ -211,7 +211,7 @@ new class extends Component
 
             <!-- Decimal Separator -->
             <div>
-                <x-input-label for="decimals_separator" :value="__('app.profile.decimals_separator')" />
+                <x-input-label for="decimals_separator" :value="__('base-tenant::app.profile.decimals_separator')" />
                 <select wire:model="decimals_separator" id="decimals_separator" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @foreach($this->separators as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
@@ -222,7 +222,7 @@ new class extends Component
 
             <!-- Thousands Separator -->
             <div>
-                <x-input-label for="thousands_separator" :value="__('app.profile.thousands_separator')" />
+                <x-input-label for="thousands_separator" :value="__('base-tenant::app.profile.thousands_separator')" />
                 <select wire:model="thousands_separator" id="thousands_separator" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @foreach($this->separators as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
@@ -233,7 +233,7 @@ new class extends Component
 
             <!-- Date Format -->
             <div>
-                <x-input-label for="date_format" :value="__('app.profile.date_format')" />
+                <x-input-label for="date_format" :value="__('base-tenant::app.profile.date_format')" />
                 <select wire:model="date_format" id="date_format" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @foreach($this->dateFormats as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
@@ -244,7 +244,7 @@ new class extends Component
 
             <!-- Time Format -->
             <div>
-                <x-input-label for="time_format" :value="__('app.profile.time_format')" />
+                <x-input-label for="time_format" :value="__('base-tenant::app.profile.time_format')" />
                 <select wire:model="time_format" id="time_format" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
                     @foreach($this->timeFormats as $key => $label)
                         <option value="{{ $key }}">{{ $label }}</option>
@@ -255,7 +255,7 @@ new class extends Component
         </div>
 
         <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('app.profile.save') }}</x-primary-button>
+            <x-primary-button>{{ __('base-tenant::app.profile.save') }}</x-primary-button>
         </div>
     </form>
 </section>

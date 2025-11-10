@@ -2,13 +2,13 @@
     <div class="w-full sm:max-w-md mt-6 px-6 py-4 bg-white shadow-md overflow-hidden sm:rounded-lg">
         <div class="mb-6">
             <h2 class="text-2xl font-bold text-center text-gray-900">
-                {{ __('auth.2fa.verification_title') }}
+                {{ __('base-tenant::auth.2fa.verification_title') }}
             </h2>
             <p class="mt-2 text-sm text-center text-gray-600">
                 @if (!$usingRecoveryCode)
-                    {{ __('auth.2fa.verification_description') }}
+                    {{ __('base-tenant::auth.2fa.verification_description') }}
                 @else
-                    {{ __('auth.2fa.recovery_description') }}
+                    {{ __('base-tenant::auth.2fa.recovery_description') }}
                 @endif
             </p>
         </div>
@@ -16,7 +16,7 @@
         <form wire:submit="verify" class="space-y-6">
             @if (!$usingRecoveryCode)
                 <div>
-                    <x-input-label for="code" :value="__('auth.2fa.verification_code')" />
+                    <x-input-label for="code" :value="__('base-tenant::auth.2fa.verification_code')" />
                     <x-text-input
                         wire:model="code"
                         id="code"
@@ -34,7 +34,7 @@
                 </div>
             @else
                 <div>
-                    <x-input-label for="recoveryCode" :value="__('auth.2fa.recovery_code')" />
+                    <x-input-label for="recoveryCode" :value="__('base-tenant::auth.2fa.recovery_code')" />
                     <x-text-input
                         wire:model="recoveryCode"
                         id="recoveryCode"
@@ -54,21 +54,21 @@
                     class="text-sm text-gray-600 hover:text-gray-900 underline cursor-pointer"
                 >
                     @if (!$usingRecoveryCode)
-                        {{ __('auth.2fa.use_recovery_code') }}
+                        {{ __('base-tenant::auth.2fa.use_recovery_code') }}
                     @else
-                        {{ __('auth.2fa.use_authentication_code') }}
+                        {{ __('base-tenant::auth.2fa.use_authentication_code') }}
                     @endif
                 </button>
 
                 <x-primary-button class="ml-3">
-                    {{ __('auth.2fa.verify') }}
+                    {{ __('base-tenant::auth.2fa.verify') }}
                 </x-primary-button>
             </div>
         </form>
 
         <div class="mt-6 text-center">
             <a href="{{ route('base-tenant.login') }}" class="text-sm text-gray-600 hover:text-gray-900 underline">
-                {{ __('auth.2fa.back_to_login') }}
+                {{ __('base-tenant::auth.2fa.back_to_login') }}
             </a>
         </div>
     </div>

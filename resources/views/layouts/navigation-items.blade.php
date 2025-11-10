@@ -23,14 +23,14 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                       d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
             </svg>
-            <span x-show="!sidebarCollapsed">{{ __('app.navigation.dashboard') }}</span>
+            <span x-show="!sidebarCollapsed">{{ __('base-tenant::app.navigation.dashboard') }}</span>
         </div>
         <div x-show="!sidebarCollapsed" class="flex items-center space-x-2">
             <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                 <svg class="-ml-0.5 mr-1 h-2 w-2 text-green-400" fill="currentColor" viewBox="0 0 8 8">
                     <circle cx="4" cy="4" r="3" />
                 </svg>
-                {{ __('app.status.active') }}
+                {{ __('base-tenant::app.status.active') }}
             </span>
         </div>
     </a>
@@ -38,13 +38,13 @@
     <!-- Quick Stats -->
     <div x-show="!sidebarCollapsed" class="mx-3 mt-4 p-3 bg-gradient-to-r from-accent-50 to-primary-50 rounded-lg border border-accent-100">
         <div class="flex items-center justify-between mb-2">
-            <span class="text-xs font-semibold text-primary-700">{{ __('app.stats.weekly_progress') }}</span>
-            <span class="text-xs text-primary-500">{{ __('app.stats.this_week') }}</span>
+            <span class="text-xs font-semibold text-primary-700">{{ __('base-tenant::app.stats.weekly_progress') }}</span>
+            <span class="text-xs text-primary-500">{{ __('base-tenant::app.stats.this_week') }}</span>
         </div>
         <div class="space-y-2">
             <div>
                 <div class="flex justify-between text-xs mb-1">
-                    <span class="text-primary-600">{{ __('app.stats.completed') }}</span>
+                    <span class="text-primary-600">{{ __('base-tenant::app.stats.completed') }}</span>
                     <span class="font-medium text-primary-700">78%</span>
                 </div>
                 <div class="w-full bg-primary-100 rounded-full h-1.5">
@@ -62,7 +62,7 @@
     <div class="pt-4">
         <button @click="toggleMenu('main')" x-show="!sidebarCollapsed"
                 class="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-primary-400 uppercase tracking-wider hover:text-primary-600 transition-colors">
-            <span>{{ __('app.navigation.main_menu') }}</span>
+            <span>{{ __('base-tenant::app.navigation.main_menu') }}</span>
             <svg class="h-4 w-4 transition-transform duration-200" :class="{'rotate-180': !mainMenuOpen}"
                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -81,7 +81,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                     </svg>
-                    <span x-show="!sidebarCollapsed">{{ __('app.navigation.tasks') }}</span>
+                    <span x-show="!sidebarCollapsed">{{ __('base-tenant::app.navigation.tasks') }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed" class="flex items-center space-x-2">
                     <span class="inline-flex items-center px-2 py-0.5 rounded-smtext-xs font-medium bg-accent-100 text-accent-700">
@@ -103,7 +103,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
                     </svg>
-                    <span x-show="!sidebarCollapsed">{{ __('app.navigation.projects') }}</span>
+                    <span x-show="!sidebarCollapsed">{{ __('base-tenant::app.navigation.projects') }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed" class="flex items-center">
                     <div class="flex -space-x-1">
@@ -123,10 +123,10 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
                     </svg>
-                    <span x-show="!sidebarCollapsed">{{ __('app.navigation.team') }}</span>
+                    <span x-show="!sidebarCollapsed">{{ __('base-tenant::app.navigation.team') }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed" class="flex items-center space-x-1">
-                    <span class="text-xs text-primary-500">32 {{ __('app.members') }}</span>
+                    <span class="text-xs text-primary-500">32 {{ __('base-tenant::app.members') }}</span>
                     <span class="inline-flex items-center justify-center w-2 h-2 rounded-full bg-green-400 animate-pulse"></span>
                 </div>
             </a>
@@ -141,7 +141,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                     </svg>
-                    <span x-show="!sidebarCollapsed">{{ __('app.navigation.analytics') }}</span>
+                    <span x-show="!sidebarCollapsed">{{ __('base-tenant::app.navigation.analytics') }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed" class="flex items-center">
                     <svg class="h-4 w-4 text-green-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -157,7 +157,7 @@
     <div class="pt-4">
         <button @click="toggleMenu('settings')" x-show="!sidebarCollapsed"
                 class="w-full flex items-center justify-between px-3 py-1.5 text-xs font-semibold text-primary-400 uppercase tracking-wider hover:text-primary-600 transition-colors">
-            <span>{{ __('app.navigation.settings') }}</span>
+            <span>{{ __('base-tenant::app.navigation.settings') }}</span>
             <svg class="h-4 w-4 transition-transform duration-200" :class="{'rotate-180': !settingsMenuOpen}"
                  fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
@@ -177,7 +177,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
-                    <span x-show="!sidebarCollapsed">{{ __('app.navigation.profile') }}</span>
+                    <span x-show="!sidebarCollapsed">{{ __('base-tenant::app.navigation.profile') }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed">
                     <span class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
@@ -198,7 +198,7 @@
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                               d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                     </svg>
-                    <span x-show="!sidebarCollapsed">{{ __('app.navigation.settings') }}</span>
+                    <span x-show="!sidebarCollapsed">{{ __('base-tenant::app.navigation.settings') }}</span>
                 </div>
                 <div x-show="!sidebarCollapsed">
                     <span class="relative flex h-2 w-2">
@@ -212,20 +212,20 @@
 
     <!-- Bottom Stats Card -->
     <div x-show="!sidebarCollapsed" class="mx-3 mt-6 p-3 bg-surface-50 rounded-lg border border-surface-200">
-        <h4 class="text-xs font-semibold text-primary-700 mb-3">{{ __('app.stats.quick_stats') }}</h4>
+        <h4 class="text-xs font-semibold text-primary-700 mb-3">{{ __('base-tenant::app.stats.quick_stats') }}</h4>
         <div class="grid grid-cols-2 gap-3">
             <div class="text-center">
                 <div class="text-2xl font-bold text-accent-600">89</div>
-                <div class="text-xs text-primary-500">{{ __('app.stats.active_items') }}</div>
+                <div class="text-xs text-primary-500">{{ __('base-tenant::app.stats.active_items') }}</div>
             </div>
             <div class="text-center">
                 <div class="text-2xl font-bold text-primary-600">156</div>
-                <div class="text-xs text-primary-500">{{ __('app.stats.total_items') }}</div>
+                <div class="text-xs text-primary-500">{{ __('base-tenant::app.stats.total_items') }}</div>
             </div>
         </div>
         <div class="mt-3 pt-3 border-t border-surface-200">
             <div class="flex items-center justify-between text-xs">
-                <span class="text-primary-500">{{ __('app.stats.efficiency') }}</span>
+                <span class="text-primary-500">{{ __('base-tenant::app.stats.efficiency') }}</span>
                 <div class="flex items-center">
                     <div class="w-16 bg-surface-200 rounded-full h-1.5 mr-2">
                         <div class="bg-gradient-to-r from-green-400 to-green-600 h-1.5 rounded-full" style="width: 92%"></div>

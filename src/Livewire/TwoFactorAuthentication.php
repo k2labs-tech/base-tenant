@@ -88,7 +88,7 @@ class TwoFactorAuthentication extends Component
             'email' => auth()->user()->email,
             'password' => $this->password,
         ])) {
-            $this->addError('password', __('auth.password'));
+            $this->addError('password', __('base-tenant::auth.password'));
             return;
         }
 
@@ -97,7 +97,7 @@ class TwoFactorAuthentication extends Component
         $valid = $google2fa->verifyKey($this->secret, $this->confirmationCode);
 
         if (!$valid) {
-            $this->addError('confirmationCode', __('auth.2fa.invalid_code'));
+            $this->addError('confirmationCode', __('base-tenant::auth.2fa.invalid_code'));
             return;
         }
 
@@ -112,8 +112,8 @@ class TwoFactorAuthentication extends Component
 
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('auth.2fa.enabled_title'),
-            'description' => __('auth.2fa.enabled_description'),
+            'title' => __('base-tenant::auth.2fa.enabled_title'),
+            'description' => __('base-tenant::auth.2fa.enabled_description'),
         ]);
     }
 
@@ -128,7 +128,7 @@ class TwoFactorAuthentication extends Component
             'email' => auth()->user()->email,
             'password' => $this->password,
         ])) {
-            $this->addError('password', __('auth.password'));
+            $this->addError('password', __('base-tenant::auth.password'));
             return;
         }
 
@@ -140,8 +140,8 @@ class TwoFactorAuthentication extends Component
 
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('auth.2fa.disabled_title'),
-            'description' => __('auth.2fa.disabled_description'),
+            'title' => __('base-tenant::auth.2fa.disabled_title'),
+            'description' => __('base-tenant::auth.2fa.disabled_description'),
         ]);
     }
 
@@ -152,7 +152,7 @@ class TwoFactorAuthentication extends Component
 
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('auth.2fa.recovery_codes_regenerated'),
+            'title' => __('base-tenant::auth.2fa.recovery_codes_regenerated'),
         ]);
     }
 

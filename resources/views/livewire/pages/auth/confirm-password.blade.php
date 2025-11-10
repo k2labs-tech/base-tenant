@@ -23,7 +23,7 @@ new #[Layout('layouts.guest')] class extends Component
             'password' => $this->password,
         ])) {
             throw ValidationException::withMessages([
-                'password' => __('auth.password'),
+                'password' => __('base-tenant::auth.password'),
             ]);
         }
 

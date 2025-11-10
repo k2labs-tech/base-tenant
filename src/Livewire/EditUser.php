@@ -75,7 +75,7 @@ class EditUser extends Component
             // Non-admins must be account owners
             $account = $authUser->account;
             if ($account && $account->user_id !== $authUser->id) {
-                abort(403, __('auth.unauthorized'));
+                abort(403, __('base-tenant::auth.unauthorized'));
             }
         }
 
@@ -120,13 +120,13 @@ class EditUser extends Component
             'roles' => $roles,
             'timezones' => timezone_identifiers_list(),
             'locales' => [
-                'en' => __('languages.english'),
-                'es' => __('languages.spanish'),
+                'en' => __('base-tenant::languages.english'),
+                'es' => __('base-tenant::languages.spanish'),
             ],
             'currencies' => [
-                'USD' => 'USD - '.__('currencies.usd'),
-                'EUR' => 'EUR - '.__('currencies.eur'),
-                'GBP' => 'GBP - '.__('currencies.gbp'),
+                'USD' => 'USD - '.__('base-tenant::currencies.usd'),
+                'EUR' => 'EUR - '.__('base-tenant::currencies.eur'),
+                'GBP' => 'GBP - '.__('base-tenant::currencies.gbp'),
             ],
             'dateFormats' => [
                 'Y-m-d' => date('Y-m-d').' (Y-m-d)',
@@ -159,8 +159,8 @@ class EditUser extends Component
 
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('users.user_updated'),
-            'description' => __('users.profile_updated'),
+            'title' => __('base-tenant::users.user_updated'),
+            'description' => __('base-tenant::users.profile_updated'),
         ]);
     }
 
@@ -204,8 +204,8 @@ class EditUser extends Component
         $user->roles()->sync($this->selectedRoles);
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('users.user_created'),
-            'description' => __('users.created_successfully'),
+            'title' => __('base-tenant::users.user_created'),
+            'description' => __('base-tenant::users.created_successfully'),
         ]);
 
         // Redirect to edit mode
@@ -229,8 +229,8 @@ class EditUser extends Component
         $this->reset(['password', 'password_confirmation']);
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('users.password_updated_title'),
-            'description' => __('users.password_updated'),
+            'title' => __('base-tenant::users.password_updated_title'),
+            'description' => __('base-tenant::users.password_updated'),
         ]);
     }
 
@@ -255,8 +255,8 @@ class EditUser extends Component
 
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('users.preferences_updated_title'),
-            'description' => __('users.preferences_updated'),
+            'title' => __('base-tenant::users.preferences_updated_title'),
+            'description' => __('base-tenant::users.preferences_updated'),
         ]);
     }
 
@@ -269,8 +269,8 @@ class EditUser extends Component
         $this->user->roles()->sync($this->selectedRoles);
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('users.roles_updated_title'),
-            'description' => __('users.roles_updated'),
+            'title' => __('base-tenant::users.roles_updated_title'),
+            'description' => __('base-tenant::users.roles_updated'),
         ]);
     }
 }

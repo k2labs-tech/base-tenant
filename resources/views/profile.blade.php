@@ -1,6 +1,6 @@
 <x-base-tenant::app-layout>
     <x-slot name="header">
-        {{ __('app.profile.title') }}
+        {{ __('base-tenant::app.profile.title') }}
     </x-slot>
 
     <div class="space-y-6">

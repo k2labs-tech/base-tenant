@@ -35,7 +35,7 @@ class UserManager extends Component
         // Otherwise, must be account owner
         $account = $user->account;
         if (! $account || $account->user_id !== $user->id) {
-            abort(403, __('auth.unauthorized'));
+            abort(403, __('base-tenant::auth.unauthorized'));
         }
     }
 
@@ -91,8 +91,8 @@ class UserManager extends Component
         if ($this->deletingUser->id === Auth::id()) {
             $this->notification()->send([
                 'icon' => 'error',
-                'title' => __('users.error_deleting_user'),
-                'description' => __('users.cannot_delete_own_account'),
+                'title' => __('base-tenant::users.error_deleting_user'),
+                'description' => __('base-tenant::users.cannot_delete_own_account'),
             ]);
             $this->showDeleteModal = false;
 
@@ -119,8 +119,8 @@ class UserManager extends Component
 
         $this->notification()->send([
             'icon' => 'success',
-            'title' => __('users.user_removed'),
-            'description' => __('users.removed_successfully'),
+            'title' => __('base-tenant::users.user_removed'),
+            'description' => __('base-tenant::users.removed_successfully'),
         ]);
     }
 

@@ -35,7 +35,7 @@ new class extends Component
                     </x-nav-link>
                     @if(auth()->user()->account && (auth()->user()->account->user_id === auth()->user()->id || auth()->user()->is_admin))
                         <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')" wire:navigate>
-                            {{ __('app.navigation.users') }}
+                            {{ __('base-tenant::app.navigation.users') }}
                         </x-nav-link>
                     @endif
                 </div>

@@ -26,10 +26,10 @@
 
                     <!-- Welcome Text -->
                     <h1 class="text-4xl font-bold text-gray-800 dark:text-white mb-4">
-                        {{ __('welcome.title') }}
+                        {{ __('base-tenant::welcome.title') }}
                     </h1>
                     <p class="text-lg text-gray-600 dark:text-gray-400 mb-12">
-                        {{ __('welcome.subtitle') }}
+                        {{ __('base-tenant::welcome.subtitle') }}
                     </p>
 
                     <!-- Action Buttons -->
@@ -37,16 +37,16 @@
                         <div class="flex flex-col sm:flex-row gap-4 justify-center">
                             @auth
                                 <a href="{{ url('/dashboard') }}" class="inline-flex items-center justify-center px-8 py-3 bg-gray-800 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600 text-white font-semibold rounded-lg transition duration-150 ease-in-out">
-                                    {{ __('welcome.dashboard') }}
+                                    {{ __('base-tenant::welcome.dashboard') }}
                                 </a>
                             @else
                                 <a href="{{ route('base-tenant.login') }}" class="inline-flex items-center justify-center px-8 py-3 bg-gray-800 dark:bg-gray-700 hover:bg-gray-700 dark:hover:bg-gray-600 text-white font-semibold rounded-lg transition duration-150 ease-in-out">
-                                    {{ __('welcome.login') }}
+                                    {{ __('base-tenant::welcome.login') }}
                                 </a>
 
                                 @if (Route::has('base-tenant.register'))
                                     <a href="{{ route('base-tenant.register') }}" class="inline-flex items-center justify-center px-8 py-3 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-300 font-semibold rounded-lg border-2 border-gray-300 dark:border-gray-600 transition duration-150 ease-in-out">
-                                        {{ __('welcome.register') }}
+                                        {{ __('base-tenant::welcome.register') }}
                                     </a>
                                 @endif
                             @endauth

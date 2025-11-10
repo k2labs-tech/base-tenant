@@ -8,7 +8,7 @@
             @click="masterDataMenu = !masterDataMenu"
             class="hover:bg-gray-50 text-gray-950 group flex items-center px-2 py-2 text-sm font-medium rounded-l-md hover:border-r-4 hover:border-gray-700 w-full uppercase">
         <x-heroicons::outline.cog-8-tooth class="mr-3 shrink-0 h-6 w-6" />
-        {{ __('app.navigation.master_data') }}
+        {{ __('base-tenant::app.navigation.master_data') }}
     </button>
 
     <div
@@ -33,28 +33,28 @@
             >
             <a href="#" class="flex hover:bg-gray-50 py-2">
                 <x-heroicons::outline.user-group class="mr-3 shrink-0 h-6 w-6" />
-                {{ __('app.navigation.users') }}
+                {{ __('base-tenant::app.navigation.users') }}
             </a>
             <ul x-show="isOpen" class="hover:bg-gray-50/2 px-2">
                 <li>
                     <x-navigation-menu-item route="dashboard"
                                             icon="outline.user"
-                                            label="{{ __('app.navigation.users') }}" />
+                                            label="{{ __('base-tenant::app.navigation.users') }}" />
                 </li>
                 <li>
                     <x-navigation-menu-item route="dashboard"
                                             icon="outline.user-circle"
-                                            label="{{ __('app.navigation.roles') }}" />
+                                            label="{{ __('base-tenant::app.navigation.roles') }}" />
                 </li>
                 <li>
                     <x-navigation-menu-item route="dashboard"
                                             icon="outline.academic-cap"
-                                            label="{{ __('app.navigation.positions') }}" />
+                                            label="{{ __('base-tenant::app.navigation.positions') }}" />
                 </li>
                 <li>
                     <x-navigation-menu-item route="dashboard"
                                             icon="outline.users"
-                                            label="{{ __('app.navigation.groups') }}" />
+                                            label="{{ __('base-tenant::app.navigation.groups') }}" />
                 </li>
             </ul>
         </div>
@@ -64,32 +64,32 @@
 
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.cog-8-tooth"
-                                label="{{ __('app.navigation.programs') }}" />
+                                label="{{ __('base-tenant::app.navigation.programs') }}" />
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.cog-8-tooth"
-                                label="{{ __('app.navigation.services') }}" />
+                                label="{{ __('base-tenant::app.navigation.services') }}" />
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.cog-8-tooth"
-                                label="{{ __('app.navigation.assistance_types') }}" />
+                                label="{{ __('base-tenant::app.navigation.assistance_types') }}" />
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.cog-8-tooth"
-                                label="{{ __('app.navigation.request_channels') }}" />
+                                label="{{ __('base-tenant::app.navigation.request_channels') }}" />
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.document-text"
-                                label="{{ __('app.navigation.redactions') }}" />
+                                label="{{ __('base-tenant::app.navigation.redactions') }}" />
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.cog-8-tooth"
-                                label="{{ __('app.navigation.tender_types') }}" />
+                                label="{{ __('base-tenant::app.navigation.tender_types') }}" />
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.cog-8-tooth"
-                                label="{{ __('app.navigation.project_types') }}" />
+                                label="{{ __('base-tenant::app.navigation.project_types') }}" />
 
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.cog-8-tooth"
-                                label="{{ __('app.navigation.priorities') }}" />
+                                label="{{ __('base-tenant::app.navigation.priorities') }}" />
         <x-navigation-menu-item route="dashboard"
                                 icon="outline.arrow-path-rounded-square"
-                                label="{{ __('app.navigation.procedures') }}" />
+                                label="{{ __('base-tenant::app.navigation.procedures') }}" />
 
     </div>
 

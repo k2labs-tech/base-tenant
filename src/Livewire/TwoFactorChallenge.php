@@ -63,7 +63,7 @@ class TwoFactorChallenge extends Component
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'code' => __('auth.failed'),
+                'code' => __('base-tenant::auth.failed'),
             ]);
         }
 
@@ -72,7 +72,7 @@ class TwoFactorChallenge extends Component
 
         if (!$valid) {
             throw ValidationException::withMessages([
-                'code' => __('auth.2fa.invalid_code'),
+                'code' => __('base-tenant::auth.2fa.invalid_code'),
             ]);
         }
 
@@ -93,7 +93,7 @@ class TwoFactorChallenge extends Component
 
         if (!$user) {
             throw ValidationException::withMessages([
-                'recoveryCode' => __('auth.failed'),
+                'recoveryCode' => __('base-tenant::auth.failed'),
             ]);
         }
 
@@ -101,7 +101,7 @@ class TwoFactorChallenge extends Component
 
         if (!$validCode) {
             throw ValidationException::withMessages([
-                'recoveryCode' => __('auth.2fa.invalid_recovery_code'),
+                'recoveryCode' => __('base-tenant::auth.2fa.invalid_recovery_code'),
             ]);
         }
 
@@ -111,8 +111,8 @@ class TwoFactorChallenge extends Component
 
         $this->notification()->send([
             'icon' => 'warning',
-            'title' => __('auth.2fa.recovery_code_used'),
-            'description' => __('auth.2fa.recovery_code_warning'),
+            'title' => __('base-tenant::auth.2fa.recovery_code_used'),
+            'description' => __('base-tenant::auth.2fa.recovery_code_warning'),
         ]);
 
         $this->redirect(route('dashboard'));
