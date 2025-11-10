@@ -7,17 +7,20 @@ use Illuminate\Support\Facades\Route;
 | Application Routes
 |--------------------------------------------------------------------------
 |
-| Authentication and main routes are handled by the Base Tenant package.
+| Here is where you can register custom routes for your application.
+| The Base Tenant package handles authentication and core routes:
+|
+| - GET /               → Redirects to login (guests) or dashboard (authenticated)
+| - GET /dashboard      → Dashboard (requires auth)
+| - GET /login          → Login page
+| - GET /register       → Registration page
+| - And more...
+|
 | Add your custom application routes below.
 |
 */
 
-// Redirect root to dashboard
-Route::get('/', function () {
-    return redirect()->route('base-tenant.dashboard');
-})->middleware('auth');
-
-// Public home for guests
-Route::get('/', function () {
-    return redirect()->route('base-tenant.welcome');
-})->middleware('guest');
+// Example custom route:
+// Route::get('/custom-page', function () {
+//     return view('custom-page');
+// })->middleware(['auth']);

@@ -15,8 +15,12 @@ $prefix = config('base-tenant.routes.prefix', '');
 $middleware = config('base-tenant.routes.middleware', ['web']);
 
 Route::prefix($prefix)->middleware($middleware)->group(function () {
-    // Public routes
-    Route::view('/', 'base-tenant::welcome')->name('base-tenant.welcome');
+    // Public routes - redirect to login or dashboard
+    Route::get('/', function () {
+        return auth()->check()
+            ? redirect()->route('base-tenant.dashboard')
+            : redirect()->route('base-tenant.login');
+    })->name('base-tenant.home');
 
     // Protected routes
     Route::middleware(config('base-tenant.routes.auth_middleware', ['auth', 'verified', 'base-tenant.subscription']))->group(function () {
