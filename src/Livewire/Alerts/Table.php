@@ -8,6 +8,6 @@ class Table extends Component
 {
     public function render()
     {
-        return view('livewire.alerts.table');
+        return view('base-tenant::livewire.alerts.table');
     }
 }

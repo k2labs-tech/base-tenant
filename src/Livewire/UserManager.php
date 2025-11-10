@@ -73,7 +73,7 @@ class UserManager extends Component
 
         $roles = Role::nonSystem()->orderBy('name')->get();
 
-        return view('livewire.user-manager', [
+        return view('base-tenant::livewire.user-manager', [
             'users' => $users,
             'roles' => $roles,
             'isSystemAdmin' => $user->is_admin || is_null($user->account_id),

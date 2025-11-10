@@ -33,8 +33,8 @@ class TwoFactorChallenge extends Component
 
     public function render()
     {
-        return view('livewire.two-factor-challenge')
-            ->layout('layouts.guest');
+        return view('base-tenant::livewire.two-factor-challenge')
+            ->layout('base-tenant::guest-layout');
     }
 
     public function toggleRecoveryCode()

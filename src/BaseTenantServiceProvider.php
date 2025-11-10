@@ -13,6 +13,10 @@ use Base\Tenant\Livewire\Logout;
 use Base\Tenant\Livewire\Alerts\Table as AlertsTable;
 use Base\Tenant\Livewire\EditUser;
 use Base\Tenant\Livewire\Forms\LoginForm;
+use Base\Tenant\Livewire\Preferences;
+use Base\Tenant\Livewire\Profile\DeleteUserForm;
+use Base\Tenant\Livewire\Profile\UpdatePasswordForm;
+use Base\Tenant\Livewire\Profile\UpdateProfileInformationForm;
 use Base\Tenant\Livewire\TwoFactorAuthentication;
 use Base\Tenant\Livewire\TwoFactorChallenge;
 use Base\Tenant\Livewire\UserManager;
@@ -104,6 +108,12 @@ class BaseTenantServiceProvider extends ServiceProvider
         Livewire::component('base-tenant.logout', Logout::class);
         Livewire::component('base-tenant.alerts.table', AlertsTable::class);
         Livewire::component('base-tenant.forms.login-form', LoginForm::class);
+
+        // Profile components
+        Livewire::component('base-tenant.profile.update-profile-information-form', UpdateProfileInformationForm::class);
+        Livewire::component('base-tenant.profile.update-password-form', UpdatePasswordForm::class);
+        Livewire::component('base-tenant.profile.delete-user-form', DeleteUserForm::class);
+        Livewire::component('base-tenant.preferences', Preferences::class);
     }
 
     /**
@@ -113,6 +123,9 @@ class BaseTenantServiceProvider extends ServiceProvider
     {
         Blade::component('base-tenant::app-layout', AppLayout::class);
         Blade::component('base-tenant::guest-layout', GuestLayout::class);
+
+        // Register anonymous components from the package
+        Blade::anonymousComponentPath(__DIR__.'/../resources/views/components');
     }
 
     /**

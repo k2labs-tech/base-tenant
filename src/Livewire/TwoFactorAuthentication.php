@@ -37,7 +37,7 @@ class TwoFactorAuthentication extends Component
 
     public function render()
     {
-        return view('livewire.two-factor-authentication', [
+        return view('base-tenant::livewire.two-factor-authentication', [
             'user' => auth()->user(),
         ]);
     }

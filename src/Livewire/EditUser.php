@@ -116,7 +116,7 @@ class EditUser extends Component
     {
         $roles = Role::nonSystem()->orderBy('name')->get();
 
-        return view('livewire.edit-user', [
+        return view('base-tenant::livewire.edit-user', [
             'roles' => $roles,
             'timezones' => timezone_identifiers_list(),
             'locales' => [
