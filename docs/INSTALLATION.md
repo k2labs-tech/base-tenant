@@ -36,16 +36,18 @@ This package requires **Livewire Flux Pro**. You must configure Composer authent
 
 ### Option 1: Add to composer.json (Recommended for Development)
 
+**IMPORTANT:** Use object notation for `repositories` (not array). This is required when combining multiple repository types (Flux Pro + path/VCS repositories).
+
 Add Flux Pro repository and authentication to your project's `composer.json`:
 
 ```json
 {
-    "repositories": [
-        {
+    "repositories": {
+        "livewire/flux-pro": {
             "type": "composer",
             "url": "https://composer.fluxui.dev"
         }
-    ],
+    },
     "config": {
         "http-basic": {
             "composer.fluxui.dev": {
@@ -90,7 +92,9 @@ composer config --global --auth http-basic.composer.fluxui.dev your-email@exampl
 
 ## Step 1: Add Package Repository
 
-Add this package to your `composer.json` repositories section:
+**CRITICAL:** Add the base-tenant repository to your `composer.json` **in the same `repositories` object** you created in Step 0.
+
+For local development (path repository):
 
 ```json
 {
@@ -98,6 +102,10 @@ Add this package to your `composer.json` repositories section:
         "base/tenant": {
             "type": "path",
             "url": "../base-tenant"
+        },
+        "livewire/flux-pro": {
+            "type": "composer",
+            "url": "https://composer.fluxui.dev"
         }
     }
 }
@@ -111,10 +119,19 @@ For private Git repository:
         "base/tenant": {
             "type": "vcs",
             "url": "https://github.com/your-org/base-tenant.git"
+        },
+        "livewire/flux-pro": {
+            "type": "composer",
+            "url": "https://composer.fluxui.dev"
         }
     }
 }
 ```
+
+**Important Notes:**
+- Both repositories must be defined as **object properties** (not array elements)
+- Composer will fail if you mix object and array notation
+- The order doesn't matter, but both must be in the same `repositories` object
 
 ## Step 2: Install Package
 

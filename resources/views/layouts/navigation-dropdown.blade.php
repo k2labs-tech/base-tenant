@@ -15,14 +15,14 @@
     <h4 class="block px-4 py-2 font-bold text-primary-900 uppercase">{{ Auth::user()->account->name }}</h4>
     @endif
     <hr>
-    <h5 class="block px-4 py-2 text-xs font-semibold text-primary-400 uppercase tracking-wider">@lang('app.dropdown.title.profile')</h5>
-    <x-base-tenant::dropdown-link :href="route('base-tenant.profile')">@lang('app.dropdown.link.profile')</x-base-tenant::dropdown-link>
-    <x-base-tenant::dropdown-link :href="route('base-tenant.dashboard')">@lang('app.dropdown.link.alerts')</x-base-tenant::dropdown-link>
+    <h5 class="block px-4 py-2 text-xs font-semibold text-primary-400 uppercase tracking-wider">@lang('base-tenant::app.dropdown.title.profile')</h5>
+    <x-base-tenant::dropdown-link :href="route('base-tenant.profile')">@lang('base-tenant::app.dropdown.link.profile')</x-base-tenant::dropdown-link>
+    <x-base-tenant::dropdown-link :href="route('base-tenant.dashboard')">@lang('base-tenant::app.dropdown.link.alerts')</x-base-tenant::dropdown-link>
     <hr>
     @if(auth()->user()->hasRole('customer-admin'))
-    <h5 class="block px-4 py-2 text-xs font-semibold text-primary-400 uppercase tracking-wider">@lang('app.dropdown.title.account')</h5>
-        <x-base-tenant::dropdown-link :href="route('base-tenant.dashboard')">@lang('app.dropdown.link.settings')</x-base-tenant::dropdown-link>
-        {{-- <x-base-tenant::dropdown-link :href="route('base-tenant.billing')">@lang('app.dropdown.link.billing')</x-base-tenant::dropdown-link> --}}
+    <h5 class="block px-4 py-2 text-xs font-semibold text-primary-400 uppercase tracking-wider">@lang('base-tenant::app.dropdown.title.account')</h5>
+        <x-base-tenant::dropdown-link :href="route('base-tenant.dashboard')">@lang('base-tenant::app.dropdown.link.settings')</x-base-tenant::dropdown-link>
+        {{-- <x-base-tenant::dropdown-link :href="route('base-tenant.billing')">@lang('base-tenant::app.dropdown.link.billing')</x-base-tenant::dropdown-link> --}}
     @endif
     <hr>
     <livewire:base-tenant.logout />
