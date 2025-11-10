@@ -198,10 +198,11 @@ class InstallCommand extends Command
         $totalSteps = 7;
 
         try {
-            // Step 1: Clean migrations and routes
+            // Step 1: Clean migrations, routes, and views
             $this->components->task("[{$step}/{$totalSteps}] Cleaning conflicting files", function () {
                 $this->cleanConflictingMigrations();
                 $this->cleanConflictingRoutes();
+                $this->cleanConflictingViews();
                 return true;
             });
             $step++;
@@ -294,6 +295,33 @@ class InstallCommand extends Command
     }
 
     /**
+     * Clean conflicting views from starter kits
+     */
+    protected function cleanConflictingViews(): bool
+    {
+        // Remove starter kit layouts
+        $paths = [
+            resource_path('views/components/layouts/app'),
+            resource_path('views/components/layouts/app.blade.php'),
+            resource_path('views/components/layouts/auth'),
+            resource_path('views/components/layouts/auth.blade.php'),
+            resource_path('views/dashboard.blade.php'),
+        ];
+
+        foreach ($paths as $path) {
+            if (File::exists($path)) {
+                if (File::isDirectory($path)) {
+                    File::deleteDirectory($path);
+                } else {
+                    File::delete($path);
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * Update User model
      */
     protected function updateUserModel(): bool
@@ -322,11 +350,9 @@ class InstallCommand extends Command
             '--force' => true,
         ]);
 
-        // Publish translations
-        $this->callSilent('vendor:publish', [
-            '--tag' => 'base-tenant-lang',
-            '--force' => true,
-        ]);
+        // Note: Translations are NOT published by default.
+        // The package uses namespaced translations (base-tenant::xxx)
+        // Users can optionally publish to customize: php artisan vendor:publish --tag=base-tenant-lang
 
         // Update config to use App\Models\User
         $configPath = config_path('base-tenant.php');
@@ -434,25 +460,84 @@ class InstallCommand extends Command
         }
 
         $content = File::get($cssPath);
+        $updated = false;
 
-        // Check if already configured
-        if (str_contains($content, 'vendor/base/tenant/resources/views')) {
-            return;
+        // Step 1: Add @source directives if not present
+        if (! str_contains($content, 'vendor/base/tenant/resources/views')) {
+            // Add source paths for both development (symlink) and production
+            $sourcePaths = "\n@source '../../base-tenant/resources/views/**/*.blade.php';\n@source '../../vendor/base/tenant/resources/views/**/*.blade.php';";
+
+            // Insert after the @source '../views'; line
+            if (str_contains($content, "@source '../views';")) {
+                $content = str_replace(
+                    "@source '../views';",
+                    "@source '../views';" . $sourcePaths,
+                    $content
+                );
+                $updated = true;
+            }
         }
 
-        // Add source paths for both development (symlink) and production
-        $sourcePaths = "\n@source '../../base-tenant/resources/views/**/*.blade.php';\n@source '../../vendor/base/tenant/resources/views/**/*.blade.php';";
+        // Step 2: Add Flux color tokens to @theme block (for Tailwind CSS 4)
+        if (str_contains($content, '@theme') && ! str_contains($content, '--color-surface-50')) {
+            $fluxColors = "
+    /* Flux UI color aliases - map to standard Tailwind colors */
+    --color-surface-50: var(--color-gray-50);
+    --color-surface-100: var(--color-gray-100);
+    --color-surface-200: var(--color-gray-200);
+    --color-surface-300: var(--color-gray-300);
+    --color-surface-400: var(--color-gray-400);
+    --color-surface-500: var(--color-gray-500);
+    --color-surface-600: var(--color-gray-600);
+    --color-surface-700: var(--color-gray-700);
+    --color-surface-800: var(--color-gray-800);
+    --color-surface-900: var(--color-gray-900);
 
-        // Insert after the @source '../views'; line
-        if (str_contains($content, "@source '../views';")) {
-            $content = str_replace(
-                "@source '../views';",
-                "@source '../views';" . $sourcePaths,
-                $content
-            );
+    --color-primary-50: var(--color-zinc-50);
+    --color-primary-100: var(--color-zinc-100);
+    --color-primary-200: var(--color-zinc-200);
+    --color-primary-300: var(--color-zinc-300);
+    --color-primary-400: var(--color-zinc-400);
+    --color-primary-500: var(--color-zinc-500);
+    --color-primary-600: var(--color-zinc-600);
+    --color-primary-700: var(--color-zinc-700);
+    --color-primary-800: var(--color-zinc-800);
+    --color-primary-900: var(--color-zinc-900);
 
+    --color-accent-50: var(--color-violet-50);
+    --color-accent-100: var(--color-violet-100);
+    --color-accent-200: var(--color-violet-200);
+    --color-accent-300: var(--color-violet-300);
+    --color-accent-400: var(--color-violet-400);
+    --color-accent-500: var(--color-violet-500);
+    --color-accent-600: var(--color-violet-600);
+    --color-accent-700: var(--color-violet-700);
+    --color-accent-800: var(--color-violet-800);
+    --color-accent-900: var(--color-violet-900);
+
+    --color-success: var(--color-green-500);
+    --color-error: var(--color-red-500);
+    --color-warning: var(--color-amber-500);
+    --color-info: var(--color-blue-500);
+";
+
+            // Find the closing brace of @theme block and insert before it
+            if (preg_match('/@theme\s*\{(.*?)\n\}/s', $content, $matches)) {
+                $themeContent = $matches[1];
+                $newThemeContent = $themeContent . $fluxColors;
+                $content = preg_replace(
+                    '/@theme\s*\{.*?\n\}/s',
+                    "@theme {" . $newThemeContent . "\n}",
+                    $content,
+                    1
+                );
+                $updated = true;
+            }
+        }
+
+        if ($updated) {
             File::put($cssPath, $content);
-            $this->components->info('Updated app.css to include base-tenant views');
+            $this->components->info('Updated app.css with base-tenant configuration');
         }
     }
 
