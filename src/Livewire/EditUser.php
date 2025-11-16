@@ -83,6 +83,16 @@ class EditUser extends Component
             // Create mode
             $this->isCreateMode = true;
             $this->user = new User;
+
+            // Initialize with defaults
+            $this->timezone = 'UTC';
+            $this->locale = 'en';
+            $this->currency = 'USD';
+            $this->decimal_places = 2;
+            $this->decimals_separator = '.';
+            $this->thousands_separator = ',';
+            $this->date_format = 'Y-m-d';
+            $this->time_format = 'H:i';
         } elseif ($user instanceof User && $user->exists) {
             // Edit mode
             // System admins can edit any user, others must check account membership
