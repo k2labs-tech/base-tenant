@@ -67,7 +67,6 @@ class EditUser extends Component
     public function mount($user = null)
     {
         $authUser = Auth::user();
-
         // System admins can manage all users
         $isSystemAdmin = $authUser->is_admin || is_null($authUser->account_id);
 
@@ -80,7 +79,7 @@ class EditUser extends Component
         }
 
         // Check if we're in create mode by checking the route
-        if (request()->route()->getName() === 'users.create') {
+        if (request()->route()->getName() === 'base-tenant.users.create') {
             // Create mode
             $this->isCreateMode = true;
             $this->user = new User;
