@@ -4,17 +4,15 @@ namespace Base\Tenant\Livewire;
 
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
-//use WireUi\Traits\WireUiActions;
 
 #[Layout('layouts.app')]
 class EditUser extends Component
 {
-//    use WireUiActions;
-
     public ?User $user = null;
 
     public $isCreateMode = false;
@@ -166,11 +164,11 @@ class EditUser extends Component
 
         $this->user->update($validated);
 
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::users.user_updated'),
-            'description' => __('base-tenant::users.profile_updated'),
-        ]);
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::users.user_updated'),
+            text: __('base-tenant::users.profile_updated'),
+        );
     }
 
     public function saveNewUser()
@@ -211,11 +209,12 @@ class EditUser extends Component
         }
 
         $user->roles()->sync($this->selectedRoles);
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::users.user_created'),
-            'description' => __('base-tenant::users.created_successfully'),
-        ]);
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::users.user_created'),
+            text: __('base-tenant::users.created_successfully'),
+        );
 
         // Redirect to edit mode
         return redirect()->route('users.edit', $user);
@@ -236,11 +235,12 @@ class EditUser extends Component
         ]);
 
         $this->reset(['password', 'password_confirmation']);
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::users.password_updated_title'),
-            'description' => __('base-tenant::users.password_updated'),
-        ]);
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::users.password_updated_title'),
+            text: __('base-tenant::users.password_updated'),
+        );
     }
 
     public function updatePreferences()
@@ -262,11 +262,11 @@ class EditUser extends Component
 
         $this->user->update($validated);
 
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::users.preferences_updated_title'),
-            'description' => __('base-tenant::users.preferences_updated'),
-        ]);
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::users.preferences_updated_title'),
+            text: __('base-tenant::users.preferences_updated'),
+        );
     }
 
     public function updateRoles()
@@ -276,10 +276,11 @@ class EditUser extends Component
         }
 
         $this->user->roles()->sync($this->selectedRoles);
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::users.roles_updated_title'),
-            'description' => __('base-tenant::users.roles_updated'),
-        ]);
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::users.roles_updated_title'),
+            text: __('base-tenant::users.roles_updated'),
+        );
     }
 }
