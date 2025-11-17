@@ -54,7 +54,7 @@ class LoginForm extends Form
             ]);
 
             // Redirect to 2FA challenge page
-            redirect()->route('two-factor.challenge');
+            redirect()->route('base-tenant.two-factor.challenge');
             return;
         }
 

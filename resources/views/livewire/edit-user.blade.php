@@ -2,7 +2,7 @@
     <div class="">
         <div class="">
             <div class="mb-6">
-                <a href="{{ route('users.index') }}" class="text-primary-600 hover:text-primary-900">
+                <a href="{{ route('base-tenant.users.index') }}" class="text-primary-600 hover:text-primary-900">
                     ← {{ __('base-tenant::users.back_to_users') }}
                 </a>
             </div>
@@ -114,12 +114,13 @@
             @endif
 
             <!-- Preferences -->
-            @if(!$isCreateMode)
-                <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg mb-6">
+            <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg mb-6">
                 <div class="p-6">
                     <h3 class="text-lg font-medium text-secondary-900 mb-4">{{ __('base-tenant::users.preferences') }}</h3>
 
-                    <form wire:submit="updatePreferences">
+                    @if(!$isCreateMode)
+                        <form wire:submit="updatePreferences">
+                    @endif
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="timezone" value="{{ __('base-tenant::users.timezone') }}" />
@@ -213,11 +214,10 @@
                             <div class="mt-4">
                                 <x-primary-button>{{ __('base-tenant::users.save_preferences') }}</x-primary-button>
                             </div>
-                        @endif
-                    </form>
+                        </form>
+                    @endif
                 </div>
-                </div>
-            @endif
+            </div>
 
             <!-- User Roles -->
             <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg">

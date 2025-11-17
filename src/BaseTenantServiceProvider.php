@@ -57,9 +57,12 @@ class BaseTenantServiceProvider extends ServiceProvider
             __DIR__.'/../config/base-tenant.php' => config_path('base-tenant.php'),
         ], 'base-tenant-config');
 
-        $this->publishes([
-            __DIR__.'/../resources/views' => resource_path('views/vendor/base-tenant'),
-        ], 'base-tenant-views');
+        // Views are NOT published to avoid sync issues.
+        // Package views are loaded via namespace: base-tenant::xxx
+        // For customization, extend Livewire components or use Blade slots.
+        // $this->publishes([
+        //     __DIR__.'/../resources/views' => resource_path('views/vendor/base-tenant'),
+        // ], 'base-tenant-views');
 
         $this->publishes([
             __DIR__.'/../public' => public_path('vendor/base-tenant'),

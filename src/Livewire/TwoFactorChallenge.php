@@ -26,7 +26,7 @@ class TwoFactorChallenge extends Component
         $this->userId = $userId ?? session('2fa.user_id');
 
         if (!$this->userId) {
-            return redirect()->route('login');
+            return redirect()->route('base-tenant.login');
         }
     }
 
@@ -79,7 +79,7 @@ class TwoFactorChallenge extends Component
         Auth::login($user, session('2fa.remember', false));
         session()->forget(['2fa.user_id', '2fa.remember']);
 
-        $this->redirect(route('dashboard'));
+        $this->redirect(route('base-tenant.dashboard'));
     }
 
     protected function verifyRecoveryCode()
@@ -114,6 +114,6 @@ class TwoFactorChallenge extends Component
             text: __('base-tenant::auth.2fa.recovery_code_warning'),
         );
 
-        $this->redirect(route('dashboard'));
+        $this->redirect(route('base-tenant.dashboard'));
     }
 }

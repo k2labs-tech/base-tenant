@@ -217,7 +217,7 @@ class EditUser extends Component
         );
 
         // Redirect to edit mode
-        return redirect()->route('users.edit', $user);
+        return redirect()->route('base-tenant.users.edit', $user);
     }
 
     public function updatePassword()

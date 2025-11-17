@@ -34,7 +34,7 @@ new class extends Component
                         {{ __('Dashboard') }}
                     </x-nav-link>
                     @if(auth()->user()->account && (auth()->user()->account->user_id === auth()->user()->id || auth()->user()->is_admin))
-                        <x-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')" wire:navigate>
+                        <x-nav-link :href="route('base-tenant.users.index')" :active="request()->routeIs('base-tenant.users.index')" wire:navigate>
                             {{ __('base-tenant::app.navigation.users') }}
                         </x-nav-link>
                     @endif
@@ -90,7 +90,7 @@ new class extends Component
                 {{ __('Dashboard') }}
             </x-responsive-nav-link>
             @if(auth()->user()->account && (auth()->user()->account->user_id === auth()->user()->id || auth()->user()->is_admin))
-                <x-responsive-nav-link :href="route('users.index')" :active="request()->routeIs('users.index')" wire:navigate>
+                <x-responsive-nav-link :href="route('base-tenant.users.index')" :active="request()->routeIs('base-tenant.users.index')" wire:navigate>
                     {{ __('Users') }}
                 </x-responsive-nav-link>
             @endif
