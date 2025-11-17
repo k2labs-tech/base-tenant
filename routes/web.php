@@ -30,6 +30,9 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
         // User management routes
         Route::get('/users', UserManager::class)->name('base-tenant.users.index');
         Route::get('/users/create', EditUser::class)->name('base-tenant.users.create');
+        /*Route::get('/users/create', function () {
+            dd('create');
+        })->name('base-tenant.users.create');*/
         Route::get('/users/{user}/edit', EditUser::class)->name('base-tenant.users.edit');
     });
 });

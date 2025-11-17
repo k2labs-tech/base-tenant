@@ -16,8 +16,6 @@ class UserManager extends Component
 {
     use WithPagination;
 
-    public $showDeleteModal = false;
-
     public $deletingUser = null;
 
     public $search = '';
@@ -83,7 +81,7 @@ class UserManager extends Component
     public function confirmDelete(User $user)
     {
         $this->deletingUser = $user;
-        $this->showDeleteModal = true;
+        $this->modal('delete-user-modal')->show();
     }
 
     public function deleteUser()
@@ -94,7 +92,7 @@ class UserManager extends Component
                 heading: __('base-tenant::users.error_deleting_user'),
                 text: __('base-tenant::users.cannot_delete_own_account'),
             );
-            $this->showDeleteModal = false;
+            $this->modal('delete-user-modal')->close();
 
             return;
         }
@@ -114,7 +112,7 @@ class UserManager extends Component
             }
         }
 
-        $this->showDeleteModal = false;
+        $this->modal('delete-user-modal')->close();
         $this->deletingUser = null;
 
         Flux::toast(
