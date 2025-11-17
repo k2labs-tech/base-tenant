@@ -5,16 +5,16 @@ namespace Base\Tenant\Livewire;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Livewire\WithPagination;
-//use WireUi\Traits\WireUiActions;
 
 #[Layout('layouts.app')]
 class UserManager extends Component
 {
-    use /*WireUiActions, */WithPagination;
+    use WithPagination;
 
     public $showDeleteModal = false;
 
@@ -89,11 +89,11 @@ class UserManager extends Component
     public function deleteUser()
     {
         if ($this->deletingUser->id === Auth::id()) {
-            $this->notification()->send([
-                'icon' => 'error',
-                'title' => __('base-tenant::users.error_deleting_user'),
-                'description' => __('base-tenant::users.cannot_delete_own_account'),
-            ]);
+            Flux::toast(
+                variant: 'danger',
+                heading: __('base-tenant::users.error_deleting_user'),
+                text: __('base-tenant::users.cannot_delete_own_account'),
+            );
             $this->showDeleteModal = false;
 
             return;
@@ -117,11 +117,11 @@ class UserManager extends Component
         $this->showDeleteModal = false;
         $this->deletingUser = null;
 
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::users.user_removed'),
-            'description' => __('base-tenant::users.removed_successfully'),
-        ]);
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::users.user_removed'),
+            text: __('base-tenant::users.removed_successfully'),
+        );
     }
 
     public function updatingSearch()

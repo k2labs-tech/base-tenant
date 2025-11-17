@@ -2,17 +2,16 @@
 
 namespace Base\Tenant\Livewire;
 
-use Livewire\Component;
-use PragmaRX\Google2FA\Google2FA;
-use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\Image\SvgImageBackEnd;
+use BaconQrCode\Renderer\ImageRenderer;
 use BaconQrCode\Renderer\RendererStyle\RendererStyle;
 use BaconQrCode\Writer;
-//use WireUi\Traits\WireUiActions;
+use Flux\Flux;
+use Livewire\Component;
+use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorAuthentication extends Component
 {
-//    use WireUiActions;
 
     public $showEnableModal = false;
     public $showDisableModal = false;
@@ -110,11 +109,11 @@ class TwoFactorAuthentication extends Component
         $this->showEnableModal = false;
         $this->showRecoveryCodesModal = true;
 
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::auth.2fa.enabled_title'),
-            'description' => __('base-tenant::auth.2fa.enabled_description'),
-        ]);
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::auth.2fa.enabled_title'),
+            text: __('base-tenant::auth.2fa.enabled_description'),
+        );
     }
 
     public function disable()
@@ -138,11 +137,11 @@ class TwoFactorAuthentication extends Component
         $this->showDisableModal = false;
         $this->reset(['password', 'recoveryCodes']);
 
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::auth.2fa.disabled_title'),
-            'description' => __('base-tenant::auth.2fa.disabled_description'),
-        ]);
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::auth.2fa.disabled_title'),
+            text: __('base-tenant::auth.2fa.disabled_description'),
+        );
     }
 
     public function regenerateRecoveryCodes()
@@ -150,10 +149,10 @@ class TwoFactorAuthentication extends Component
         auth()->user()->regenerateRecoveryCodes();
         $this->recoveryCodes = auth()->user()->two_factor_recovery_codes;
 
-        $this->notification()->send([
-            'icon' => 'success',
-            'title' => __('base-tenant::auth.2fa.recovery_codes_regenerated'),
-        ]);
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::auth.2fa.recovery_codes_regenerated'),
+        );
     }
 
     public function downloadRecoveryCodes()

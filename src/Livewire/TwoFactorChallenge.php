@@ -2,15 +2,14 @@
 
 namespace Base\Tenant\Livewire;
 
-use Livewire\Component;
-use PragmaRX\Google2FA\Google2FA;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-//use WireUi\Traits\WireUiActions;
+use Livewire\Component;
+use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorChallenge extends Component
 {
-//    use WireUiActions;
 
     public $code = '';
     public $recoveryCode = '';
@@ -109,11 +108,11 @@ class TwoFactorChallenge extends Component
         Auth::login($user, session('2fa.remember', false));
         session()->forget(['2fa.user_id', '2fa.remember']);
 
-        $this->notification()->send([
-            'icon' => 'warning',
-            'title' => __('base-tenant::auth.2fa.recovery_code_used'),
-            'description' => __('base-tenant::auth.2fa.recovery_code_warning'),
-        ]);
+        Flux::toast(
+            variant: 'warning',
+            heading: __('base-tenant::auth.2fa.recovery_code_used'),
+            text: __('base-tenant::auth.2fa.recovery_code_warning'),
+        );
 
         $this->redirect(route('dashboard'));
     }
