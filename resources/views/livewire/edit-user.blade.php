@@ -224,11 +224,13 @@
                 <div class="p-6">
                     <h3 class="text-lg font-medium text-secondary-900 mb-4">{{ __('base-tenant::users.user_roles') }}</h3>
 
-                    <form wire:submit="updateRoles">
+                    @if(!$isCreateMode)
+                        <form wire:submit="updateRoles">
+                    @endif
                         <div class="space-y-2">
                             @foreach($roles as $role)
                                 <label class="flex items-center">
-                                    <input type="checkbox" wire:model="selectedRoles" value="{{ $role->id }}" class="rounded-smborder-secondary-300 text-primary-600 shadow-xs focus:ring-primary-500">
+                                    <input type="checkbox" wire:model="selectedRoles" value="{{ $role->id }}" class="rounded-sm border-secondary-300 text-primary-600 shadow-xs focus:ring-primary-500">
                                     <span class="ml-2 text-sm text-secondary-700">
                                         {{ $role->name }}
                                         @if($role->description)
@@ -242,8 +244,8 @@
                             <div class="mt-4">
                                 <x-primary-button>{{ __('base-tenant::users.update_roles') }}</x-primary-button>
                             </div>
-                        @endif
-                    </form>
+                        </form>
+                    @endif
                 </div>
             </div>
 
