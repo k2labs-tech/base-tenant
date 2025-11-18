@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 use Laravel\Cashier\Billable;
 
 class Account extends Model
 {
-    use Billable, HasFactory, HasUuids;
+    use Billable, HasFactory, HasUuids, SoftDeletes;
 
     /**
      * Get the attributes that aren't mass assignable.

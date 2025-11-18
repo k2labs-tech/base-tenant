@@ -24,6 +24,7 @@ return new class extends Migration
             $table->string('country')->nullable();
             $table->string('postal_code')->nullable();
             $table->timestamps();
+            $table->softDeletes();
         });
     }
 
