@@ -179,7 +179,7 @@
                                 {{ __('base-tenant::users.impersonation_banner', ['name' => Auth::user()->name]) }}
                             </span>
                         </div>
-                        <a href="{{ route('impersonate.leave') }}" class="inline-flex items-center px-3 py-1.5 bg-warning-600 text-white text-xs font-semibold rounded-md hover:bg-warning-700 focus:outline-hidden focus:ring-2 focus:ring-warning-500 focus:ring-offset-2 transition-colors">
+                        <a href="{{ route('impersonate.leave') }}" class="inline-flex items-center px-4 py-2 bg-zinc-900 text-white text-sm font-bold rounded-lg hover:bg-zinc-800 focus:outline-hidden focus:ring-2 focus:ring-zinc-700 focus:ring-offset-2 shadow-lg transition-all">
                             {{ __('base-tenant::users.leave_impersonation') }}
                         </a>
                     </div>
