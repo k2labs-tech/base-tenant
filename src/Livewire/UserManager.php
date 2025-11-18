@@ -22,17 +22,13 @@ class UserManager extends Component
 
     public function mount()
     {
-        // Check if user is a system admin or account owner
         $user = Auth::user();
+        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
+        $isProjectAdmin = $user->hasRole('project-admin');
+        $isProjectCollaborator = $user->hasRole('project-collaborator');
 
-        // System admins (is_admin = true or no account_id) can access all users
-        if ($user->is_admin || is_null($user->account_id)) {
-            return;
-        }
-
-        // Otherwise, must be account owner
-        $account = $user->account;
-        if (! $account || $account->user_id !== $user->id) {
+        // System admins, project-admins, or project-collaborators can access
+        if (! $isSystemAdmin && ! $isProjectAdmin && ! $isProjectCollaborator) {
             abort(403, __('base-tenant::auth.unauthorized'));
         }
     }
@@ -45,7 +41,7 @@ class UserManager extends Component
         if ($user->is_admin || is_null($user->account_id)) {
             // Admin users see all users in the system
             $users = User::query()
-                ->with('roles', 'accounts')
+                ->with('roles', 'account')
                 ->when($this->search, function ($query) {
                     $query->where(function ($q) {
                         $q->where('name', 'like', '%'.$this->search.'%')
@@ -55,10 +51,10 @@ class UserManager extends Component
                 ->orderBy('name')
                 ->paginate(10);
         } else {
-            // Regular users see only their account's users
-            $account = $user->account;
-            $users = $account->users()
-                ->with('roles')
+            // Project admins see only their account's users (by account_id)
+            $users = User::query()
+                ->where('account_id', $user->account_id)
+                ->with('roles', 'account')
                 ->when($this->search, function ($query) {
                     $query->where(function ($q) {
                         $q->where('name', 'like', '%'.$this->search.'%')
@@ -71,10 +67,15 @@ class UserManager extends Component
 
         $roles = Role::nonSystem()->orderBy('name')->get();
 
+        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
+        $isProjectAdmin = $user->hasRole('project-admin');
+        $canEdit = $isSystemAdmin || $isProjectAdmin;
+
         return view('base-tenant::livewire.user-manager', [
             'users' => $users,
             'roles' => $roles,
-            'isSystemAdmin' => $user->is_admin || is_null($user->account_id),
+            'isSystemAdmin' => $isSystemAdmin,
+            'canEdit' => $canEdit,
         ]);
     }
 
@@ -86,6 +87,15 @@ class UserManager extends Component
 
     public function deleteUser()
     {
+        $user = Auth::user();
+        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
+        $isProjectAdmin = $user->hasRole('project-admin');
+
+        // Only system admins and project admins can delete users
+        if (! $isSystemAdmin && ! $isProjectAdmin) {
+            abort(403, __('base-tenant::auth.unauthorized'));
+        }
+
         if ($this->deletingUser->id === Auth::id()) {
             Flux::toast(
                 variant: 'danger',
@@ -97,19 +107,18 @@ class UserManager extends Component
             return;
         }
 
-        $user = Auth::user();
-
         // System admins can delete users completely
-        if ($user->is_admin || is_null($user->account_id)) {
+        if ($isSystemAdmin) {
             // For system admins, completely delete the user
             $this->deletingUser->delete();
         } else {
-            // For account owners, just detach from their account
-            $this->deletingUser->accounts()->detach($user->account_id);
-
-            if ($this->deletingUser->accounts()->count() === 0) {
-                $this->deletingUser->delete();
+            // For project admins, verify they're deleting a user from their account
+            if ($this->deletingUser->account_id !== $user->account_id) {
+                abort(403, __('base-tenant::auth.unauthorized'));
             }
+
+            // Remove the user completely from the system
+            $this->deletingUser->delete();
         }
 
         $this->modal('delete-user-modal')->close();
@@ -125,5 +134,40 @@ class UserManager extends Component
     public function updatingSearch()
     {
         $this->resetPage();
+    }
+
+    public function impersonate($userId)
+    {
+        $user = Auth::user();
+
+        // Only system admins can impersonate
+        if (! $user->canImpersonate()) {
+            abort(403, __('base-tenant::auth.unauthorized'));
+        }
+
+        $targetUser = User::findOrFail($userId);
+
+        // Cannot impersonate system admins
+        if (! $targetUser->canBeImpersonated()) {
+            Flux::toast(
+                variant: 'danger',
+                heading: __('base-tenant::users.cannot_impersonate'),
+                text: __('base-tenant::users.cannot_impersonate_admin'),
+            );
+            return;
+        }
+
+        $user->impersonate($targetUser);
+
+        // Refresh roles in session for the impersonated user
+        auth()->user()->storeRolesSession();
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::users.impersonating'),
+            text: __('base-tenant::users.impersonating_as', ['name' => $targetUser->name]),
+        );
+
+        return redirect()->route('base-tenant.dashboard');
     }
 }

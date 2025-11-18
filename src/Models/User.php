@@ -13,11 +13,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
+use Lab404\Impersonate\Models\Impersonate;
 use Livewire\Features\SupportRedirects\Redirector;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasUuids, Notifiable;
+    use HasFactory, HasUuids, Impersonate, Notifiable;
 
     /**
      * The attributes that are mass assignable.
@@ -392,5 +393,23 @@ class User extends Authenticatable
         }
 
         return false;
+    }
+
+    /**
+     * Determine if the user can impersonate other users.
+     * Only system admins can impersonate.
+     */
+    public function canImpersonate(): bool
+    {
+        return $this->is_admin || is_null($this->account_id);
+    }
+
+    /**
+     * Determine if the user can be impersonated.
+     * System admins cannot be impersonated.
+     */
+    public function canBeImpersonated(): bool
+    {
+        return ! ($this->is_admin || is_null($this->account_id));
     }
 }

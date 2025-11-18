@@ -9,6 +9,9 @@ return [
     'password' => 'Password',
     'password_leave_blank' => 'Password (leave blank to keep current)',
     'roles' => 'Roles',
+    'accounts' => 'Accounts',
+    'no_accounts' => 'No accounts',
+    'system_admin' => 'System Admin',
     'actions' => 'Actions',
     'edit' => 'Edit',
     'remove' => 'Remove',
@@ -43,6 +46,8 @@ return [
     'edit_user_title' => 'Edit User: :name',
     'profile_information' => 'Profile Information',
     'phone' => 'Phone',
+    'account' => 'Account',
+    'select_account' => 'Select account',
     'save_profile' => 'Save Profile',
     'update_password' => 'Update Password',
     'new_password' => 'New Password',
@@ -70,6 +75,8 @@ return [
     'create_role' => 'Create Role',
     'user_roles' => 'User Roles',
     'update_roles' => 'Update Roles',
+    'account_users' => 'Account Users',
+    'account_users_description' => 'Other users in the same account',
     'all_roles' => 'All Roles',
     'role_key' => 'Role Key',
     'role_name' => 'Role Name',
@@ -92,4 +99,13 @@ return [
     // Error messages for roles
     'role_in_use' => 'Cannot delete role',
     'role_in_use_description' => 'This role is currently assigned to one or more users.',
+
+    // Impersonate
+    'impersonate' => 'Impersonate',
+    'cannot_impersonate' => 'Cannot Impersonate',
+    'cannot_impersonate_admin' => 'You cannot impersonate a system administrator.',
+    'impersonating' => 'Impersonating',
+    'impersonating_as' => 'You are now impersonating :name',
+    'leave_impersonation' => 'Leave Impersonation',
+    'impersonation_banner' => 'You are currently impersonating :name',
 ];

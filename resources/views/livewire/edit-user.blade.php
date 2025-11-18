@@ -46,6 +46,19 @@
                                 <x-text-input id="phone" type="text" class="mt-1 block w-full" wire:model="phone" />
                                 <x-input-error :messages="$errors->get('phone')" class="mt-2" />
                             </div>
+
+                            @if($isCreateMode && auth()->user()->is_admin)
+                                <div>
+                                    <x-input-label for="selected_account_id" value="{{ __('base-tenant::users.account') }}" />
+                                    <select id="selected_account_id" wire:model="selected_account_id" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs" required>
+                                        <option value="">{{ __('base-tenant::users.select_account') }}</option>
+                                        @foreach($accounts as $account)
+                                            <option value="{{ $account->id }}">{{ $account->name }}</option>
+                                        @endforeach
+                                    </select>
+                                    <x-input-error :messages="$errors->get('selected_account_id')" class="mt-2" />
+                                </div>
+                            @endif
                         </div>
 
                         <div class="mt-4">
@@ -248,6 +261,60 @@
                     @endif
                 </div>
             </div>
+
+            <!-- Debug Info (only for super-admin) -->
+            @if(!$isCreateMode && auth()->user()->is_admin)
+                <div class="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+                    <p class="text-xs text-yellow-800">
+                        <strong>Debug:</strong>
+                        isProjectAdmin: {{ $isProjectAdmin ? 'Yes' : 'No' }} |
+                        accountUsers count: {{ $accountUsers->count() }} |
+                        user->account_id: {{ $user->account_id ?? 'null' }}
+                        @if($user->account)
+                            | primary account: {{ $user->account->name }}
+                        @endif
+                    </p>
+                </div>
+            @endif
+
+            <!-- Account Users (only for project-admin) -->
+            @if($isProjectAdmin && $accountUsers->count() > 0)
+                <div class="bg-white overflow-hidden shadow-xs sm:rounded-lg mt-6">
+                    <div class="p-6">
+                        <h3 class="text-lg font-medium text-secondary-900 mb-4">{{ __('base-tenant::users.account_users') }}</h3>
+                        <p class="text-sm text-secondary-600 mb-4">{{ __('base-tenant::users.account_users_description') }}</p>
+
+                        <div class="space-y-3">
+                            @foreach($accountUsers as $accountUser)
+                                <div class="flex items-center justify-between p-3 bg-surface-50 rounded-md hover:bg-surface-100 transition">
+                                    <div class="flex items-center space-x-3">
+                                        <div class="flex-shrink-0">
+                                            <div class="w-10 h-10 rounded-full bg-primary-100 text-primary-600 flex items-center justify-center font-medium">
+                                                {{ strtoupper(substr($accountUser->name, 0, 1)) }}
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <a href="{{ route('base-tenant.users.edit', $accountUser) }}"
+                                               class="text-sm font-medium text-primary-600 hover:text-primary-900"
+                                               wire:navigate>
+                                                {{ $accountUser->name }}
+                                            </a>
+                                            <p class="text-xs text-secondary-500">{{ $accountUser->email }}</p>
+                                        </div>
+                                    </div>
+                                    <div class="flex items-center space-x-2">
+                                        @foreach($accountUser->roles as $role)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
+                                                {{ $role->name }}
+                                            </span>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            @endif
 
             @if($isCreateMode)
                 </form>

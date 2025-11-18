@@ -9,6 +9,9 @@ return [
     'password' => 'Contraseña',
     'password_leave_blank' => 'Contraseña (dejar en blanco para mantener la actual)',
     'roles' => 'Roles',
+    'accounts' => 'Cuentas',
+    'no_accounts' => 'Sin cuentas',
+    'system_admin' => 'Administrador del Sistema',
     'actions' => 'Acciones',
     'edit' => 'Editar',
     'remove' => 'Eliminar',
@@ -43,6 +46,8 @@ return [
     'edit_user_title' => 'Editar Usuario: :name',
     'profile_information' => 'Información del Perfil',
     'phone' => 'Teléfono',
+    'account' => 'Cuenta',
+    'select_account' => 'Seleccionar cuenta',
     'save_profile' => 'Guardar Perfil',
     'update_password' => 'Actualizar Contraseña',
     'new_password' => 'Nueva Contraseña',
@@ -70,6 +75,8 @@ return [
     'create_role' => 'Crear Rol',
     'user_roles' => 'Roles del Usuario',
     'update_roles' => 'Actualizar Roles',
+    'account_users' => 'Usuarios de la Cuenta',
+    'account_users_description' => 'Otros usuarios en la misma cuenta',
     'all_roles' => 'Todos los Roles',
     'role_key' => 'Clave del Rol',
     'role_name' => 'Nombre del Rol',
@@ -92,4 +99,13 @@ return [
     // Error messages for roles
     'role_in_use' => 'No se puede eliminar el rol',
     'role_in_use_description' => 'Este rol está actualmente asignado a uno o más usuarios.',
+
+    // Impersonate
+    'impersonate' => 'Suplantar',
+    'cannot_impersonate' => 'No se puede suplantar',
+    'cannot_impersonate_admin' => 'No puedes suplantar a un administrador del sistema.',
+    'impersonating' => 'Suplantando',
+    'impersonating_as' => 'Ahora estás suplantando a :name',
+    'leave_impersonation' => 'Salir de Suplantación',
+    'impersonation_banner' => 'Actualmente estás suplantando a :name',
 ];

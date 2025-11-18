@@ -48,6 +48,9 @@ class EditUser extends Component
     // Role management
     public $selectedRoles = [];
 
+    // Account selection (for super-admin creating users)
+    public $selected_account_id;
+
     protected $rules = [
         'name' => 'required|string|max:255',
         'email' => 'required|email',
@@ -123,8 +126,43 @@ class EditUser extends Component
     {
         $roles = Role::nonSystem()->orderBy('name')->get();
 
+        // Get all accounts for super-admin to select when creating users
+        $accounts = collect();
+        if ($this->isCreateMode && Auth::user()->is_admin) {
+            $accounts = \Base\Tenant\Models\Account::orderBy('name')->get();
+        }
+
+        // Get account users if user is project-admin and has a primary account
+        $accountUsers = collect();
+        $isProjectAdmin = false;
+
+        if (!$this->isCreateMode) {
+            // Load user roles if not already loaded
+            if (!$this->user->relationLoaded('roles')) {
+                $this->user->load('roles');
+            }
+
+            // Check if user has project-admin role
+            $isProjectAdmin = $this->user->roles->contains(function ($role) {
+                return $role->key === 'project-admin';
+            });
+
+            // Get other users in the same primary account
+            // Uses account_id field (primary account) instead of multi-account pivot table
+            if ($isProjectAdmin && $this->user->account_id) {
+                $accountUsers = User::where('account_id', $this->user->account_id)
+                    ->where('id', '!=', $this->user->id)
+                    ->with('roles')
+                    ->orderBy('name')
+                    ->get();
+            }
+        }
+
         return view('base-tenant::livewire.edit-user', [
             'roles' => $roles,
+            'accounts' => $accounts,
+            'accountUsers' => $accountUsers,
+            'isProjectAdmin' => $isProjectAdmin,
             'timezones' => timezone_identifiers_list(),
             'locales' => [
                 'en' => __('base-tenant::languages.english'),
@@ -173,19 +211,26 @@ class EditUser extends Component
 
     public function saveNewUser()
     {
-        $validated = $this->validate([
+        $authUser = Auth::user();
+        $isSystemAdmin = $authUser->is_admin || is_null($authUser->account_id);
+
+        // Build validation rules
+        $validationRules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
-        ]);
+        ];
 
-        $authUser = Auth::user();
-        $isSystemAdmin = $authUser->is_admin || is_null($authUser->account_id);
+        // Super-admin must select an account
+        if ($isSystemAdmin) {
+            $validationRules['selected_account_id'] = 'required|exists:accounts,id';
+        }
 
-        // System admins can create users without account assignment
-        // Regular users create within their account
-        $accountId = $isSystemAdmin ? null : $authUser->account_id;
+        $validated = $this->validate($validationRules);
+
+        // Determine account_id: super-admin selects it, regular users use their own
+        $accountId = $isSystemAdmin ? $this->selected_account_id : $authUser->account_id;
 
         $user = User::create([
             'name' => $validated['name'],
@@ -203,9 +248,9 @@ class EditUser extends Component
             'time_format' => $this->time_format,
         ]);
 
-        // Only attach to accounts if not a system admin user
-        if (! $isSystemAdmin && $authUser->account_id) {
-            $user->accounts()->attach($authUser->account_id);
+        // Attach to account in pivot table (for both super-admin and regular users)
+        if ($accountId) {
+            $user->accounts()->attach($accountId);
         }
 
         $user->roles()->sync($this->selectedRoles);

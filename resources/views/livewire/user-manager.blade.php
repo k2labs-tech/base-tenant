@@ -4,9 +4,11 @@
             <div class="p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-2xl font-semibold text-secondary-900">{{ __('base-tenant::users.management_title') }}</h2>
-                    <a href="{{ route('base-tenant.users.create') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 focus:bg-primary-700 active:bg-primary-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition ease-in-out duration-150">
-                        {{ __('base-tenant::users.add_new') }}
-                    </a>
+                    @if($canEdit)
+                        <a href="{{ route('base-tenant.users.create') }}" class="inline-flex items-center px-4 py-2 bg-primary-600 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-primary-700 focus:bg-primary-700 active:bg-primary-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 transition ease-in-out duration-150">
+                            {{ __('base-tenant::users.add_new') }}
+                        </a>
+                    @endif
                 </div>
 
 
@@ -41,16 +43,14 @@
                                 <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">{{ $user->email }}</td>
                                 @if($isSystemAdmin)
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-secondary-500">
-                                        @if($user->accounts->count() > 0)
-                                            @foreach($user->accounts as $account)
-                                                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800 mr-1">
-                                                            {{ $account->name ?? $account->id }}
-                                                        </span>
-                                            @endforeach
-                                        @elseif($user->is_admin || is_null($user->account_id))
+                                        @if($user->is_admin || is_null($user->account_id))
                                             <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-warning-100 text-warning-800">
-                                                        {{ __('base-tenant::users.system_admin') }}
-                                                    </span>
+                                                {{ __('base-tenant::users.system_admin') }}
+                                            </span>
+                                        @elseif($user->account_id && $user->account)
+                                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-100 text-secondary-800">
+                                                {{ $user->account->name ?? $user->account->id }}
+                                            </span>
                                         @else
                                             <span class="text-secondary-400">{{ __('base-tenant::users.no_accounts') }}</span>
                                         @endif
@@ -64,9 +64,16 @@
                                     @endforeach
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                    <a href="{{ route('base-tenant.users.edit', $user) }}" class="text-primary-600 hover:text-primary-900 mr-3">{{ __('base-tenant::users.edit') }}</a>
-                                    @if($user->id !== Auth::id())
-                                        <button wire:click="confirmDelete('{{ $user->id }}')" class="text-error-600 hover:text-error-900">{{ __('base-tenant::users.remove') }}</button>
+                                    @if($canEdit)
+                                        <a href="{{ route('base-tenant.users.edit', $user) }}" class="text-primary-600 hover:text-primary-900 mr-3">{{ __('base-tenant::users.edit') }}</a>
+                                        @if($user->id !== Auth::id())
+                                            @if($isSystemAdmin && $user->canBeImpersonated())
+                                                <button wire:click="impersonate('{{ $user->id }}')" class="text-warning-600 hover:text-warning-900 mr-3">{{ __('base-tenant::users.impersonate') }}</button>
+                                            @endif
+                                            <button wire:click="confirmDelete('{{ $user->id }}')" class="text-error-600 hover:text-error-900">{{ __('base-tenant::users.remove') }}</button>
+                                        @endif
+                                    @else
+                                        <span class="text-secondary-400">-</span>
                                     @endif
                                 </td>
                             </tr>
@@ -89,23 +96,22 @@
 
 
     <!-- Delete Confirmation Modal -->
-    <x-confirmation-modal wire:model="showDeleteModal">
-        <x-slot name="title">
-            {{ __('base-tenant::users.remove_user') }}
-        </x-slot>
+    <flux:modal name="delete-user-modal" class="min-w-[22rem] space-y-6">
+        <div>
+            <flux:heading size="lg">{{ __('base-tenant::users.remove_user') }}</flux:heading>
+            <flux:subheading>
+                <p class="mt-4">
+                    {{ __('base-tenant::users.remove_confirmation') }}
+                </p>
+            </flux:subheading>
+        </div>
 
-        <x-slot name="content">
-            {{ __('base-tenant::users.remove_confirmation') }}
-        </x-slot>
+        <div class="flex gap-2 justify-end">
+            <flux:modal.close>
+                <flux:button variant="ghost">{{ __('base-tenant::app.actions.cancel') }}</flux:button>
+            </flux:modal.close>
 
-        <x-slot name="footer">
-            <x-secondary-button wire:click="$set('showDeleteModal', false)" wire:loading.attr="disabled">
-                {{ __('base-tenant::app.actions.cancel') }}
-            </x-secondary-button>
-
-            <x-danger-button class="ml-3" wire:click="deleteUser" wire:loading.attr="disabled">
-                {{ __('base-tenant::users.remove_user') }}
-            </x-danger-button>
-        </x-slot>
-    </x-confirmation-modal>
+            <flux:button wire:click="deleteUser" variant="danger">{{ __('base-tenant::users.remove_user') }}</flux:button>
+        </div>
+    </flux:modal>
 </div>
