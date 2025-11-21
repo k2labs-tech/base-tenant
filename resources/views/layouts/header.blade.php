@@ -6,7 +6,9 @@
             @click="mobileMenuVar = !mobileMenuVar"
             class="border-r border-gray-200 px-4 shadow text-gray-500 focus:outline-hidden focus:ring-2 focus:ring-inset focus:ring-indigo-500 md:hidden">
         <span class="sr-only">Open sidebar</span>
-        <x-heroicons::outline.bars-3-bottom-left class="h-6 w-6"/>
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+        </svg>
     </button>
     <div class="flex flex-1 justify-between px-4 shadow">
         <div class="flex-1 inline-flex items-center uppercase">
