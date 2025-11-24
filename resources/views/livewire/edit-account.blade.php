@@ -30,7 +30,7 @@
 
                             <div>
                                 <x-input-label for="selected_owner_id" value="{{ __('base-tenant::accounts.owner') }}" />
-                                <select id="selected_owner_id" wire:model="selected_owner_id" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="selected_owner_id" wire:model="selected_owner_id" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::accounts.select_owner') }}</option>
                                     @foreach($users as $user)
                                         <option value="{{ $user->id }}">{{ $user->name }} ({{ $user->email }})</option>
@@ -96,23 +96,47 @@
 
                             @if($globalForcePasswordChangeEnabled)
                                 <div class="md:col-span-2 p-4 bg-surface-50 rounded-lg border border-surface-200">
-                                    <div class="flex items-start">
-                                        <div class="flex-shrink-0">
-                                            <input type="checkbox"
-                                                   id="force_password_change"
-                                                   wire:model="force_password_change"
-                                                   class="mt-1 rounded-sm border-secondary-300 text-primary-600 shadow-xs focus:ring-primary-500">
-                                        </div>
-                                        <div class="ml-3">
-                                            <label for="force_password_change" class="text-sm font-medium text-secondary-900 cursor-pointer">
-                                                {{ __('base-tenant::accounts.force_password_change') }}
+                                    <div>
+                                        <label class="text-sm font-medium text-secondary-900">
+                                            {{ __('base-tenant::accounts.force_password_change') }}
+                                        </label>
+                                        <p class="mt-1 text-xs text-secondary-600">
+                                            {{ __('base-tenant::accounts.force_password_change_description') }}
+                                        </p>
+
+                                        <div class="mt-3 space-y-2">
+                                            <label class="flex items-start cursor-pointer">
+                                                <input type="radio"
+                                                       wire:model="force_password_change"
+                                                       value=""
+                                                       class="mt-0.5 h-4 w-4 border-secondary-300 text-primary-600 focus:ring-primary-500">
+                                                <div class="ml-3">
+                                                    <span class="text-sm font-medium text-secondary-900">{{ __('base-tenant::accounts.force_password_inherit') }}</span>
+                                                    <p class="text-xs text-secondary-500">{{ __('base-tenant::accounts.force_password_inherit_description') }}</p>
+                                                </div>
                                             </label>
-                                            <p class="mt-1 text-xs text-secondary-600">
-                                                {{ __('base-tenant::accounts.force_password_change_description') }}
-                                            </p>
-                                            <p class="mt-1 text-xs text-secondary-500 italic">
-                                                {{ __('base-tenant::accounts.force_password_change_note') }}
-                                            </p>
+
+                                            <label class="flex items-start cursor-pointer">
+                                                <input type="radio"
+                                                       wire:model="force_password_change"
+                                                       value="1"
+                                                       class="mt-0.5 h-4 w-4 border-secondary-300 text-primary-600 focus:ring-primary-500">
+                                                <div class="ml-3">
+                                                    <span class="text-sm font-medium text-secondary-900">{{ __('base-tenant::accounts.force_password_enabled') }}</span>
+                                                    <p class="text-xs text-secondary-500">{{ __('base-tenant::accounts.force_password_enabled_description') }}</p>
+                                                </div>
+                                            </label>
+
+                                            <label class="flex items-start cursor-pointer">
+                                                <input type="radio"
+                                                       wire:model="force_password_change"
+                                                       value="0"
+                                                       class="mt-0.5 h-4 w-4 border-secondary-300 text-primary-600 focus:ring-primary-500">
+                                                <div class="ml-3">
+                                                    <span class="text-sm font-medium text-secondary-900">{{ __('base-tenant::accounts.force_password_disabled') }}</span>
+                                                    <p class="text-xs text-secondary-500">{{ __('base-tenant::accounts.force_password_disabled_description') }}</p>
+                                                </div>
+                                            </label>
                                         </div>
                                     </div>
                                 </div>

@@ -66,6 +66,11 @@ return [
 
     // Force password change
     'force_password_change' => 'Requerir cambio de contraseña en primer inicio de sesión',
-    'force_password_change_description' => 'Cuando está habilitado, los nuevos usuarios creados en esta cuenta deberán cambiar su contraseña en su primer inicio de sesión.',
-    'force_password_change_note' => 'Nota: Si se deja sin marcar (null), esta cuenta heredará la configuración global. Marque para habilitar, o desmarque explícitamente y guarde para deshabilitar para esta cuenta.',
+    'force_password_change_description' => 'Controla si los nuevos usuarios de esta cuenta deben cambiar su contraseña en el primer inicio de sesión.',
+    'force_password_inherit' => 'Heredar de configuración global',
+    'force_password_inherit_description' => 'Usar la configuración global (actualmente habilitada)',
+    'force_password_enabled' => 'Siempre requerir',
+    'force_password_enabled_description' => 'Siempre requerir cambio de contraseña para nuevos usuarios en esta cuenta',
+    'force_password_disabled' => 'Nunca requerir',
+    'force_password_disabled_description' => 'Nunca requerir cambio de contraseña para nuevos usuarios en esta cuenta',
 ];

@@ -66,6 +66,11 @@ return [
 
     // Force password change
     'force_password_change' => 'Require password change on first login',
-    'force_password_change_description' => 'When enabled, new users created in this account will be required to change their password upon first login.',
-    'force_password_change_note' => 'Note: If left unchecked (null), this account will inherit the global setting. Check to enable, or explicitly uncheck and save to disable for this account.',
+    'force_password_change_description' => 'Control whether new users in this account must change their password on first login.',
+    'force_password_inherit' => 'Inherit from global setting',
+    'force_password_inherit_description' => 'Use the global configuration (currently enabled)',
+    'force_password_enabled' => 'Always require',
+    'force_password_enabled_description' => 'Always require password change for new users in this account',
+    'force_password_disabled' => 'Never require',
+    'force_password_disabled_description' => 'Never require password change for new users in this account',
 ];

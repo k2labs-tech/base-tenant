@@ -93,10 +93,20 @@ class EditAccount extends Component
             $this->postal_code = $account->postal_code ?? '';
             $this->vat = $account->vat ?? '';
             $this->selected_owner_id = $account->user_id;
-            $this->force_password_change = $account->force_password_change;
+
+            // Convert force_password_change to string for radio button binding
+            if ($account->force_password_change === null) {
+                $this->force_password_change = '';
+            } elseif ($account->force_password_change === true) {
+                $this->force_password_change = '1';
+            } else {
+                $this->force_password_change = '0';
+            }
         } else {
             $this->isCreateMode = true;
             $this->account = new Account;
+            // Default to inherit (null) for new accounts
+            $this->force_password_change = '';
         }
     }
 
@@ -118,8 +128,19 @@ class EditAccount extends Component
             'postal_code' => 'nullable|string|max:20',
             'vat' => 'nullable|string|max:50',
             'selected_owner_id' => 'nullable|exists:users,id',
-            'force_password_change' => 'nullable|boolean',
+            'force_password_change' => 'nullable|in:0,1,',
         ]);
+
+        // Convert force_password_change from string to proper boolean/null
+        $forcePasswordChange = null;
+        if (isset($validated['force_password_change'])) {
+            if ($validated['force_password_change'] === '1') {
+                $forcePasswordChange = true;
+            } elseif ($validated['force_password_change'] === '0') {
+                $forcePasswordChange = false;
+            }
+            // else remains null for empty string
+        }
 
         if ($this->isCreateMode) {
             $account = Account::create([
@@ -134,7 +155,7 @@ class EditAccount extends Component
                 'postal_code' => $validated['postal_code'] ?? null,
                 'vat' => $validated['vat'] ?? null,
                 'user_id' => $validated['selected_owner_id'] ?? null,
-                'force_password_change' => $validated['force_password_change'] ?? null,
+                'force_password_change' => $forcePasswordChange,
             ]);
 
             Flux::toast(
@@ -157,7 +178,7 @@ class EditAccount extends Component
                 'postal_code' => $validated['postal_code'] ?? null,
                 'vat' => $validated['vat'] ?? null,
                 'user_id' => $validated['selected_owner_id'] ?? null,
-                'force_password_change' => $validated['force_password_change'] ?? null,
+                'force_password_change' => $forcePasswordChange,
             ]);
 
             Flux::toast(
@@ -183,7 +204,10 @@ class EditAccount extends Component
         $accountUsers = collect();
         if (! $this->isCreateMode && $this->account->id) {
             $accountUsers = $this->account->users()
-                ->with('roles')
+                ->with(['roles' => function ($query) {
+                    // Only load roles that are scoped to this account
+                    $query->wherePivot('account_id', $this->account->id);
+                }])
                 ->orderBy('name')
                 ->get();
         }
