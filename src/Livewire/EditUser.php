@@ -134,11 +134,22 @@ class EditUser extends Component
 
     public function render()
     {
+        $authUser = Auth::user();
+        $isSuperAdmin = $authUser->is_admin || $authUser->hasRole('super-admin');
+
+        // Get roles based on user permissions
         $roles = Role::nonSystem()->orderBy('name')->get();
+
+        // Filter out super-admin role if current user is not super-admin
+        if (!$isSuperAdmin) {
+            $roles = $roles->reject(function ($role) {
+                return $role->key === 'super-admin';
+            });
+        }
 
         // Get all accounts for super-admin to select when creating users
         $accounts = collect();
-        if ($this->isCreateMode && Auth::user()->is_admin) {
+        if ($this->isCreateMode && $authUser->is_admin) {
             $accounts = \Base\Tenant\Models\Account::orderBy('name')->get();
         }
 
@@ -288,8 +299,8 @@ class EditUser extends Component
             text: __('base-tenant::users.created_successfully'),
         );
 
-        // Redirect to edit mode
-        return redirect()->route('base-tenant.users.edit', $user);
+        // Redirect to users index
+        return redirect()->route('base-tenant.users.index');
     }
 
     public function updatePassword()
