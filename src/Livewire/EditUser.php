@@ -262,8 +262,9 @@ class EditUser extends Component
             'time_format' => $this->time_format,
         ]);
 
-        // If multi-team is enabled, also attach to account_user pivot table
-        if ($multiTeam && $accountId) {
+        // Always attach to account_user pivot table for forward compatibility
+        // This allows switching between single-team and multi-team modes
+        if ($accountId) {
             $user->accounts()->attach($accountId);
         }
 

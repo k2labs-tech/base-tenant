@@ -179,7 +179,7 @@ class User extends Authenticatable
     }
 
     /**
-     * Store the user roles in session (filtered by current account if in multi-team mode).
+     * Store the user roles in session (filtered by current account if applicable).
      */
     public function storeRolesSession(): void
     {
@@ -187,8 +187,12 @@ class User extends Authenticatable
 
         if ($currentAccountId) {
             // Filter roles by current account_id in pivot table
+            // This gets roles where account_id matches OR is null (global roles)
             $roles = $this->roles()
-                ->wherePivot('account_id', $currentAccountId)
+                ->where(function ($query) use ($currentAccountId) {
+                    $query->where('role_user.account_id', $currentAccountId)
+                          ->orWhereNull('role_user.account_id');
+                })
                 ->pluck('key')
                 ->toArray();
         } else {
