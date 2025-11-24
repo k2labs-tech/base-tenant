@@ -41,6 +41,7 @@ class User extends Authenticatable
         'date_format',
         'time_format',
         'account_id',
+        'last_account_id',
         'must_change_password',
     ];
 
@@ -430,5 +431,21 @@ class User extends Authenticatable
     public function canBeImpersonated(): bool
     {
         return ! ($this->is_admin || is_null($this->account_id));
+    }
+
+    /**
+     * Determine the default account for this user
+     *
+     * Priority: last_account_id > account_id > first account
+     *
+     * @throws \Base\Tenant\Exceptions\NoAccountException
+     */
+    public function determineDefaultAccount(): string
+    {
+        // Priority: last_account_id > primary account_id > first account
+        return $this->last_account_id
+            ?? $this->account_id
+            ?? $this->accounts()->first()?->id
+            ?? throw Exceptions\NoAccountException::userHasNoAccounts();
     }
 }

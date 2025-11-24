@@ -9,6 +9,7 @@ use Base\Tenant\Console\Commands\SyncRolesCommand;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
 use Base\Tenant\Http\Middleware\EnsurePasswordChanged;
 use Base\Tenant\Http\Middleware\HasSubscription;
+use Base\Tenant\Http\Middleware\SetAccountContext;
 use Base\Tenant\Http\Middleware\SetLocale;
 use Base\Tenant\Livewire\AccountManager;
 use Base\Tenant\Livewire\AccountSwitcher;
@@ -93,6 +94,10 @@ class BaseTenantServiceProvider extends ServiceProvider
         $router->aliasMiddleware('base-tenant.no-subscription', DoesNotHaveSubscription::class);
         $router->aliasMiddleware('base-tenant.locale', SetLocale::class);
         $router->aliasMiddleware('base-tenant.password-changed', EnsurePasswordChanged::class);
+        $router->aliasMiddleware('base-tenant.account-context', SetAccountContext::class);
+
+        // Always add SetAccountContext to web middleware group
+        $router->pushMiddlewareToGroup('web', SetAccountContext::class);
 
         // Add EnsurePasswordChanged to web middleware group if enabled
         if (config('base-tenant.force_password_change.enabled', false)) {
