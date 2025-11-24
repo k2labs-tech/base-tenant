@@ -134,6 +134,9 @@
 
                     <!-- Header actions -->
                     <div class="flex items-center space-x-4">
+                        <!-- Account Switcher -->
+                        @livewire('base-tenant.account-switcher')
+
                         <!-- Notifications -->
                         <button class="relative p-2 rounded-lg hover:bg-surface-100 transition-colors">
                             <svg class="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">

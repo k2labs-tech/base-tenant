@@ -50,7 +50,7 @@
                             @if($isCreateMode && auth()->user()->is_admin)
                                 <div>
                                     <x-input-label for="selected_account_id" value="{{ __('base-tenant::users.account') }}" />
-                                    <select id="selected_account_id" wire:model="selected_account_id" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs" required>
+                                    <select id="selected_account_id" wire:model="selected_account_id" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500" required>
                                         <option value="">{{ __('base-tenant::users.select_account') }}</option>
                                         @foreach($accounts as $account)
                                             <option value="{{ $account->id }}">{{ $account->name }}</option>
@@ -137,7 +137,7 @@
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <x-input-label for="timezone" value="{{ __('base-tenant::users.timezone') }}" />
-                                <select id="timezone" wire:model="timezone" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="timezone" wire:model="timezone" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_timezone') }}</option>
                                     @foreach($timezones as $tz)
                                         <option value="{{ $tz }}">{{ $tz }}</option>
@@ -148,7 +148,7 @@
 
                             <div>
                                 <x-input-label for="locale" value="{{ __('base-tenant::users.language') }}" />
-                                <select id="locale" wire:model="locale" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="locale" wire:model="locale" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_language') }}</option>
                                     @foreach($locales as $code => $name)
                                         <option value="{{ $code }}">{{ $name }}</option>
@@ -159,7 +159,7 @@
 
                             <div>
                                 <x-input-label for="currency" value="{{ __('base-tenant::users.currency') }}" />
-                                <select id="currency" wire:model="currency" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="currency" wire:model="currency" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_currency') }}</option>
                                     @foreach($currencies as $code => $name)
                                         <option value="{{ $code }}">{{ $name }}</option>
@@ -170,7 +170,7 @@
 
                             <div>
                                 <x-input-label for="decimal_places" value="{{ __('base-tenant::users.decimal_places') }}" />
-                                <select id="decimal_places" wire:model="decimal_places" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="decimal_places" wire:model="decimal_places" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_decimal_places') }}</option>
                                     @for($i = 0; $i <= 4; $i++)
                                         <option value="{{ $i }}">{{ $i }}</option>
@@ -181,7 +181,7 @@
 
                             <div>
                                 <x-input-label for="decimals_separator" value="{{ __('base-tenant::users.decimal_separator') }}" />
-                                <select id="decimals_separator" wire:model="decimals_separator" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="decimals_separator" wire:model="decimals_separator" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_separator') }}</option>
                                     <option value=".">. ({{ __('base-tenant::users.dot') }})</option>
                                     <option value=",">, ({{ __('base-tenant::users.comma') }})</option>
@@ -191,7 +191,7 @@
 
                             <div>
                                 <x-input-label for="thousands_separator" value="{{ __('base-tenant::users.thousands_separator') }}" />
-                                <select id="thousands_separator" wire:model="thousands_separator" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="thousands_separator" wire:model="thousands_separator" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_separator') }}</option>
                                     <option value=",">, ({{ __('base-tenant::users.comma') }})</option>
                                     <option value=".">. ({{ __('base-tenant::users.dot') }})</option>
@@ -202,7 +202,7 @@
 
                             <div>
                                 <x-input-label for="date_format" value="{{ __('base-tenant::users.date_format') }}" />
-                                <select id="date_format" wire:model="date_format" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="date_format" wire:model="date_format" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_format') }}</option>
                                     @foreach($dateFormats as $format => $example)
                                         <option value="{{ $format }}">{{ $example }}</option>
@@ -213,7 +213,7 @@
 
                             <div>
                                 <x-input-label for="time_format" value="{{ __('base-tenant::users.time_format') }}" />
-                                <select id="time_format" wire:model="time_format" class="mt-1 block w-full border-secondary-300 focus:border-primary-500 focus:ring-primary-500 rounded-md shadow-xs">
+                                <select id="time_format" wire:model="time_format" class="mt-1 w-full px-4 py-2 border border-secondary-300 rounded-md focus:ring-primary-500 focus:border-primary-500">
                                     <option value="">{{ __('base-tenant::users.select_format') }}</option>
                                     @foreach($timeFormats as $format => $example)
                                         <option value="{{ $format }}">{{ $example }}</option>
@@ -253,6 +253,7 @@
                                 </label>
                             @endforeach
                         </div>
+                        <x-input-error :messages="$errors->get('selectedRoles')" class="mt-2" />
                         @if(!$isCreateMode)
                             <div class="mt-4">
                                 <x-primary-button>{{ __('base-tenant::users.update_roles') }}</x-primary-button>

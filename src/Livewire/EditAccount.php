@@ -50,14 +50,27 @@ class EditAccount extends Component
             abort(403, __('base-tenant::auth.unauthorized'));
         }
 
-        // If project-admin, verify they're editing their own account
+        // If project-admin, verify they're editing an account they have access to
         if ($isProjectAdmin && ! $isSystemAdmin) {
-            if ($account && $account->exists && $account->id !== $user->account_id) {
-                abort(403, __('base-tenant::auth.unauthorized'));
-            }
-            // If no account provided, load their account
-            if (! $account || ! $account->exists) {
-                $account = Account::find($user->account_id);
+            $currentAccountId = session('current_account_id');
+            $multiTeam = config('base-tenant.multi_team', false);
+
+            if ($account && $account->exists) {
+                // Verify they have access to this account
+                if ($multiTeam) {
+                    // Multi-team: check via pivot
+                    if (!$user->accounts->contains($account->id)) {
+                        abort(403, __('base-tenant::auth.unauthorized'));
+                    }
+                } else {
+                    // Single-team: check if it's current account
+                    if ($account->id !== $currentAccountId) {
+                        abort(403, __('base-tenant::auth.unauthorized'));
+                    }
+                }
+            } else {
+                // If no account provided, load current account
+                $account = Account::find($currentAccountId);
                 if (! $account) {
                     abort(404);
                 }

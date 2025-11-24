@@ -102,6 +102,103 @@ STRIPE_SECRET=sk_test_xxx
 STRIPE_WEBHOOK_SECRET=whsec_xxx
 ```
 
+## Multi-Team vs Single-Team Architecture
+
+The package supports two architectural modes via the `BASE_TENANT_MULTI_TEAM` configuration:
+
+### Single-Team Mode (Default: `multi_team = false`)
+
+**Recommended for most applications** where users belong to one account/organization.
+
+**How it works:**
+- Users have a primary `account_id` field in the `users` table
+- The `account_user` pivot table is **NOT used**
+- Roles are scoped to the user's account via `account_id` in the `role_user` pivot table
+- Simpler data structure and queries
+- Better performance for single-tenant scenarios
+
+**Example:**
+```php
+// User created with account_id
+$user = User::create([
+    'name' => 'John Doe',
+    'email' => 'john@acme.com',
+    'account_id' => $accountId, // Direct relationship
+]);
+
+// Roles attached with account scope
+$user->roles()->attach($roleId, ['account_id' => $accountId]);
+```
+
+### Multi-Team Mode (`multi_team = true`)
+
+**Use when users need to belong to multiple accounts/organizations simultaneously.**
+
+**How it works:**
+- Users still have a primary `account_id` field (default/primary account)
+- The `account_user` pivot table **IS used** for additional accounts
+- Roles are scoped per account via `account_id` in the `role_user` pivot table
+- Users can switch between accounts
+- More complex queries but supports multi-tenancy
+
+**Example:**
+```php
+// User created with primary account_id
+$user = User::create([
+    'name' => 'John Doe',
+    'email' => 'john@example.com',
+    'account_id' => $primaryAccountId,
+]);
+
+// Also attached to pivot for multi-team support
+$user->accounts()->attach($primaryAccountId);
+$user->accounts()->attach($secondaryAccountId);
+
+// Roles per account
+$user->roles()->attach($roleId, ['account_id' => $primaryAccountId]);
+```
+
+### Configuration
+
+Set in `.env`:
+```env
+BASE_TENANT_MULTI_TEAM=false  # Single-team (default)
+# or
+BASE_TENANT_MULTI_TEAM=true   # Multi-team
+```
+
+Or in `config/base-tenant.php`:
+```php
+'multi_team' => env('BASE_TENANT_MULTI_TEAM', false),
+```
+
+### When to Use Each Mode
+
+**Use Single-Team (`false`) when:**
+- Users belong to one organization/company
+- Simpler permission model is needed
+- Better performance is required
+- Example: B2B SaaS where each company has its own account
+
+**Use Multi-Team (`true`) when:**
+- Users need to belong to multiple organizations
+- Freelancers/consultants work with multiple clients
+- Users need to switch between different workspaces
+- Example: Agency platform where users work with multiple client accounts
+
+### Database Schema
+
+Both modes use the same tables but with different relationships:
+
+**Tables:**
+- `users` - User records with `account_id` (primary account)
+- `accounts` - Organization/team records
+- `roles` - Role definitions
+- `account_user` - Pivot for multi-team (only used when `multi_team = true`)
+- `role_user` - Pivot with `account_id` for scoped roles (always used)
+
+The package automatically handles the appropriate relationships based on your configuration.
+
 ## Usage
 
 ### Extending Models

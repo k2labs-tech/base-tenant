@@ -49,7 +49,7 @@
                                 </td>
                                 <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
                                     <a href="{{ route('base-tenant.accounts.edit', $account) }}" class="text-primary-600 hover:text-primary-900 mr-3">{{ __('base-tenant::accounts.edit') }}</a>
-                                    <button wire:click="confirmDelete('{{ $account->id }}')" class="text-error-600 hover:text-error-900">{{ __('base-tenant::accounts.delete') }}</button>
+                                    <button wire:click="confirmDelete('{{ $account->id }}')" class="text-red-600 hover:text-red-900">{{ __('base-tenant::accounts.delete') }}</button>
                                 </td>
                             </tr>
                         @empty

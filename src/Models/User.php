@@ -40,6 +40,7 @@ class User extends Authenticatable
         'thousands_separator',
         'date_format',
         'time_format',
+        'account_id',
     ];
 
     /**
@@ -178,11 +179,23 @@ class User extends Authenticatable
     }
 
     /**
-     * Store the user roles in session.
+     * Store the user roles in session (filtered by current account if in multi-team mode).
      */
     public function storeRolesSession(): void
     {
-        $roles = $this->roles->pluck('key')->toArray();
+        $currentAccountId = session('current_account_id');
+
+        if ($currentAccountId) {
+            // Filter roles by current account_id in pivot table
+            $roles = $this->roles()
+                ->wherePivot('account_id', $currentAccountId)
+                ->pluck('key')
+                ->toArray();
+        } else {
+            // If no current account, get all roles
+            $roles = $this->roles->pluck('key')->toArray();
+        }
+
         session(['user.roles' => $roles]);
     }
 

@@ -72,9 +72,10 @@ class EditUser extends Component
         $isSystemAdmin = $authUser->is_admin || is_null($authUser->account_id);
 
         if (! $isSystemAdmin) {
-            // Non-admins must be account owners
-            $account = $authUser->account;
-            if ($account && $account->user_id !== $authUser->id) {
+            // Check if user has project-admin role
+            $isProjectAdmin = $authUser->hasRole('project-admin');
+
+            if (! $isProjectAdmin) {
                 abort(403, __('base-tenant::auth.unauthorized'));
             }
         }
@@ -97,8 +98,17 @@ class EditUser extends Component
         } elseif ($user instanceof User && $user->exists) {
             // Edit mode
             // System admins can edit any user, others must check account membership
-            if (! $isSystemAdmin && $authUser->account) {
-                if (! $user->accounts->contains($authUser->account->id)) {
+            if (! $isSystemAdmin) {
+                // Check if user has project-admin role
+                $isProjectAdmin = $authUser->hasRole('project-admin');
+
+                if (! $isProjectAdmin) {
+                    abort(403, __('base-tenant::auth.unauthorized'));
+                }
+
+                // Verify the user being edited belongs to the current account
+                $currentAccountId = session('current_account_id');
+                if ($currentAccountId && ! $user->accounts->contains($currentAccountId)) {
                     abort(404);
                 }
             }
@@ -220,6 +230,8 @@ class EditUser extends Component
             'email' => 'required|email|unique:users,email',
             'password' => 'required|string|min:8|confirmed',
             'phone' => 'nullable|string|max:20',
+            'selectedRoles' => 'required|array|min:1',
+            'selectedRoles.*' => 'exists:roles,id',
         ];
 
         // Super-admin must select an account
@@ -229,8 +241,10 @@ class EditUser extends Component
 
         $validated = $this->validate($validationRules);
 
-        // Determine account_id: super-admin selects it, regular users use their own
-        $accountId = $isSystemAdmin ? $this->selected_account_id : $authUser->account_id;
+        // Determine account_id: super-admin selects it, regular users use current session account
+        $accountId = $isSystemAdmin ? $this->selected_account_id : session('current_account_id');
+
+        $multiTeam = config('base-tenant.multi_team', false);
 
         $user = User::create([
             'name' => $validated['name'],
@@ -248,12 +262,24 @@ class EditUser extends Component
             'time_format' => $this->time_format,
         ]);
 
-        // Attach to account in pivot table (for both super-admin and regular users)
-        if ($accountId) {
+        // If multi-team is enabled, also attach to account_user pivot table
+        if ($multiTeam && $accountId) {
             $user->accounts()->attach($accountId);
         }
 
-        $user->roles()->sync($this->selectedRoles);
+        // Attach roles with account_id in pivot (for account-scoped roles)
+        if ($accountId && !empty($this->selectedRoles)) {
+            // Attach roles with account_id for account-scoped roles
+            foreach ($this->selectedRoles as $roleId) {
+                $user->roles()->attach($roleId, ['account_id' => $accountId]);
+            }
+        } else {
+            // For system admins without account, attach roles globally
+            $user->roles()->sync($this->selectedRoles);
+        }
+
+        // Store roles in session
+        $user->storeRolesSession();
 
         Flux::toast(
             variant: 'success',
@@ -320,7 +346,21 @@ class EditUser extends Component
             return; // Roles are handled in saveNewUser
         }
 
-        $this->user->roles()->sync($this->selectedRoles);
+        // Detach all current roles
+        $this->user->roles()->detach();
+
+        // Attach new roles with account_id if user has an account
+        if ($this->user->account_id && !empty($this->selectedRoles)) {
+            foreach ($this->selectedRoles as $roleId) {
+                $this->user->roles()->attach($roleId, ['account_id' => $this->user->account_id]);
+            }
+        } else {
+            // For users without account (system admins), attach roles globally
+            $this->user->roles()->sync($this->selectedRoles);
+        }
+
+        // Update roles in session
+        $this->user->storeRolesSession();
 
         Flux::toast(
             variant: 'success',

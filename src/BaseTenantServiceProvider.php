@@ -10,6 +10,7 @@ use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
 use Base\Tenant\Http\Middleware\HasSubscription;
 use Base\Tenant\Http\Middleware\SetLocale;
 use Base\Tenant\Livewire\AccountManager;
+use Base\Tenant\Livewire\AccountSwitcher;
 use Base\Tenant\Livewire\EditAccount;
 use Base\Tenant\Livewire\Logout;
 use Base\Tenant\Livewire\Alerts\Table as AlertsTable;
@@ -109,6 +110,7 @@ class BaseTenantServiceProvider extends ServiceProvider
         Livewire::component('base-tenant.user-manager', UserManager::class);
         Livewire::component('base-tenant.edit-user', EditUser::class);
         Livewire::component('base-tenant.account-manager', AccountManager::class);
+        Livewire::component('base-tenant.account-switcher', AccountSwitcher::class);
         Livewire::component('base-tenant.edit-account', EditAccount::class);
         Livewire::component('base-tenant.two-factor-authentication', TwoFactorAuthentication::class);
         Livewire::component('base-tenant.two-factor-challenge', TwoFactorChallenge::class);

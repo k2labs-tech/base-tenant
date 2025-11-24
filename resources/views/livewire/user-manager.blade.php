@@ -68,9 +68,9 @@
                                         <a href="{{ route('base-tenant.users.edit', $user) }}" class="text-primary-600 hover:text-primary-900 mr-3">{{ __('base-tenant::users.edit') }}</a>
                                         @if($user->id !== Auth::id())
                                             @if($isSystemAdmin && $user->canBeImpersonated())
-                                                <button wire:click="impersonate('{{ $user->id }}')" class="text-warning-600 hover:text-warning-900 mr-3">{{ __('base-tenant::users.impersonate') }}</button>
+                                                <button wire:click="impersonate('{{ $user->id }}')" class="text-green-600 hover:text-green-900 mr-3">{{ __('base-tenant::users.impersonate') }}</button>
                                             @endif
-                                            <button wire:click="confirmDelete('{{ $user->id }}')" class="text-error-600 hover:text-error-900">{{ __('base-tenant::users.remove') }}</button>
+                                            <button wire:click="confirmDelete('{{ $user->id }}')" class="text-red-600 hover:text-red-900">{{ __('base-tenant::users.remove') }}</button>
                                         @endif
                                     @else
                                         <span class="text-secondary-400">-</span>

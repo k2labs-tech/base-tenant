@@ -36,6 +36,7 @@ class UserManager extends Component
     public function render()
     {
         $user = Auth::user();
+        $currentAccountId = session('current_account_id');
 
         // System admins see all users, others see only their account's users
         if ($user->is_admin || is_null($user->account_id)) {
@@ -51,18 +52,49 @@ class UserManager extends Component
                 ->orderBy('name')
                 ->paginate(10);
         } else {
-            // Project admins see only their account's users (by account_id)
-            $users = User::query()
-                ->where('account_id', $user->account_id)
-                ->with('roles', 'account')
-                ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('name', 'like', '%'.$this->search.'%')
-                            ->orWhere('email', 'like', '%'.$this->search.'%');
-                    });
-                })
-                ->orderBy('name')
-                ->paginate(10);
+            // Project admins see only their account's users
+            // In multi-team mode, use the pivot table; otherwise use account_id
+            $multiTeam = config('base-tenant.multi_team', false);
+
+            if ($multiTeam) {
+                // Multi-team: get users from account_user pivot table
+                $users = User::query()
+                    ->whereHas('accounts', function ($query) use ($currentAccountId) {
+                        $query->where('accounts.id', $currentAccountId);
+                    })
+                    ->with([
+                        'roles' => function ($query) use ($currentAccountId) {
+                            $query->wherePivot('account_id', $currentAccountId);
+                        },
+                        'account'
+                    ])
+                    ->when($this->search, function ($query) {
+                        $query->where(function ($q) {
+                            $q->where('name', 'like', '%'.$this->search.'%')
+                                ->orWhere('email', 'like', '%'.$this->search.'%');
+                        });
+                    })
+                    ->orderBy('name')
+                    ->paginate(10);
+            } else {
+                // Single-team: get users by account_id field
+                $users = User::query()
+                    ->where('account_id', $currentAccountId)
+                    ->with([
+                        'roles' => function ($query) use ($currentAccountId) {
+                            $query->wherePivot('account_id', $currentAccountId);
+                        },
+                        'account'
+                    ])
+                    ->when($this->search, function ($query) {
+                        $query->where(function ($q) {
+                            $q->where('name', 'like', '%'.$this->search.'%')
+                                ->orWhere('email', 'like', '%'.$this->search.'%');
+                        });
+                    })
+                    ->orderBy('name')
+                    ->paginate(10);
+            }
         }
 
         $roles = Role::nonSystem()->orderBy('name')->get();
@@ -112,9 +144,20 @@ class UserManager extends Component
             // For system admins, completely delete the user
             $this->deletingUser->delete();
         } else {
-            // For project admins, verify they're deleting a user from their account
-            if ($this->deletingUser->account_id !== $user->account_id) {
-                abort(403, __('base-tenant::auth.unauthorized'));
+            // For project admins, verify they're deleting a user from the current account
+            $currentAccountId = session('current_account_id');
+            $multiTeam = config('base-tenant.multi_team', false);
+
+            if ($multiTeam) {
+                // Multi-team: check if user belongs to current account via pivot
+                if (!$this->deletingUser->accounts->contains($currentAccountId)) {
+                    abort(403, __('base-tenant::auth.unauthorized'));
+                }
+            } else {
+                // Single-team: check direct account_id
+                if ($this->deletingUser->account_id !== $currentAccountId) {
+                    abort(403, __('base-tenant::auth.unauthorized'));
+                }
             }
 
             // Remove the user completely from the system

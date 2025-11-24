@@ -47,9 +47,11 @@ class AccountManager extends Component
                 ->orderBy('name')
                 ->paginate(10);
         } else {
-            // Project admins see only their account
+            // Project admins see only the current account
+            $currentAccountId = session('current_account_id');
+
             $accounts = Account::query()
-                ->where('id', $user->account_id)
+                ->where('id', $currentAccountId)
                 ->withCount('users')
                 ->when($this->search, function ($query) {
                     $query->where(function ($q) {
@@ -78,10 +80,21 @@ class AccountManager extends Component
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
         $isProjectAdmin = $user->hasRole('project-admin');
 
-        // Project-admins can only delete their own account
+        // Project-admins can only delete accounts they have access to
         if ($isProjectAdmin && ! $isSystemAdmin) {
-            if ($this->deletingAccount->id !== $user->account_id) {
-                abort(403, __('base-tenant::auth.unauthorized'));
+            $multiTeam = config('base-tenant.multi_team', false);
+
+            if ($multiTeam) {
+                // Multi-team: check if user has access to this account via pivot
+                if (!$user->accounts->contains($this->deletingAccount->id)) {
+                    abort(403, __('base-tenant::auth.unauthorized'));
+                }
+            } else {
+                // Single-team: check if it's their primary account
+                $currentAccountId = session('current_account_id');
+                if ($this->deletingAccount->id !== $currentAccountId) {
+                    abort(403, __('base-tenant::auth.unauthorized'));
+                }
             }
         }
 
