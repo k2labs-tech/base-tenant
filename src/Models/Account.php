@@ -26,6 +26,16 @@ class Account extends Model
     ];
 
     /**
+     * Get the attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $casts = [
+        'force_password_change' => 'boolean',
+        'onboarded_at' => 'datetime',
+    ];
+
+    /**
      * Get the users that belong to the account.
      */
     public function users(): BelongsToMany

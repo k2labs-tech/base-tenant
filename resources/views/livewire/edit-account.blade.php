@@ -93,6 +93,30 @@
                                     <span class="ml-2 text-sm text-secondary-700">{{ __('base-tenant::accounts.active') }}</span>
                                 </label>
                             </div>
+
+                            @if($globalForcePasswordChangeEnabled)
+                                <div class="md:col-span-2 p-4 bg-surface-50 rounded-lg border border-surface-200">
+                                    <div class="flex items-start">
+                                        <div class="flex-shrink-0">
+                                            <input type="checkbox"
+                                                   id="force_password_change"
+                                                   wire:model="force_password_change"
+                                                   class="mt-1 rounded-sm border-secondary-300 text-primary-600 shadow-xs focus:ring-primary-500">
+                                        </div>
+                                        <div class="ml-3">
+                                            <label for="force_password_change" class="text-sm font-medium text-secondary-900 cursor-pointer">
+                                                {{ __('base-tenant::accounts.force_password_change') }}
+                                            </label>
+                                            <p class="mt-1 text-xs text-secondary-600">
+                                                {{ __('base-tenant::accounts.force_password_change_description') }}
+                                            </p>
+                                            <p class="mt-1 text-xs text-secondary-500 italic">
+                                                {{ __('base-tenant::accounts.force_password_change_note') }}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
                         <div class="mt-4">

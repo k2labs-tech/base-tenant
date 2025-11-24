@@ -41,6 +41,294 @@ Disable 2FA:
 $user->disableTwoFactorAuthentication();
 ```
 
+### Force Password Change on First Login
+
+Base Tenant includes an optional feature that forces newly created users to change their password upon first login. This improves security by ensuring administrators don't know the final passwords of users they create.
+
+#### Enabling the Feature
+
+Add to your `.env` file:
+
+```env
+BASE_TENANT_FORCE_PASSWORD_CHANGE=true
+BASE_TENANT_SEND_WELCOME_EMAIL=true
+```
+
+Or configure in `config/base-tenant.php`:
+
+```php
+'force_password_change' => [
+    'enabled' => env('BASE_TENANT_FORCE_PASSWORD_CHANGE', false),
+    'send_welcome_email' => env('BASE_TENANT_SEND_WELCOME_EMAIL', true),
+],
+```
+
+#### How It Works
+
+When enabled:
+
+1. **User Creation**: When an administrator creates a new user, the system:
+   - Sets `must_change_password = true` on the user record
+   - Sends a welcome email with temporary credentials (if `send_welcome_email` is true)
+
+2. **First Login**: After login with temporary credentials:
+   - Middleware detects `must_change_password = true`
+   - User is redirected to `/password/change`
+   - Cannot access any other route until password is changed
+
+3. **Password Change**: User must provide:
+   - Current password (the temporary one)
+   - New password (must be different from current)
+   - Password confirmation
+
+4. **Completion**: After successful password change:
+   - `must_change_password` flag is set to `false`
+   - User is redirected to dashboard
+   - Full application access is granted
+
+#### Welcome Email
+
+The welcome email includes:
+
+- Greeting with user's name
+- Creator's name ("John Doe has created an account for you...")
+- Login credentials (email and temporary password)
+- Link to login page
+- Security notice about password change requirement
+
+Example email content:
+
+```
+Hello Alice!
+
+John Doe has created an account for you on My Application.
+
+Here are your login credentials:
+Email: alice@example.com
+Temporary Password: Secret123!
+
+[Login Now Button]
+
+Important: For security reasons, you will be required to change
+your password upon first login.
+
+If you have any questions, please contact your administrator.
+```
+
+#### Configuration Options
+
+**Global Configuration (Application Level):**
+
+The feature has a global on/off switch in `.env`:
+
+```env
+BASE_TENANT_FORCE_PASSWORD_CHANGE=true   # Enable the feature globally
+BASE_TENANT_SEND_WELCOME_EMAIL=true      # Send welcome emails
+```
+
+When `BASE_TENANT_FORCE_PASSWORD_CHANGE=false`, the feature is completely disabled and the Account-level setting will not appear in the UI.
+
+**Account-Level Configuration:**
+
+When the global setting is enabled (`BASE_TENANT_FORCE_PASSWORD_CHANGE=true`), each Account can control whether to enforce password changes for their users:
+
+1. **Navigate to Account Settings**: Go to the Account edit page
+2. **Toggle Setting**: Look for "Require password change on first login" checkbox
+3. **Three States**:
+   - **Checked (true)**: Always require password change for new users in this account
+   - **Unchecked (false)**: Never require password change for new users in this account
+   - **Null (default)**: Inherit from global setting (if global is enabled, this account will require password changes)
+
+**Example Scenarios:**
+
+```php
+// Scenario 1: Global enabled, Account null (inherits)
+// Result: Users in this account MUST change password
+BASE_TENANT_FORCE_PASSWORD_CHANGE=true
+$account->force_password_change = null;
+
+// Scenario 2: Global enabled, Account explicitly disabled
+// Result: Users in this account do NOT need to change password
+BASE_TENANT_FORCE_PASSWORD_CHANGE=true
+$account->force_password_change = false;
+
+// Scenario 3: Global enabled, Account explicitly enabled
+// Result: Users in this account MUST change password
+BASE_TENANT_FORCE_PASSWORD_CHANGE=true
+$account->force_password_change = true;
+
+// Scenario 4: Global disabled
+// Result: Feature disabled completely, regardless of account setting
+BASE_TENANT_FORCE_PASSWORD_CHANGE=false
+```
+
+**Disable welcome email but keep password change:**
+
+```env
+BASE_TENANT_FORCE_PASSWORD_CHANGE=true
+BASE_TENANT_SEND_WELCOME_EMAIL=false
+```
+
+In this mode, administrators must communicate credentials to users manually, but users still must change their password on first login (based on account setting).
+
+#### Programmatic Usage
+
+**Working with Users:**
+
+Check if user must change password:
+
+```php
+if ($user->must_change_password) {
+    // User hasn't changed their temporary password yet
+}
+```
+
+Manually trigger password change requirement:
+
+```php
+$user->must_change_password = true;
+$user->save();
+```
+
+Remove password change requirement:
+
+```php
+$user->must_change_password = false;
+$user->save();
+```
+
+**Working with Accounts:**
+
+Enable force password change for an account:
+
+```php
+$account = Account::find($accountId);
+$account->force_password_change = true;
+$account->save();
+```
+
+Disable force password change for an account:
+
+```php
+$account->force_password_change = false;
+$account->save();
+```
+
+Reset to inherit global setting:
+
+```php
+$account->force_password_change = null;
+$account->save();
+```
+
+Check if account requires password changes (considering global + account settings):
+
+```php
+$globalEnabled = config('base-tenant.force_password_change.enabled', false);
+$account = Account::find($accountId);
+
+$requiresPasswordChange = $globalEnabled &&
+                         ($account->force_password_change === true ||
+                          $account->force_password_change === null);
+
+if ($requiresPasswordChange) {
+    // New users in this account will need to change password
+}
+```
+
+#### Route Information
+
+The password change page is available at:
+
+- **Route Name**: `base-tenant.password.change`
+- **URL**: `/password/change`
+- **Middleware**: `auth`
+- **Component**: `Base\Tenant\Livewire\Auth\ForcePasswordChange`
+
+#### Translations
+
+The feature is fully translatable. Available translations:
+
+**English** (`en`):
+- `base-tenant::auth.change_password`
+- `base-tenant::auth.change_password_required`
+- `base-tenant::auth.password_change_required`
+- `base-tenant::auth.account_created_by_admin`
+- `base-tenant::auth.current_password`
+- `base-tenant::auth.new_password`
+- `base-tenant::auth.confirm_new_password`
+- `base-tenant::auth.password_requirements`
+- `base-tenant::auth.logout_instead`
+- `base-tenant::auth.current_password_incorrect`
+- `base-tenant::auth.password_changed`
+- `base-tenant::auth.password_changed_success`
+
+**Spanish** (`es`): All keys translated.
+
+To customize, publish the language files:
+
+```bash
+php artisan vendor:publish --tag=base-tenant-lang
+```
+
+#### Security Considerations
+
+**Best Practices:**
+
+1. **Always enable welcome emails** - Users need their credentials
+2. **Use strong temporary passwords** - The password set during user creation should be secure
+3. **Communicate securely** - If not using welcome emails, use secure channels to share credentials
+4. **Monitor compliance** - Check users who haven't changed their passwords
+
+**What this protects against:**
+
+- ✅ Administrators knowing user passwords
+- ✅ Weak passwords chosen by administrators
+- ✅ Shared or reused passwords
+- ✅ Unauthorized access with temporary credentials
+
+**What this doesn't protect against:**
+
+- ❌ Users choosing weak passwords after the change
+- ❌ Password reuse across services (consider additional validation)
+- ❌ Compromised email accounts (where welcome emails are sent)
+
+#### Customization
+
+To customize the password change page:
+
+1. Publish the views:
+```bash
+php artisan vendor:publish --tag=base-tenant-views
+```
+
+2. Edit the file:
+```
+resources/views/vendor/base-tenant/livewire/auth/force-password-change.blade.php
+```
+
+To customize the welcome email notification:
+
+```php
+// In your AppServiceProvider
+use Base\Tenant\Notifications\WelcomeUserNotification;
+
+// Extend the notification class
+class CustomWelcomeNotification extends WelcomeUserNotification
+{
+    public function toMail($notifiable): MailMessage
+    {
+        // Your custom email content
+    }
+}
+
+// Bind your custom class
+$this->app->bind(
+    WelcomeUserNotification::class,
+    CustomWelcomeNotification::class
+);
+```
+
 ## Multi-Tenancy
 
 ### Creating an Account

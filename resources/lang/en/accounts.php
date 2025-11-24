@@ -63,4 +63,9 @@ return [
     // Account users
     'account_users' => 'Account Users',
     'account_users_description' => 'Users belonging to this account.',
+
+    // Force password change
+    'force_password_change' => 'Require password change on first login',
+    'force_password_change_description' => 'When enabled, new users created in this account will be required to change their password upon first login.',
+    'force_password_change_note' => 'Note: If left unchecked (null), this account will inherit the global setting. Check to enable, or explicitly uncheck and save to disable for this account.',
 ];

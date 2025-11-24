@@ -7,6 +7,7 @@ namespace Base\Tenant;
 use Base\Tenant\Console\Commands\InstallCommand;
 use Base\Tenant\Console\Commands\SyncRolesCommand;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
+use Base\Tenant\Http\Middleware\EnsurePasswordChanged;
 use Base\Tenant\Http\Middleware\HasSubscription;
 use Base\Tenant\Http\Middleware\SetLocale;
 use Base\Tenant\Livewire\AccountManager;
@@ -91,6 +92,12 @@ class BaseTenantServiceProvider extends ServiceProvider
         $router->aliasMiddleware('base-tenant.subscription', HasSubscription::class);
         $router->aliasMiddleware('base-tenant.no-subscription', DoesNotHaveSubscription::class);
         $router->aliasMiddleware('base-tenant.locale', SetLocale::class);
+        $router->aliasMiddleware('base-tenant.password-changed', EnsurePasswordChanged::class);
+
+        // Add EnsurePasswordChanged to web middleware group if enabled
+        if (config('base-tenant.force_password_change.enabled', false)) {
+            $router->pushMiddlewareToGroup('web', EnsurePasswordChanged::class);
+        }
     }
 
     /**
@@ -105,6 +112,7 @@ class BaseTenantServiceProvider extends ServiceProvider
         Livewire::component('base-tenant.auth.reset-password', \Base\Tenant\Livewire\Auth\ResetPassword::class);
         Livewire::component('base-tenant.auth.confirm-password', \Base\Tenant\Livewire\Auth\ConfirmPassword::class);
         Livewire::component('base-tenant.auth.verify-email', \Base\Tenant\Livewire\Auth\VerifyEmail::class);
+        Livewire::component('base-tenant.auth.force-password-change', \Base\Tenant\Livewire\Auth\ForcePasswordChange::class);
 
         // Other components
         Livewire::component('base-tenant.user-manager', UserManager::class);

@@ -168,4 +168,23 @@ return [
         'brand_logo' => env('BASE_TENANT_BRAND_LOGO', null),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Force Password Change
+    |--------------------------------------------------------------------------
+    |
+    | When enabled, newly created users will be required to change their
+    | password upon first login. This improves security by ensuring
+    | administrators don't know the final passwords of users they create.
+    |
+    | - enabled: Enable/disable the feature (default: false)
+    | - send_welcome_email: Send email with temporary credentials (default: true)
+    |
+    */
+
+    'force_password_change' => [
+        'enabled' => env('BASE_TENANT_FORCE_PASSWORD_CHANGE', false),
+        'send_welcome_email' => env('BASE_TENANT_SEND_WELCOME_EMAIL', true),
+    ],
+
 ];

@@ -18,6 +18,20 @@ return [
     'throttle' => 'Demasiados intentos de inicio de sesión. Por favor intente de nuevo en :seconds segundos.',
     'unauthorized' => 'No estás autorizado para acceder a este recurso.',
 
+    // Cambio Forzado de Contraseña
+    'change_password' => 'Cambia Tu Contraseña',
+    'change_password_required' => 'Por razones de seguridad, debes cambiar tu contraseña antes de continuar.',
+    'password_change_required' => 'Cambio de Contraseña Requerido',
+    'account_created_by_admin' => 'Tu cuenta fue creada por un administrador. Por favor crea tu propia contraseña segura.',
+    'current_password' => 'Contraseña Actual',
+    'new_password' => 'Nueva Contraseña',
+    'confirm_new_password' => 'Confirmar Nueva Contraseña',
+    'password_requirements' => 'Debe tener al menos 8 caracteres y ser diferente de la contraseña actual',
+    'logout_instead' => 'Cerrar Sesión',
+    'current_password_incorrect' => 'La contraseña actual es incorrecta.',
+    'password_changed' => 'Contraseña Cambiada',
+    'password_changed_success' => 'Tu contraseña ha sido actualizada exitosamente. Ahora puedes acceder a la aplicación.',
+
     // Autenticación de Dos Factores
     '2fa' => [
         'title' => 'Autenticación de Dos Factores',

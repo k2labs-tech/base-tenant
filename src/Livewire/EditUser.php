@@ -2,6 +2,7 @@
 
 namespace Base\Tenant\Livewire;
 
+use Base\Tenant\Models\Account;
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
 use Flux\Flux;
@@ -257,6 +258,23 @@ class EditUser extends Component
 
         $multiTeam = config('base-tenant.multi_team', false);
 
+        // Check if force password change is enabled (global and account-level)
+        $globalForcePasswordChange = config('base-tenant.force_password_change.enabled', false);
+        $sendWelcomeEmail = config('base-tenant.force_password_change.send_welcome_email', true);
+
+        // Get account to check account-level setting
+        $account = $accountId ? Account::find($accountId) : null;
+
+        // Force password change is enabled if:
+        // 1. Global config is enabled AND
+        // 2. Account has it enabled (or null, which means inherit from global)
+        $forcePasswordChange = $globalForcePasswordChange &&
+                              $account &&
+                              ($account->force_password_change === true || $account->force_password_change === null);
+
+        // Store plain password for email (before hashing)
+        $plainPassword = $validated['password'];
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -271,6 +289,7 @@ class EditUser extends Component
             'thousands_separator' => $this->thousands_separator,
             'date_format' => $this->date_format,
             'time_format' => $this->time_format,
+            'must_change_password' => $forcePasswordChange,
         ]);
 
         // Always attach to account_user pivot table for forward compatibility
@@ -292,6 +311,14 @@ class EditUser extends Component
 
         // Store roles in session
         $user->storeRolesSession();
+
+        // Send welcome email with credentials if force password change is enabled
+        if ($forcePasswordChange && $sendWelcomeEmail) {
+            $user->notify(new \Base\Tenant\Notifications\WelcomeUserNotification(
+                $plainPassword,
+                $authUser->name
+            ));
+        }
 
         Flux::toast(
             variant: 'success',

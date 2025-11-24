@@ -39,6 +39,8 @@ class EditAccount extends Component
 
     public $selected_owner_id = null;
 
+    public $force_password_change = null;
+
     public function mount(?Account $account = null)
     {
         $user = Auth::user();
@@ -91,6 +93,7 @@ class EditAccount extends Component
             $this->postal_code = $account->postal_code ?? '';
             $this->vat = $account->vat ?? '';
             $this->selected_owner_id = $account->user_id;
+            $this->force_password_change = $account->force_password_change;
         } else {
             $this->isCreateMode = true;
             $this->account = new Account;
@@ -115,6 +118,7 @@ class EditAccount extends Component
             'postal_code' => 'nullable|string|max:20',
             'vat' => 'nullable|string|max:50',
             'selected_owner_id' => 'nullable|exists:users,id',
+            'force_password_change' => 'nullable|boolean',
         ]);
 
         if ($this->isCreateMode) {
@@ -130,6 +134,7 @@ class EditAccount extends Component
                 'postal_code' => $validated['postal_code'] ?? null,
                 'vat' => $validated['vat'] ?? null,
                 'user_id' => $validated['selected_owner_id'] ?? null,
+                'force_password_change' => $validated['force_password_change'] ?? null,
             ]);
 
             Flux::toast(
@@ -152,6 +157,7 @@ class EditAccount extends Component
                 'postal_code' => $validated['postal_code'] ?? null,
                 'vat' => $validated['vat'] ?? null,
                 'user_id' => $validated['selected_owner_id'] ?? null,
+                'force_password_change' => $validated['force_password_change'] ?? null,
             ]);
 
             Flux::toast(
@@ -166,6 +172,9 @@ class EditAccount extends Component
     {
         $user = Auth::user();
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
+
+        // Check if force password change feature is enabled globally
+        $globalForcePasswordChangeEnabled = config('base-tenant.force_password_change.enabled', false);
 
         // Get all users for owner selection
         $users = User::orderBy('name')->get();
@@ -183,6 +192,7 @@ class EditAccount extends Component
             'users' => $users,
             'accountUsers' => $accountUsers,
             'isSystemAdmin' => $isSystemAdmin,
+            'globalForcePasswordChangeEnabled' => $globalForcePasswordChangeEnabled,
         ]);
     }
 }

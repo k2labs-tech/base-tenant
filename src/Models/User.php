@@ -41,6 +41,7 @@ class User extends Authenticatable
         'date_format',
         'time_format',
         'account_id',
+        'must_change_password',
     ];
 
     /**

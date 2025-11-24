@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use Base\Tenant\Http\Controllers\Auth\VerifyEmailController;
 use Base\Tenant\Livewire\Auth\ConfirmPassword;
+use Base\Tenant\Livewire\Auth\ForcePasswordChange;
 use Base\Tenant\Livewire\Auth\ForgotPassword;
 use Base\Tenant\Livewire\Auth\Login;
 use Base\Tenant\Livewire\Auth\Register;
@@ -49,6 +50,10 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
 
         Route::get('confirm-password', ConfirmPassword::class)
             ->name('base-tenant.password.confirm');
+
+        // Force password change route
+        Route::get('password/change', ForcePasswordChange::class)
+            ->name('base-tenant.password.change');
 
         Route::post('logout', function () {
             auth()->logout();

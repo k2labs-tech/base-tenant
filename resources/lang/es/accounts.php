@@ -63,4 +63,9 @@ return [
     // Account users
     'account_users' => 'Usuarios de la Cuenta',
     'account_users_description' => 'Usuarios pertenecientes a esta cuenta.',
+
+    // Force password change
+    'force_password_change' => 'Requerir cambio de contraseña en primer inicio de sesión',
+    'force_password_change_description' => 'Cuando está habilitado, los nuevos usuarios creados en esta cuenta deberán cambiar su contraseña en su primer inicio de sesión.',
+    'force_password_change_note' => 'Nota: Si se deja sin marcar (null), esta cuenta heredará la configuración global. Marque para habilitar, o desmarque explícitamente y guarde para deshabilitar para esta cuenta.',
 ];
