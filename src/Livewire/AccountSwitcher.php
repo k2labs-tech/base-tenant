@@ -9,7 +9,7 @@ use Livewire\Component;
 class AccountSwitcher extends Component
 {
     public $currentAccountId;
-    public $accounts = [];
+    public $accounts;
 
     public function mount()
     {
@@ -20,6 +20,13 @@ class AccountSwitcher extends Component
     protected function loadAccounts()
     {
         $user = Auth::user();
+
+        // Super-admins don't have accounts
+        if ($user->is_admin || is_null($user->account_id)) {
+            $this->accounts = collect();
+            return;
+        }
+
         $multiTeam = config('base-tenant.multi_team', false);
 
         if ($multiTeam) {
@@ -29,6 +36,8 @@ class AccountSwitcher extends Component
             // In single-team mode, only show primary account
             if ($user->account_id) {
                 $this->accounts = Account::where('id', $user->account_id)->get();
+            } else {
+                $this->accounts = collect();
             }
         }
     }
