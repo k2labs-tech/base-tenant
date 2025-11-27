@@ -51,5 +51,13 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
 
             return redirect()->route('base-tenant.users.index');
         })->name('impersonate.leave');
+
+        // Notifications
+        Route::get('/notifications', \Base\Tenant\Livewire\Notifications\Index::class)
+            ->name('base-tenant.notifications.index');
+        Route::post('/notifications/{id}/read', [\Base\Tenant\Http\Controllers\NotificationController::class, 'markAsRead'])
+            ->name('base-tenant.notifications.mark-as-read');
+        Route::post('/notifications/mark-all-read', [\Base\Tenant\Http\Controllers\NotificationController::class, 'markAllAsRead'])
+            ->name('base-tenant.notifications.mark-all-read');
     });
 });
