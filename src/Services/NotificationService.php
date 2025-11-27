@@ -30,6 +30,23 @@ class NotificationService
     }
 
     /**
+     * Notify specific users
+     * Used when you already have the exact list of recipients
+     *
+     * @param array $users Array of User model instances
+     * @param \Illuminate\Notifications\Notification $notification Notification instance
+     * @return void
+     */
+    public static function notifySpecificUsers(array $users, $notification): void
+    {
+        if (empty($users)) {
+            return;
+        }
+
+        Notification::send($users, $notification);
+    }
+
+    /**
      * Get unread notification count for a user
      *
      * @param mixed $user User model instance
