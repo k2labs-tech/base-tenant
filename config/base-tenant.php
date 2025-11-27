@@ -56,6 +56,41 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Notifications
+    |--------------------------------------------------------------------------
+    |
+    | Configuration for the notification system.
+    |
+    */
+
+    'notifications' => [
+        'enabled' => env('BASE_TENANT_NOTIFICATIONS_ENABLED', true),
+
+        // Channels
+        'channels' => ['database'], // Future: 'mail', 'broadcast'
+
+        // UI Settings
+        'polling_interval' => env('BASE_TENANT_NOTIFICATIONS_POLLING_INTERVAL', 30), // seconds
+        'dropdown_limit' => 10, // notifications in dropdown
+        'per_page' => 25, // notifications per page in full view
+
+        // Notification Categories (enable/disable)
+        'categories' => [
+            'project.settings' => true,
+            'project.access' => true,
+            'project.milestones' => true,
+            'quota.warnings' => true,
+            'translation.activity' => true,
+            'ai.usage' => true,
+        ],
+
+        // Priority Thresholds
+        'ai_usage_threshold' => 50, // autofills per hour to trigger notification
+        'quota_warning_percent' => 80, // % of quota to trigger warning
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Extensible Roles Configuration
     |--------------------------------------------------------------------------
     |
