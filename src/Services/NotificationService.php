@@ -7,7 +7,10 @@ use Illuminate\Support\Facades\Notification;
 class NotificationService
 {
     /**
-     * Notify all project users except the causer
+     * Notify all users with access to a project (excluding the causer)
+     * Uses $project->getAllMembers() which includes:
+     * - ProjectAdmins (account-level access)
+     * - Collaborators explicitly assigned to the project
      *
      * @param mixed $project Project model instance
      * @param \Illuminate\Notifications\Notification $notification Notification instance
@@ -16,16 +19,13 @@ class NotificationService
      */
     public static function notifyProjectUsers($project, $notification, $causer): void
     {
-        // Get all users of the project except the one who triggered the action
-        $recipients = $project->users()
-            ->where('users.id', '!=', $causer->id)
-            ->get();
+        $recipients = $project->getAllMembers()
+            ->where('id', '!=', $causer->id);
 
         if ($recipients->isEmpty()) {
             return;
         }
 
-        // Send notification to all recipients
         Notification::send($recipients, $notification);
     }
 
