@@ -100,8 +100,8 @@
 
                     <!-- Priority Indicator -->
                     <div class="shrink-0 w-3 h-3 rounded-full mt-1
-                        @if($notification->data['priority'] === 'high') bg-red-500
-                        @elseif($notification->data['priority'] === 'medium') bg-yellow-500
+                        @if(($notification->data['priority'] ?? 'low') === 'high') bg-red-500
+                        @elseif(($notification->data['priority'] ?? 'low') === 'medium') bg-yellow-500
                         @else bg-blue-500
                         @endif
                     "></div>
@@ -117,7 +117,7 @@
                                     {{ $notification->data['message'] ?? '' }}
                                 </p>
 
-                                @if(isset($notification->data['project']))
+                                @if(isset($notification->data['project']) && isset($notification->data['project']['name']))
                                     <span class="mt-2 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-primary-100 text-primary-800">
                                         {{ $notification->data['project']['name'] }}
                                     </span>
@@ -132,7 +132,7 @@
 
                     <!-- Actions -->
                     <div class="shrink-0 flex items-center space-x-2">
-                        @if($notification->data['action_url'] && $notification->data['action_url'] !== '#')
+                        @if(isset($notification->data['action_url']) && $notification->data['action_url'] && $notification->data['action_url'] !== '#')
                             <a
                                 href="{{ $notification->data['action_url'] }}"
                                 class="px-3 py-1.5 text-sm font-medium text-accent-600 hover:text-accent-700"
