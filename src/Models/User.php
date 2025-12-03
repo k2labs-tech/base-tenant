@@ -448,4 +448,25 @@ class User extends Authenticatable
             ?? $this->accounts()->first()?->id
             ?? throw Exceptions\NoAccountException::userHasNoAccounts();
     }
+
+    /**
+     * Determine if user should receive daily notification summaries.
+     *
+     * Cascading logic:
+     * 1. If user has explicit preference (true/false), use that
+     * 2. Otherwise, fall back to account's default setting
+     * 3. If account has no setting, default to false
+     *
+     * @return bool
+     */
+    public function shouldReceiveDailySummary(): bool
+    {
+        // User explicit preference overrides account
+        if ($this->daily_notification_summary !== null) {
+            return (bool) $this->daily_notification_summary;
+        }
+
+        // Fall back to account default
+        return (bool) ($this->account->daily_notification_summary ?? false);
+    }
 }

@@ -100,6 +100,31 @@
             </div>
         </div>
 
+        <!-- Email Notifications Section -->
+        <div class="mt-8">
+            <h3 class="text-base font-semibold text-primary-900 mb-4">Email Notifications</h3>
+
+            <div>
+                <x-input-label for="daily_notification_summary" value="Daily Notification Summary" />
+                <select wire:model="daily_notification_summary" id="daily_notification_summary" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
+                    <option value="">
+                        Use account default
+                        @if(Auth::user()->account->daily_notification_summary ?? false)
+                            (Enabled)
+                        @else
+                            (Disabled)
+                        @endif
+                    </option>
+                    <option value="1">Always enabled</option>
+                    <option value="0">Always disabled</option>
+                </select>
+                <p class="mt-1 text-sm text-primary-600">
+                    Receive a daily email with unread notifications from yesterday, organized by project.
+                </p>
+                <x-input-error :messages="$errors->get('daily_notification_summary')" class="mt-2" />
+            </div>
+        </div>
+
         <div class="flex items-center gap-4">
             <x-primary-button>{{ __('base-tenant::app.profile.save') }}</x-primary-button>
         </div>

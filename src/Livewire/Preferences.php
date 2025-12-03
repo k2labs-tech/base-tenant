@@ -19,6 +19,7 @@ class Preferences extends Component
     public string $date_format = 'Y-m-d';
     public string $time_format = 'H:i:s';
     public string $timezone = '';
+    public ?string $daily_notification_summary = '';
 
     /**
      * Available locales
@@ -143,6 +144,9 @@ class Preferences extends Component
         $this->date_format = $user->date_format ?? 'Y-m-d';
         $this->time_format = $user->time_format ?? 'H:i:s';
         $this->timezone = $user->timezone ?? 'UTC';
+        $this->daily_notification_summary = $user->daily_notification_summary === null
+            ? ''
+            : (string) (int) $user->daily_notification_summary;
     }
 
     /**
@@ -159,7 +163,15 @@ class Preferences extends Component
             'date_format' => ['required', 'string', 'in:' . implode(',', array_keys($this->dateFormats()))],
             'time_format' => ['required', 'string', 'in:' . implode(',', array_keys($this->timeFormats()))],
             'timezone' => ['required', 'string', 'timezone'],
+            'daily_notification_summary' => ['nullable', 'string', 'in:,0,1'],
         ]);
+
+        // Convert string to proper boolean/null
+        $dailySummary = $validated['daily_notification_summary'] === ''
+            ? null
+            : (bool) $validated['daily_notification_summary'];
+
+        $validated['daily_notification_summary'] = $dailySummary;
 
         Auth::user()->update($validated);
 
