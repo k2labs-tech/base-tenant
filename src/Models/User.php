@@ -22,28 +22,11 @@ class User extends Authenticatable
     use HasFactory, HasUuids, Impersonate, Notifiable, SoftDeletes;
 
     /**
-     * The attributes that are mass assignable.
+     * The attributes that aren't mass assignable.
      *
      * @var array<int, string>
      */
-    protected $fillable = [
-        'name',
-        'email',
-        'password',
-        'phone',
-        'is_admin',
-        'timezone',
-        'locale',
-        'currency',
-        'decimal_places',
-        'decimals_separator',
-        'thousands_separator',
-        'date_format',
-        'time_format',
-        'account_id',
-        'last_account_id',
-        'must_change_password',
-    ];
+    protected $guarded = ['id'];
 
     /**
      * The attributes that should be hidden for serialization.
