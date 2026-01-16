@@ -1,7 +1,7 @@
 <section>
     <header>
         <h2 class="text-lg font-medium text-primary-900">
-            {{ __('base-tenant::app.profile.profile_information') }}
+            {{ __('base-tenant::app.profile.information') }}
         </h2>
 
         <p class="mt-1 text-sm text-primary-600">

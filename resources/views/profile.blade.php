@@ -1,10 +1,7 @@
 <x-base-tenant::app-layout>
-    <x-slot name="header">
-        {{ __('base-tenant::app.profile.title') }}
-    </x-slot>
-
     <div class="space-y-6">
         <div class="bg-white rounded-xl shadow-soft p-6">
+            <h1 class="text-2xl font-bold text-primary-900 mb-6">{{ __('base-tenant::app.profile.title') }}</h1>
             <div class="max-w-xl">
                 <livewire:base-tenant.profile.update-profile-information-form />
             </div>

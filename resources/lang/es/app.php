@@ -207,8 +207,8 @@ return [
     // Profile
     'profile' => [
         'title' => 'Perfil',
-        'profile_information' => 'Información del Perfil',
-        'update_profile_information' => 'Actualiza la información del perfil y la dirección de correo electrónico de tu cuenta.',
+        'information' => 'Información',
+        'update_profile_information' => 'Actualiza el nombre y la dirección de correo electrónico de tu cuenta.',
         'name' => 'Nombre',
         'email' => 'Correo Electrónico',
         'email_unverified' => 'Tu dirección de correo electrónico no está verificada.',

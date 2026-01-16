@@ -1,8 +1,4 @@
 <x-base-tenant::app-layout>
-    <x-slot name="header">
-        {{ __('base-tenant::app.dashboard.title') }}
-    </x-slot>
-
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <!-- Stat Card 1 -->

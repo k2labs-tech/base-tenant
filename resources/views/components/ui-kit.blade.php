@@ -1,8 +1,4 @@
 <x-base-tenant::app-layout>
-    <x-slot name="header">
-        {{ __('UI Component Kit') }}
-    </x-slot>
-
     <div class="space-y-8">
         <!-- Typography -->
         <div class="bg-white rounded-xl shadow-soft p-6">

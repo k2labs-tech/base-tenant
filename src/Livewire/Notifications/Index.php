@@ -96,6 +96,6 @@ class Index extends Component
 
         return view('base-tenant::livewire.notifications.index', [
             'notifications' => $notifications,
-        ])->layout('base-tenant::layouts.app', ['header' => __('Notifications')]);
+        ])->layout('base-tenant::layouts.app');
     }
 }

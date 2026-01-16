@@ -1,23 +1,4 @@
 <div class="space-y-6">
-    <!-- Header with Actions -->
-    <div class="flex items-center justify-between">
-        <div class="flex items-center space-x-4">
-            <h2 class="text-2xl font-bold text-primary-900">Notifications</h2>
-            <span class="px-3 py-1 text-sm font-medium bg-accent-100 text-accent-700 rounded-full">
-                {{ auth()->user()->unreadNotifications()->count() }} unread
-            </span>
-        </div>
-
-        @if(auth()->user()->unreadNotifications()->count() > 0)
-            <button
-                wire:click="markAllAsRead"
-                class="px-4 py-2 text-sm font-medium text-white bg-accent-600 rounded-lg hover:bg-accent-700 transition-colors"
-            >
-                Mark All as Read
-            </button>
-        @endif
-    </div>
-
     <!-- Filters -->
     <div class="bg-white rounded-xl shadow-soft p-6">
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -87,6 +68,27 @@
 
     <!-- Notifications List -->
     <div class="bg-white rounded-xl shadow-soft overflow-hidden">
+        <!-- Header with Title and Actions -->
+        <div class="p-6 border-b border-surface-100">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-4">
+                    <h2 class="text-2xl font-bold text-primary-900">Notifications</h2>
+                    <span class="px-3 py-1 text-sm font-medium bg-accent-100 text-accent-700 rounded-full">
+                        {{ auth()->user()->unreadNotifications()->count() }} unread
+                    </span>
+                </div>
+
+                @if(auth()->user()->unreadNotifications()->count() > 0)
+                    <button
+                        wire:click="markAllAsRead"
+                        class="px-4 py-2 text-sm font-medium text-white bg-accent-600 rounded-lg hover:bg-accent-700 transition-colors"
+                    >
+                        Mark All as Read
+                    </button>
+                @endif
+            </div>
+        </div>
+
         @forelse($notifications as $notification)
             <div class="border-b border-surface-100 {{ $notification->read_at ? 'bg-surface-50' : 'bg-white' }}">
                 <div class="p-6 flex items-start space-x-4">

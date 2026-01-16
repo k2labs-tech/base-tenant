@@ -207,8 +207,8 @@ return [
     // Profile
     'profile' => [
         'title' => 'Profile',
-        'profile_information' => 'Profile Information',
-        'update_profile_information' => "Update your account's profile information and email address.",
+        'information' => 'Information',
+        'update_profile_information' => "Update your account's profile name and email address.",
         'name' => 'Name',
         'email' => 'Email',
         'email_unverified' => 'Your email address is unverified.',
