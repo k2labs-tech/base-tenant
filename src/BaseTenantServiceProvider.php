@@ -110,7 +110,7 @@ class BaseTenantServiceProvider extends ServiceProvider
      */
     protected function registerLivewireComponents(): void
     {
-        // Auth components
+        // Auth components - register with both naming conventions for compatibility
         Livewire::component('base-tenant.auth.login', \Base\Tenant\Livewire\Auth\Login::class);
         Livewire::component('base-tenant.auth.register', \Base\Tenant\Livewire\Auth\Register::class);
         Livewire::component('base-tenant.auth.forgot-password', \Base\Tenant\Livewire\Auth\ForgotPassword::class);
@@ -119,7 +119,7 @@ class BaseTenantServiceProvider extends ServiceProvider
         Livewire::component('base-tenant.auth.verify-email', \Base\Tenant\Livewire\Auth\VerifyEmail::class);
         Livewire::component('base-tenant.auth.force-password-change', \Base\Tenant\Livewire\Auth\ForcePasswordChange::class);
 
-        // Other components
+        // Other components - register with friendly names
         Livewire::component('base-tenant.user-manager', UserManager::class);
         Livewire::component('base-tenant.edit-user', EditUser::class);
         Livewire::component('base-tenant.account-manager', AccountManager::class);
