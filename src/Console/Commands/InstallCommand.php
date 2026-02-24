@@ -23,6 +23,7 @@ class InstallCommand extends Command
     protected MigrationRunner $migrationRunner;
 
     // Installation options
+    protected bool $freshDatabase = false;
     protected bool $multiTeam = false;
     protected bool $subscriptions = false;
     protected bool $createTestUser = true;
@@ -99,6 +100,12 @@ class InstallCommand extends Command
         $this->components->info('Configuration Options');
         $this->newLine();
 
+        // Fresh database question
+        $this->freshDatabase = $this->components->confirm(
+            '🗑️  Fresh Database? (Drop all tables before migrating)',
+            false
+        );
+
         // Multi-Team question
         $this->multiTeam = $this->components->confirm(
             '🏢 Enable Multi-Team Mode? (Users can belong to multiple accounts)',
@@ -133,6 +140,10 @@ class InstallCommand extends Command
         // Configuration summary
         $this->components->info('Configuration:');
         $this->components->twoColumnDetail(
+            '  Fresh Database',
+            $this->freshDatabase ? '<fg=red>Yes (DROP ALL TABLES)</>' : '<fg=green>No (incremental)</>'
+        );
+        $this->components->twoColumnDetail(
             '  Multi-Team',
             $this->multiTeam ? '<fg=green>Enabled</>' : '<fg=yellow>Disabled</>'
         );
@@ -165,8 +176,11 @@ class InstallCommand extends Command
 
         // Database operations
         $this->components->info('Database operations:');
-        $this->components->twoColumnDetail('  <fg=green>✓</>', 'Run 17 package migrations');
-        $this->components->twoColumnDetail('  <fg=green>✓</>', 'Seed 7 default roles');
+        if ($this->freshDatabase) {
+            $this->components->twoColumnDetail('  <fg=red>⚠</>', 'Drop all tables (migrate:fresh)');
+        }
+        $this->components->twoColumnDetail('  <fg=green>✓</>', 'Run package migrations');
+        $this->components->twoColumnDetail('  <fg=green>✓</>', 'Seed default roles');
         if ($this->createTestUser) {
             $this->components->twoColumnDetail('  <fg=green>✓</>', 'Create test account and user');
         }
@@ -393,7 +407,7 @@ class InstallCommand extends Command
      */
     protected function runMigrations(): bool
     {
-        $this->migrationRunner->runPackageMigrations();
+        $this->migrationRunner->runPackageMigrations($this->freshDatabase);
 
         return true;
     }

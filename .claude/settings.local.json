@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "WebSearch",
+      "WebFetch(domain:livewire.laravel.com)",
+      "Bash(grep:*)",
+      "Bash(git checkout:*)",
+      "WebFetch(domain:fluxui.dev)",
+      "Bash(composer show:*)",
+      "Bash(composer update:*)",
+      "Bash(composer install:*)",
+      "Bash(git add:*)",
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nfeat: upgrade to Livewire 4\n\n- Update livewire/livewire from ^3.5 to ^4.0\n- Update livewire/volt from ^1.0 to ^1.10\n- Replace Livewire\\\\Volt\\\\Component with Livewire\\\\Component in Volt files\nEOF\n\\)\")",
+      "Bash(git commit:*)"
+    ]
+  }
+}

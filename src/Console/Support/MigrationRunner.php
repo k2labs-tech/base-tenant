@@ -11,9 +11,13 @@ class MigrationRunner
     /**
      * Run package migrations
      */
-    public function runPackageMigrations(): void
+    public function runPackageMigrations(bool $fresh = false): void
     {
-        Artisan::call('migrate', ['--force' => true]);
+        if ($fresh) {
+            Artisan::call('migrate:fresh', ['--force' => true]);
+        } else {
+            Artisan::call('migrate', ['--force' => true]);
+        }
     }
 
     /**
