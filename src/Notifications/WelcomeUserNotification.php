@@ -38,7 +38,7 @@ class WelcomeUserNotification extends Notification implements ShouldQueue
      */
     public function toMail(object $notifiable): MailMessage
     {
-        $loginUrl = route('login');
+        $loginUrl = route('base-tenant.login');
 
         return (new MailMessage)
             ->subject('Welcome to ' . config('app.name'))
