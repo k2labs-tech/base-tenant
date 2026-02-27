@@ -14,6 +14,32 @@ use Livewire\Component;
 class VerifyEmail extends Component
 {
     /**
+     * Send verification email automatically on first visit.
+     */
+    public function mount(): void
+    {
+        $user = Auth::user();
+
+        if ($user->hasVerifiedEmail()) {
+            $this->redirectIntended(default: route('base-tenant.dashboard', absolute: false), navigate: true);
+            return;
+        }
+
+        // Don't send if user still needs to change password (they'll come back after)
+        if ($user->must_change_password ?? false) {
+            return;
+        }
+
+        // Send verification email automatically if not sent recently
+        $sessionKey = 'verification-email-sent-' . $user->id;
+        if (!Session::has($sessionKey)) {
+            $user->sendEmailVerificationNotification();
+            Session::put($sessionKey, now());
+            Session::flash('status', 'verification-link-sent');
+        }
+    }
+
+    /**
      * Send an email verification notification to the user.
      */
     public function sendVerification(): void
