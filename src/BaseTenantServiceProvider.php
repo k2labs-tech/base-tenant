@@ -6,6 +6,7 @@ namespace Base\Tenant;
 
 use Base\Tenant\Console\Commands\InstallCommand;
 use Base\Tenant\Console\Commands\SyncRolesCommand;
+use Illuminate\Auth\Notifications\ResetPassword;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
 use Base\Tenant\Http\Middleware\EnsurePasswordChanged;
 use Base\Tenant\Http\Middleware\HasSubscription;
@@ -81,6 +82,7 @@ class BaseTenantServiceProvider extends ServiceProvider
         $this->registerLivewireComponents();
         $this->registerBladeComponents();
         $this->registerCommands();
+        $this->configurePasswordReset();
     }
 
     /**
@@ -163,5 +165,18 @@ class BaseTenantServiceProvider extends ServiceProvider
                 InstallCommand::class,
             ]);
         }
+    }
+
+    /**
+     * Configure password reset URL to use base-tenant routes.
+     */
+    protected function configurePasswordReset(): void
+    {
+        ResetPassword::createUrlUsing(function ($notifiable, string $token) {
+            return url(route('base-tenant.password.reset', [
+                'token' => $token,
+                'email' => $notifiable->getEmailForPasswordReset(),
+            ], false));
+        });
     }
 }

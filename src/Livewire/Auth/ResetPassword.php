@@ -30,7 +30,7 @@ class ResetPassword extends Component
     public function mount(string $token): void
     {
         $this->token = $token;
-        $this->email = request()->string('email');
+        $this->email = (string) request()->string('email');
     }
 
     /**
