@@ -69,11 +69,11 @@
     <!-- Notifications List -->
     <div class="bg-white rounded-xl shadow-soft overflow-hidden">
         <!-- Header with Title and Actions -->
-        <div class="p-6 border-b border-surface-100">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center space-x-4">
-                    <h2 class="text-2xl font-bold text-primary-900">Notifications</h2>
-                    <span class="px-3 py-1 text-sm font-medium bg-accent-100 text-accent-700 rounded-full">
+        <div class="p-4 sm:p-6 border-b border-surface-100">
+            <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <div class="flex flex-wrap items-center gap-2 sm:gap-4">
+                    <h2 class="text-xl sm:text-2xl font-bold text-primary-900">Notifications</h2>
+                    <span class="px-2 sm:px-3 py-1 text-xs sm:text-sm font-medium bg-accent-100 text-accent-700 rounded-full">
                         {{ auth()->user()->unreadNotifications()->count() }} unread
                     </span>
                 </div>
@@ -81,7 +81,7 @@
                 @if(auth()->user()->unreadNotifications()->count() > 0)
                     <button
                         wire:click="markAllAsRead"
-                        class="px-4 py-2 text-sm font-medium text-white bg-accent-600 rounded-lg hover:bg-accent-700 transition-colors"
+                        class="w-full sm:w-auto px-4 py-2 text-sm font-medium text-white bg-accent-600 rounded-lg hover:bg-accent-700 transition-colors text-center"
                     >
                         Mark All as Read
                     </button>

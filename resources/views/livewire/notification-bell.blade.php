@@ -26,7 +26,7 @@
         x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100 scale-100"
         x-transition:leave-end="opacity-0 scale-95"
-        class="absolute right-0 mt-2 w-96 bg-white rounded-xl shadow-lg border border-surface-200 z-50"
+        class="fixed left-4 right-4 top-16 sm:absolute sm:left-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-96 bg-white rounded-xl shadow-lg border border-surface-200 z-50"
         style="display: none;"
     >
         <!-- Header -->
