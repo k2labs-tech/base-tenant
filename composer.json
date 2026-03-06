@@ -1,5 +1,5 @@
 {
-    "name": "k2labs-tech/base-tenant",
+    "name": "base/tenant",
     "description": "Multi-tenant SaaS base package with subscriptions, RBAC, and team collaboration for Laravel 12",
     "type": "library",
     "keywords": [
