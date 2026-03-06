@@ -133,20 +133,22 @@
                     </div>
 
                     <!-- Header actions -->
-                    <div class="flex items-center space-x-4">
+                    <div class="flex items-center space-x-2 sm:space-x-4">
                         <!-- Account Switcher -->
-                        @livewire('base-tenant.account-switcher')
+                        <div class="hidden sm:block">
+                            @livewire('base-tenant.account-switcher')
+                        </div>
 
                         <!-- Notifications -->
                         @livewire('base-tenant.notification-bell')
                         <div
                             x-data="{ userDropdownMenu: false }"
-                            class="ml-4 items-center md:ml-6 inline-flex">
-                            <div class="relative ml-3">
-                                <div class="inline-flex capitalize text-sm">
+                            class="ml-2 sm:ml-4 items-center md:ml-6 inline-flex">
+                            <div class="relative ml-1 sm:ml-3">
+                                <div class="hidden sm:inline-flex capitalize text-sm">
                                     {{ auth()->user()->name }}
                                 </div>
-                                <div class="inline-flex ml-2">
+                                <div class="inline-flex sm:ml-2">
 
                                     <button type="button"
                                             @click="userDropdownMenu = !userDropdownMenu"
