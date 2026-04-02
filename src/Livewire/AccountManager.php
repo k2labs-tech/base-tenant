@@ -110,52 +110,38 @@ class AccountManager extends Component
             return;
         }
 
-        // Check for related projects
-        $projectsCount = \DB::table('projects')->where('account_id', $this->deletingAccount->id)->count();
-        if ($projectsCount > 0) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::accounts.error_deleting_account'),
-                text: __('base-tenant::accounts.cannot_delete_with_projects'),
-            );
-            $this->modal('delete-account-modal')->close();
-
-            return;
-        }
-
-        // Check for related translations
-        $translationsCount = \DB::table('translations')->where('account_id', $this->deletingAccount->id)->count();
-        if ($translationsCount > 0) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::accounts.error_deleting_account'),
-                text: __('base-tenant::accounts.cannot_delete_with_translations'),
-            );
-            $this->modal('delete-account-modal')->close();
-
-            return;
-        }
-
-        // Check for any other table with account_id
+        // Check for related data in any table with account_id foreign key
         $tablesWithRelations = [];
-        $tables = \DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+        $skipTables = ['accounts', 'users', 'account_user', 'role_user', 'settings'];
 
-        foreach ($tables as $table) {
-            $tableName = $table->name;
-            if (in_array($tableName, ['accounts', 'users', 'projects', 'translations', 'account_user'])) {
-                continue;
-            }
-
-            $columns = \DB::select("PRAGMA table_info($tableName)");
-            $hasAccountId = false;
-            foreach ($columns as $column) {
-                if ($column->name === 'account_id') {
-                    $hasAccountId = true;
-                    break;
+        $driver = \DB::getDriverName();
+        if ($driver === 'sqlite') {
+            $tables = \DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
+            foreach ($tables as $table) {
+                $tableName = $table->name;
+                if (in_array($tableName, $skipTables)) {
+                    continue;
+                }
+                $columns = \DB::select("PRAGMA table_info($tableName)");
+                $hasAccountId = collect($columns)->contains('name', 'account_id');
+                if ($hasAccountId) {
+                    $count = \DB::table($tableName)->where('account_id', $this->deletingAccount->id)->count();
+                    if ($count > 0) {
+                        $tablesWithRelations[] = $tableName;
+                    }
                 }
             }
-
-            if ($hasAccountId) {
+        } else {
+            $database = \DB::getDatabaseName();
+            $tables = \DB::select(
+                "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND COLUMN_NAME = 'account_id'",
+                [$database]
+            );
+            foreach ($tables as $table) {
+                $tableName = $table->TABLE_NAME;
+                if (in_array($tableName, $skipTables)) {
+                    continue;
+                }
                 $count = \DB::table($tableName)->where('account_id', $this->deletingAccount->id)->count();
                 if ($count > 0) {
                     $tablesWithRelations[] = $tableName;

@@ -21,19 +21,16 @@
     "require": {
         "php": "^8.4",
         "bacon/bacon-qr-code": "^3.0",
-        "illuminate/contracts": "^12.0",
-        "illuminate/database": "^12.0",
-        "illuminate/support": "^12.0",
         "lab404/laravel-impersonate": "^1.7",
         "laravel/cashier": "^16.0",
         "laravel/sanctum": "^4.0",
-        "laravel/tinker": "^2.9",
+        "laravel/tinker": "^2.9 || ^3.0",
         "laravel/vapor-core": "^2.37",
         "livewire/flux": "^2.4",
         "livewire/flux-pro": "^2.4",
-        "livewire/livewire": "^3.5",
-        "livewire/volt": "^1.0",
-        "pragmarx/google2fa-laravel": "^2.3",
+        "livewire/livewire": "^3.5 || ^4.0",
+        "livewire/volt": "^1.10",
+        "pragmarx/google2fa-laravel": "^3.0",
         "spatie/laravel-flare": "^2.2"
     },
     "require-dev": {
