@@ -24,11 +24,9 @@ class UserManager extends Component
     {
         $user = Auth::user();
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
-        $isProjectCollaborator = $user->hasRole('project-collaborator');
 
-        // System admins, project-admins, or project-collaborators can access
-        if (! $isSystemAdmin && ! $isProjectAdmin && ! $isProjectCollaborator) {
+        // System admins or users with any custom role can access
+        if (! $isSystemAdmin && ! $user->hasAnyCustomRole()) {
             abort(403, __('base-tenant::auth.unauthorized'));
         }
     }
@@ -100,8 +98,7 @@ class UserManager extends Component
         $roles = Role::nonSystem()->orderBy('name')->get();
 
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
-        $canEdit = $isSystemAdmin || $isProjectAdmin;
+        $canEdit = $isSystemAdmin || $user->hasPrimaryRole();
 
         return view('base-tenant::livewire.user-manager', [
             'users' => $users,
@@ -121,10 +118,9 @@ class UserManager extends Component
     {
         $user = Auth::user();
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
 
-        // Only system admins and project admins can delete users
-        if (! $isSystemAdmin && ! $isProjectAdmin) {
+        // Only system admins and primary role users can delete users
+        if (! $isSystemAdmin && ! $user->hasPrimaryRole()) {
             abort(403, __('base-tenant::auth.unauthorized'));
         }
 

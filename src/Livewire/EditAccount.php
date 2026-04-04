@@ -45,15 +45,15 @@ class EditAccount extends Component
     {
         $user = Auth::user();
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
+        $hasPrimaryRole = $user->hasPrimaryRole();
 
-        // System admins or project-admins can access
-        if (! $isSystemAdmin && ! $isProjectAdmin) {
+        // System admins or primary role users can access
+        if (! $isSystemAdmin && ! $hasPrimaryRole) {
             abort(403, __('base-tenant::auth.unauthorized'));
         }
 
-        // If project-admin, verify they're editing an account they have access to
-        if ($isProjectAdmin && ! $isSystemAdmin) {
+        // If primary role user, verify they're editing an account they have access to
+        if ($hasPrimaryRole && ! $isSystemAdmin) {
             $currentAccountId = session('current_account_id');
             $multiTeam = config('base-tenant.multi_team', false);
 

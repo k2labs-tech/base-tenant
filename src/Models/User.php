@@ -221,13 +221,35 @@ class User extends Authenticatable
     /**
      * Check if user has a specific role.
      */
-    public function hasRole(string $role): bool
+    public function hasRole(string|array $role): bool
     {
         if (! session()->has('user.roles')) {
             $this->storeRolesSession();
         }
 
-        return in_array($role, session()->get('user.roles', []));
+        $roles = is_array($role) ? $role : [$role];
+
+        return ! empty(array_intersect($roles, session()->get('user.roles', [])));
+    }
+
+    /**
+     * Check if user has the primary custom role (first role in config base-tenant.roles.custom).
+     */
+    public function hasPrimaryRole(): bool
+    {
+        $primaryRole = config('base-tenant.registration.default_role');
+
+        return $primaryRole && $this->hasRole($primaryRole);
+    }
+
+    /**
+     * Check if user has any custom role defined in config.
+     */
+    public function hasAnyCustomRole(): bool
+    {
+        $customRoles = collect(config('base-tenant.roles.custom', []))->pluck('key')->toArray();
+
+        return ! empty($customRoles) && $this->hasRole($customRoles);
     }
 
     /**

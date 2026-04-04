@@ -73,8 +73,8 @@ class EditUser extends Component
         $isSystemAdmin = $authUser->is_admin || is_null($authUser->account_id);
 
         if (! $isSystemAdmin) {
-            // Check if user has project-admin role
-            $isProjectAdmin = $authUser->hasRole('project-admin');
+            // Check if user has primary role
+            $isProjectAdmin = $authUser->hasPrimaryRole();
 
             if (! $isProjectAdmin) {
                 abort(403, __('base-tenant::auth.unauthorized'));
@@ -100,8 +100,8 @@ class EditUser extends Component
             // Edit mode
             // System admins can edit any user, others must check account membership
             if (! $isSystemAdmin) {
-                // Check if user has project-admin role
-                $isProjectAdmin = $authUser->hasRole('project-admin');
+                // Check if user has primary role
+                $isProjectAdmin = $authUser->hasPrimaryRole();
 
                 if (! $isProjectAdmin) {
                     abort(403, __('base-tenant::auth.unauthorized'));
@@ -154,7 +154,7 @@ class EditUser extends Component
             $accounts = \Base\Tenant\Models\Account::orderBy('name')->get();
         }
 
-        // Get account users if user is project-admin and has a primary account
+        // Get account users if user is primary and has a primary account
         $accountUsers = collect();
         $isProjectAdmin = false;
 
@@ -164,9 +164,10 @@ class EditUser extends Component
                 $this->user->load('roles');
             }
 
-            // Check if user has project-admin role
-            $isProjectAdmin = $this->user->roles->contains(function ($role) {
-                return $role->key === 'project-admin';
+            // Check if user has the primary role
+            $primaryRoleKey = config('base-tenant.registration.default_role');
+            $isProjectAdmin = $this->user->roles->contains(function ($role) use ($primaryRoleKey) {
+                return $role->key === $primaryRoleKey;
             });
 
             // Get other users in the same primary account

@@ -134,6 +134,7 @@ class BaseTenantServiceProvider extends ServiceProvider
         Livewire::component('base-tenant.forms.login-form', LoginForm::class);
         Livewire::component('base-tenant.notification-bell', \Base\Tenant\Livewire\NotificationBell::class);
         Livewire::component('base-tenant.notifications.index', \Base\Tenant\Livewire\Notifications\Index::class);
+        Livewire::component('base-tenant.invite-users', \Base\Tenant\Livewire\InviteUsers::class);
 
         // Profile components
         Livewire::component('base-tenant.profile.update-profile-information-form', UpdateProfileInformationForm::class);

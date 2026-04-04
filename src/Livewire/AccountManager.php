@@ -22,10 +22,9 @@ class AccountManager extends Component
     {
         $user = Auth::user();
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
 
-        // System admins or project-admins can access
-        if (! $isSystemAdmin && ! $isProjectAdmin) {
+        // System admins or users with any custom role can access
+        if (! $isSystemAdmin && ! $user->hasAnyCustomRole()) {
             abort(403, __('base-tenant::auth.unauthorized'));
         }
     }
@@ -78,7 +77,7 @@ class AccountManager extends Component
     {
         $user = Auth::user();
         $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
+        $isProjectAdmin = $user->hasPrimaryRole();
 
         // Project-admins can only delete accounts they have access to
         if ($isProjectAdmin && ! $isSystemAdmin) {

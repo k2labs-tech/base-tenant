@@ -59,5 +59,9 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
             ->name('base-tenant.notifications.mark-as-read');
         Route::post('/notifications/mark-all-read', [\Base\Tenant\Http\Controllers\NotificationController::class, 'markAllAsRead'])
             ->name('base-tenant.notifications.mark-all-read');
+
+        // Invitations
+        Route::get('/invitations', \Base\Tenant\Livewire\InviteUsers::class)
+            ->name('base-tenant.invitations');
     });
 });
