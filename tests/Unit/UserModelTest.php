@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-use Base\Tenant\Models\Role;
+use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Models\User;
 
 test('user can be created with factory', function () {
@@ -13,47 +13,57 @@ test('user can be created with factory', function () {
         ->and($user->name)->not->toBeEmpty();
 });
 
-test('user can have roles', function () {
-    $user = User::factory()->create();
-    $role = Role::create([
-        'key' => 'test-role',
-        'name' => 'Test Role',
-        'is_system' => false,
-    ]);
+test('user holds roles inside the account in context', function () {
+    $this->syncPermissions();
 
-    $user->roles()->attach($role);
+    $account = $this->createAccount();
+    $user = $this->createUser($account, 'customer-admin');
 
-    expect($user->roles)->toHaveCount(1)
-        ->and($user->roles->first()->key)->toBe('test-role');
+    Tenant::runFor($account, function () use ($user): void {
+        expect($user->hasRole('customer-admin'))->toBeTrue()
+            ->and($user->hasRole('customer-viewer'))->toBeFalse();
+    });
 });
 
-test('user can check if has role', function () {
-    $user = User::factory()->create();
-    $role = Role::create([
-        'key' => 'customer-admin',
-        'name' => 'Customer Admin',
-        'is_system' => false,
-    ]);
+test('addRole assigns a configured role in the current account', function () {
+    $this->syncPermissions();
 
-    $user->roles()->attach($role);
-    $user->storeRolesSession();
+    $account = $this->createAccount();
+    $user = $this->createUser($account);
 
-    expect($user->hasRole('customer-admin'))->toBeTrue()
-        ->and($user->hasRole('non-existent-role'))->toBeFalse();
+    Tenant::runFor($account, function () use ($user): void {
+        expect($user->addRole('customer-user'))->toBeTrue()
+            ->and($user->addRole('does-not-exist'))->toBeFalse()
+            ->and($user->roles()->count())->toBe(1);
+    });
 });
 
-test('user can add role', function () {
-    $user = User::factory()->create();
-    Role::create([
-        'key' => 'customer-user',
-        'name' => 'Customer User',
-        'is_system' => false,
-    ]);
+test('role checks no longer depend on the session', function () {
+    $this->syncPermissions();
 
-    $result = $user->addRole('customer-user');
+    $account = $this->createAccount();
+    $user = $this->createUser($account, 'customer-admin');
 
-    expect($result)->toBeTrue()
-        ->and($user->roles()->count())->toBe(1);
+    session()->flush();
+
+    $fresh = User::findOrFail($user->getKey());
+
+    Tenant::runFor($account, function () use ($fresh): void {
+        expect($fresh->hasRole('customer-admin'))->toBeTrue();
+    });
+});
+
+test('checking another user does not return the roles of the authenticated one', function () {
+    $this->syncPermissions();
+
+    $account = $this->createAccount();
+    $admin = $this->createUser($account, 'customer-admin');
+    $viewer = $this->createUser($account, 'customer-viewer');
+
+    $this->actingAsTenant($admin, $account);
+
+    expect($viewer->hasRole('customer-admin'))->toBeFalse()
+        ->and($viewer->hasRole('customer-viewer'))->toBeTrue();
 });
 
 test('user initials are generated correctly', function () {
@@ -64,10 +74,28 @@ test('user initials are generated correctly', function () {
 
 test('user can enable two factor authentication', function () {
     $user = User::factory()->create();
-    $secret = 'test-secret';
 
-    $user->enableTwoFactorAuthentication($secret);
+    $user->enableTwoFactorAuthentication('test-secret');
 
-    expect($user->two_factor_secret)->toBe($secret)
+    expect($user->two_factor_secret)->toBe('test-secret')
         ->and($user->two_factor_recovery_codes)->toHaveCount(8);
+});
+
+test('currency formatting uses the separators stored on the user', function () {
+    $user = User::factory()->create([
+        'decimals_separator' => ',',
+        'thousands_separator' => '.',
+    ]);
+
+    expect($user->applyCurrencyFormat(1234.5))->toBe('1.234,50');
+});
+
+test('belongsToAccount answers for both the primary account and the pivot', function () {
+    $account = $this->createAccount();
+    $other = $this->createAccount();
+    $user = $this->createUser($account);
+
+    expect($user->belongsToAccount($account))->toBeTrue()
+        ->and($user->belongsToAccount($other))->toBeFalse()
+        ->and($user->belongsToAccount(null))->toBeFalse();
 });

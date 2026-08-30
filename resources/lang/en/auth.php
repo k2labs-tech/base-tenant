@@ -68,6 +68,9 @@ return [
         'disabled_title' => 'Two-Factor Authentication Disabled',
         'disabled_description' => 'Two-factor authentication has been disabled for your account.',
         'recovery_codes_regenerated' => 'Recovery codes have been regenerated successfully.',
+        'invalid_recovery_code' => 'The recovery code is invalid.',
+        'recovery_code_used' => 'Recovery code used',
+        'recovery_code_warning' => 'That code can no longer be used. Regenerate your recovery codes if you are running low.',
     ],
 
 ];

@@ -8,12 +8,24 @@ For the easiest installation experience, use the automated install command:
 php artisan base-tenant:install
 ```
 
-This command will:
-- Detect and remove conflicting migrations
-- Update your User model
-- Publish configuration and assets
-- Run migrations and seed roles
-- Create test users
+The interactive installer will guide you through:
+
+1. **Multi-Team Mode** - Enable users belonging to multiple accounts
+2. **Stripe Subscriptions** - If enabled, prompts for:
+   - Stripe Publishable Key (`pk_...`)
+   - Stripe Secret Key (`sk_...`)
+   - Default Product ID (`prod_...`)
+   - Default Price ID (`price_...`)
+3. **Test User** - Creates a test customer account
+4. **Third-party Services** (optional):
+   - Flare API Key for error tracking
+   - Flux UI Pro license credentials
+
+After installation, the command:
+- Configures `.env` with all provided keys
+- Creates an admin user (`admin@example.com` / `secret123`)
+- Generates a setup report at `docs/SETUP.md`
+- Shows next steps including Stripe CLI setup
 
 For manual installation or understanding the process, continue reading below.
 
@@ -24,7 +36,7 @@ For manual installation or understanding the process, continue reading below.
 ## Requirements
 
 - PHP 8.4+
-- Laravel 12.x
+- Laravel 13.x
 - MySQL/PostgreSQL
 - Composer
 - Node.js 18+ & NPM
@@ -192,7 +204,7 @@ Edit `resources/css/app.css` and add the base-tenant CSS import after the Flux i
 ```css
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
-@import '../../vendor/base/tenant/resources/css/app.css';  /* ADD THIS LINE */
+@import '../../vendor/base/tenant/resources/css/base-tenant.css';  /* ADD THIS LINE */
 ```
 
 ### 5.2: Add base-tenant views to Tailwind scanning
@@ -204,20 +216,25 @@ In the same file, add the `@source` directive to scan base-tenant views for Tail
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
 @source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+@source '../../base-tenant/resources/views/**/*.blade.php';         /* ADD THIS LINE */
 @source '../../vendor/base/tenant/resources/views/**/*.blade.php';  /* ADD THIS LINE */
 ```
+
+Both paths are declared because the package may be symlinked during development
+or installed under `vendor/`; the one that does not resolve is simply ignored.
 
 **Complete example** of `resources/css/app.css`:
 
 ```css
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
-@import '../../vendor/base/tenant/resources/css/app.css';
+@import '../../vendor/base/tenant/resources/css/base-tenant.css';
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
 @source '../../vendor/livewire/flux/stubs/**/*.blade.php';
+@source '../../base-tenant/resources/views/**/*.blade.php';
 @source '../../vendor/base/tenant/resources/views/**/*.blade.php';
 
 @custom-variant dark (&:where(.dark, .dark *));
@@ -225,58 +242,16 @@ In the same file, add the `@source` directive to scan base-tenant views for Tail
 /* Rest of your CSS... */
 ```
 
-### 5.3: Define Flux Color Tokens (Tailwind CSS 4)
+### 5.3: Colour tokens
 
-**Critical for Tailwind CSS 4:** Base-tenant uses Flux UI components which require custom color tokens. Add these to your `@theme` block in `resources/css/app.css`:
+Nothing to do by hand: the `@import` added in 5.1 brings the scales the
+package's views use — `accent` for primary actions and `success` / `warning` /
+`danger` / `info` for states. Surfaces and text come from Tailwind's own `zinc`.
 
-```css
-@theme {
-    /* Your existing theme variables... */
+To use your own brand colours, or to read the full colour vocabulary, see
+[FRONTEND.md](FRONTEND.md).
 
-    /* Flux UI color aliases - map to standard Tailwind colors */
-    --color-surface-50: var(--color-gray-50);
-    --color-surface-100: var(--color-gray-100);
-    --color-surface-200: var(--color-gray-200);
-    --color-surface-300: var(--color-gray-300);
-    --color-surface-400: var(--color-gray-400);
-    --color-surface-500: var(--color-gray-500);
-    --color-surface-600: var(--color-gray-600);
-    --color-surface-700: var(--color-gray-700);
-    --color-surface-800: var(--color-gray-800);
-    --color-surface-900: var(--color-gray-900);
-
-    --color-primary-50: var(--color-zinc-50);
-    --color-primary-100: var(--color-zinc-100);
-    --color-primary-200: var(--color-zinc-200);
-    --color-primary-300: var(--color-zinc-300);
-    --color-primary-400: var(--color-zinc-400);
-    --color-primary-500: var(--color-zinc-500);
-    --color-primary-600: var(--color-zinc-600);
-    --color-primary-700: var(--color-zinc-700);
-    --color-primary-800: var(--color-zinc-800);
-    --color-primary-900: var(--color-zinc-900);
-
-    --color-accent-50: var(--color-violet-50);
-    --color-accent-100: var(--color-violet-100);
-    --color-accent-200: var(--color-violet-200);
-    --color-accent-300: var(--color-violet-300);
-    --color-accent-400: var(--color-violet-400);
-    --color-accent-500: var(--color-violet-500);
-    --color-accent-600: var(--color-violet-600);
-    --color-accent-700: var(--color-violet-700);
-    --color-accent-800: var(--color-violet-800);
-    --color-accent-900: var(--color-violet-900);
-
-    --color-success: var(--color-green-500);
-    --color-error: var(--color-red-500);
-    --color-warning: var(--color-amber-500);
-    --color-info: var(--color-blue-500);
-}
-```
-
-**Note:** You can customize these mappings to match your brand colors. The example above uses neutral grays and violet for a clean, professional look.
-
-Then build the assets:
+Then build the assets **in your application**:
 
 ```bash
 npm run build
@@ -334,6 +309,49 @@ STRIPE_WEBHOOK_SECRET=whsec_xxx
 BASE_TENANT_SUBSCRIPTION_DEFAULT_PRODUCT=prod_xxx
 BASE_TENANT_SUBSCRIPTION_DEFAULT_PRICE=price_xxx
 ```
+
+## Step 6b: Stripe CLI for Webhooks (if using subscriptions)
+
+To receive Stripe webhook events locally (required for subscription activation after checkout), install and run the Stripe CLI:
+
+### Install
+
+```bash
+# macOS
+brew install stripe/stripe-cli/stripe
+
+# Linux
+curl -s https://packages.stripe.dev/api/security/keypair/stripe-cli-gpg/public | gpg --dearmor | sudo tee /usr/share/keyrings/stripe.gpg
+echo "deb [signed-by=/usr/share/keyrings/stripe.gpg] https://packages.stripe.dev/stripe-cli-debian-local stable main" | sudo tee -a /etc/apt/sources.list.d/stripe.list
+sudo apt update && sudo apt install stripe
+
+# Windows
+winget install Stripe.StripeCLI
+```
+
+### Authenticate
+
+```bash
+stripe login
+```
+
+### Forward webhooks
+
+```bash
+stripe listen --forward-to localhost:8000/stripe/webhook
+```
+
+This outputs a webhook signing secret (`whsec_...`). Add it to your `.env`:
+
+```env
+STRIPE_WEBHOOK_SECRET=whsec_...
+```
+
+Keep the CLI running while testing checkout flows. It forwards events like `checkout.session.completed` to Laravel Cashier, which activates the subscription automatically.
+
+### Non-Production Bypass
+
+In non-production environments (`local`, `testing`), if Stripe is not fully configured (missing keys, product, or price), the subscription middleware is bypassed automatically. Users can access the dashboard without a subscription. This allows development without a Stripe account.
 
 ## Step 7: Configure Fortify
 
@@ -512,23 +530,17 @@ This publishes translation files to `lang/` for customization:
 - Only if you need to customize specific translations
 - Laravel will check your published files first, then fall back to package translations
 
-## Step 12: Publish Assets (Optional)
+## Step 12: Publish Views (Optional)
+
+Views are not publishable on their own: a published copy drifts from the package
+and updates stop reaching it. To customise the markup, copy the whole package
+into your application instead:
 
 ```bash
-php artisan vendor:publish --tag=base-tenant-assets
+php artisan base-tenant:scaffold
 ```
 
-Assets will be published to `public/vendor/base-tenant/`.
-
-## Step 13: Publish Views (Optional)
-
-Only if you need to customize the views:
-
-```bash
-php artisan vendor:publish --tag=base-tenant-views
-```
-
-Views will be published to `resources/views/vendor/base-tenant/`.
+Views land in `resources/views/tenant/`, fully yours. See `docs/SCAFFOLD-EJECT.md`.
 
 ---
 
@@ -638,38 +650,26 @@ git checkout -b feature/add-new-feature
 - Refresh your application in the browser
 - Changes to PHP files require a page refresh
 - Changes to views (.blade.php) are usually instant
-- Changes to CSS/JS require rebuilding assets (see below)
+- Changes to CSS require rebuilding in your application (see below)
 
-#### 5. Working with Package Assets (CSS/JS)
+#### 5. Working with Package Styles
 
-If you modify the package's frontend assets:
+The package has no build of its own — it ships no `package.json` and compiles
+nothing. Your application builds the CSS, which is why it declares the
+`@source` directives from Step 5.2.
 
-```bash
-# Navigate to the package directory
-cd ../base-tenant
-
-# Install package dependencies (first time only)
-npm install
-
-# Build assets for development (watches for changes)
-npm run dev
-
-# Or build once for production
-npm run build
-```
-
-After building, **publish the assets** to your application:
+So if you edit the package's theme (`resources/css/base-tenant.css`) or add
+Tailwind classes to a package view, rebuild **in your application**:
 
 ```bash
 # Navigate to your application directory
 cd ../localization-hub
 
-# Force publish the updated assets
-php artisan vendor:publish --tag=base-tenant-assets --force
-
-# Clear Laravel caches
-php artisan optimize:clear
+# Rebuild, or leave `npm run dev` running
+npm run build
 ```
+
+Nothing is published to `public/`. See [FRONTEND.md](FRONTEND.md).
 
 #### 6. Testing Your Changes
 
@@ -750,9 +750,6 @@ composer clear-cache
 
 # Install the production version
 composer require base/tenant:^1.0
-
-# Publish assets
-php artisan vendor:publish --tag=base-tenant-assets --force
 ```
 
 ### Common Development Workflows
@@ -854,8 +851,7 @@ composer require base/tenant:@dev
 php artisan optimize:clear
 composer dump-autoload
 
-# For asset changes
-php artisan vendor:publish --tag=base-tenant-assets --force
+# For style changes, rebuild in your application
 npm run build
 ```
 
@@ -1014,49 +1010,20 @@ Route::middleware(['auth', 'base-tenant.subscription'])->group(function () {
 
 ### Frontend Integration
 
-#### Option 1: Use Package Assets
-
-In your main layout:
-
-```blade
-<!DOCTYPE html>
-<html>
-<head>
-    <link rel="stylesheet" href="{{ asset('vendor/base-tenant/css/app.css') }}">
-</head>
-<body>
-    @yield('content')
-    <script src="{{ asset('vendor/base-tenant/js/app.js') }}"></script>
-</body>
-</html>
-```
-
-#### Option 2: Integrate with Your Build
-
-Add package resources to your `vite.config.js`:
-
-```javascript
-export default defineConfig({
-    plugins: [
-        laravel({
-            input: [
-                'resources/css/app.css',
-                'resources/js/app.js',
-            ],
-            refresh: true,
-        }),
-    ],
-});
-```
-
-And import in your main CSS file:
+There is only one way in: your application's build. The package ships no
+compiled assets and publishes nothing to `public/`, so your `app.css` imports
+the theme and scans the package views — exactly what Step 5 sets up:
 
 ```css
 /* resources/css/app.css */
-@import '../../vendor/base/tenant/resources/css/app.css';
+@import 'tailwindcss';
+@import '../../vendor/base/tenant/resources/css/base-tenant.css';
 
-/* Your custom styles */
+@source '../../vendor/base/tenant/resources/views/**/*.blade.php';
 ```
+
+Then load it from your layout with `@vite('resources/css/app.css')`. See
+[FRONTEND.md](FRONTEND.md) for the colour vocabulary and how to override it.
 
 ## Verification
 
@@ -1081,10 +1048,14 @@ php artisan migrate:fresh
 php artisan db:seed --class="Base\Tenant\Database\Seeders\BaseTenantSeeder"
 ```
 
-### Assets not loading
+### Styles not applying
+
+The package publishes no assets — your application compiles them. Check that
+`resources/css/app.css` has both the `@import` and the `@source` directives
+from Step 5, then rebuild:
 
 ```bash
-php artisan vendor:publish --tag=base-tenant-assets --force
+npm run build
 php artisan optimize:clear
 ```
 
@@ -1111,9 +1082,9 @@ When updating the package:
 
 ```bash
 composer update base/tenant
-php artisan vendor:publish --tag=base-tenant-assets --force
 php artisan migrate
 php artisan optimize:clear
+npm run build
 ```
 
 ## Next Steps

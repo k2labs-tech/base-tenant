@@ -22,6 +22,7 @@ class VerifyEmail extends Component
 
         if ($user->hasVerifiedEmail()) {
             $this->redirectIntended(default: route('base-tenant.dashboard', absolute: false), navigate: true);
+
             return;
         }
 
@@ -31,8 +32,8 @@ class VerifyEmail extends Component
         }
 
         // Send verification email automatically if not sent recently
-        $sessionKey = 'verification-email-sent-' . $user->id;
-        if (!Session::has($sessionKey)) {
+        $sessionKey = 'verification-email-sent-'.$user->id;
+        if (! Session::has($sessionKey)) {
             $user->sendEmailVerificationNotification();
             Session::put($sessionKey, now());
             Session::flash('status', 'verification-link-sent');

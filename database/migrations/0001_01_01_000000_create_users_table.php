@@ -19,7 +19,7 @@ return new class extends Migration
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('phone')->nullable();
-            $table->string('timezone',40)->default('Europe/Madrid');
+            $table->string('timezone', 40)->default('Europe/Madrid');
             $table->string('date_format')->default('d/m/Y');
             $table->string('time_format')->default('H:i:s');
             $table->integer('decimals_number')->default(2);

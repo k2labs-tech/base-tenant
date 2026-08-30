@@ -2,18 +2,28 @@
 
 namespace Base\Tenant\Livewire;
 
+use App\Models\User;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
+use Livewire\Attributes\Layout;
 use Livewire\Component;
 use PragmaRX\Google2FA\Google2FA;
 
+/**
+ * Sin este atributo Livewire cae en el layout por defecto de la aplicación, que
+ * este paquete no trae: la pantalla a la que redirige el acceso cuando hay
+ * segundo factor respondía con un 500 y dejaba el inicio de sesión sin salida.
+ */
+#[Layout('base-tenant::layouts.guest')]
 class TwoFactorChallenge extends Component
 {
-
     public $code = '';
+
     public $recoveryCode = '';
+
     public $usingRecoveryCode = false;
+
     public $userId;
 
     protected $rules = [
@@ -25,7 +35,7 @@ class TwoFactorChallenge extends Component
     {
         $this->userId = $userId ?? session('2fa.user_id');
 
-        if (!$this->userId) {
+        if (! $this->userId) {
             return redirect()->route('base-tenant.login');
         }
     }
@@ -38,7 +48,7 @@ class TwoFactorChallenge extends Component
 
     public function toggleRecoveryCode()
     {
-        $this->usingRecoveryCode = !$this->usingRecoveryCode;
+        $this->usingRecoveryCode = ! $this->usingRecoveryCode;
         $this->reset(['code', 'recoveryCode']);
         $this->resetValidation();
     }
@@ -58,18 +68,18 @@ class TwoFactorChallenge extends Component
             'code' => 'required|string|size:6',
         ]);
 
-        $user = \App\Models\User::find($this->userId);
+        $user = User::find($this->userId);
 
-        if (!$user) {
+        if (! $user) {
             throw ValidationException::withMessages([
                 'code' => __('base-tenant::auth.failed'),
             ]);
         }
 
-        $google2fa = new Google2FA();
+        $google2fa = new Google2FA;
         $valid = $google2fa->verifyKey($user->two_factor_secret, $this->code);
 
-        if (!$valid) {
+        if (! $valid) {
             throw ValidationException::withMessages([
                 'code' => __('base-tenant::auth.2fa.invalid_code'),
             ]);
@@ -88,9 +98,9 @@ class TwoFactorChallenge extends Component
             'recoveryCode' => 'required|string',
         ]);
 
-        $user = \App\Models\User::find($this->userId);
+        $user = User::find($this->userId);
 
-        if (!$user) {
+        if (! $user) {
             throw ValidationException::withMessages([
                 'recoveryCode' => __('base-tenant::auth.failed'),
             ]);
@@ -98,7 +108,7 @@ class TwoFactorChallenge extends Component
 
         $validCode = $user->invalidateRecoveryCode($this->recoveryCode);
 
-        if (!$validCode) {
+        if (! $validCode) {
             throw ValidationException::withMessages([
                 'recoveryCode' => __('base-tenant::auth.2fa.invalid_recovery_code'),
             ]);

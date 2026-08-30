@@ -68,6 +68,9 @@ return [
         'disabled_title' => 'Autenticación de Dos Factores Deshabilitada',
         'disabled_description' => 'La autenticación de dos factores ha sido deshabilitada para tu cuenta.',
         'recovery_codes_regenerated' => 'Los códigos de recuperación se han regenerado exitosamente.',
+        'invalid_recovery_code' => 'El código de recuperación es inválido.',
+        'recovery_code_used' => 'Código de recuperación utilizado',
+        'recovery_code_warning' => 'Ese código ya no se puede volver a usar. Regenera tus códigos de recuperación si te quedan pocos.',
     ],
 
 ];

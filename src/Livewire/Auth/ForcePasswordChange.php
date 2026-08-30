@@ -12,7 +12,9 @@ use Livewire\Component;
 class ForcePasswordChange extends Component
 {
     public $current_password = '';
+
     public $password = '';
+
     public $password_confirmation = '';
 
     protected $rules = [
@@ -27,12 +29,12 @@ class ForcePasswordChange extends Component
     public function mount()
     {
         // Ensure user is authenticated
-        if (!Auth::check()) {
+        if (! Auth::check()) {
             return redirect()->route('base-tenant.login');
         }
 
         // If user doesn't need to change password, redirect to dashboard
-        if (!Auth::user()->must_change_password) {
+        if (! Auth::user()->must_change_password) {
             return redirect()->route('base-tenant.dashboard');
         }
     }
@@ -44,8 +46,9 @@ class ForcePasswordChange extends Component
         $user = Auth::user();
 
         // Verify current password
-        if (!Hash::check($this->current_password, $user->password)) {
+        if (! Hash::check($this->current_password, $user->password)) {
             $this->addError('current_password', __('base-tenant::auth.current_password_incorrect'));
+
             return;
         }
 

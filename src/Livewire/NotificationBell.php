@@ -3,21 +3,23 @@
 namespace Base\Tenant\Livewire;
 
 use Base\Tenant\Services\NotificationService;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 class NotificationBell extends Component
 {
     public $unreadCount = 0;
-    public $recentNotifications = [];
-    public $showDropdown = false;
 
-    protected $listeners = ['notificationRead' => 'refreshNotifications'];
+    public $recentNotifications = [];
+
+    public $showDropdown = false;
 
     public function mount()
     {
         $this->refreshNotifications();
     }
 
+    #[On('notificationRead')]
     public function refreshNotifications()
     {
         $user = auth()->user();
@@ -59,7 +61,7 @@ class NotificationBell extends Component
 
     public function toggleDropdown()
     {
-        $this->showDropdown = !$this->showDropdown;
+        $this->showDropdown = ! $this->showDropdown;
     }
 
     public function render()

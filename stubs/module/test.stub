@@ -1,0 +1,81 @@
+<?php
+
+declare(strict_types=1);
+
+use App\Livewire\{{ class }}\Form;
+use App\Livewire\{{ class }}\Index;
+use Base\Tenant\Facades\Tenant;
+use {{ namespace }}\{{ class }};
+use Livewire\Livewire;
+
+beforeEach(function () {
+    $this->syncPermissions();
+});
+
+/**
+ * La garantía que ninguna aplicación multi-tenant puede permitirse perder.
+ * Generado por k2labs-base:make-module; amplíalo, no lo borres.
+ */
+test('una cuenta no ve los registros de otra', function () {
+    $mia = $this->createAccount();
+    $ajena = $this->createAccount();
+
+    Tenant::runFor($ajena, fn () => {{ class }}::factory()->create());
+
+    $usuaria = $this->createUser($mia, 'customer-admin');
+    $this->actingAsTenant($usuaria, $mia);
+
+    expect({{ class }}::query()->count())->toBe(0);
+});
+
+test('el listado enseña los registros de la cuenta', function () {
+    $cuenta = $this->createAccount();
+    $usuaria = $this->createUser($cuenta, 'customer-admin');
+
+    $this->actingAsTenant($usuaria, $cuenta);
+
+    {{ class }}::factory()->count(3)->create();
+
+    Livewire::test(Index::class)
+        ->assertOk()
+        ->assertViewHas('total', 3);
+});
+
+test('quien no tiene permiso no entra', function () {
+    $cuenta = $this->createAccount();
+    $mirona = $this->createUser($cuenta, 'customer-viewer');
+
+    $this->actingAsTenant($mirona, $cuenta);
+
+    Livewire::test(Index::class)->assertForbidden();
+});
+
+test('crear guarda el registro dentro de la cuenta', function () {
+    $cuenta = $this->createAccount();
+    $usuaria = $this->createUser($cuenta, 'customer-admin');
+
+    $this->actingAsTenant($usuaria, $cuenta);
+
+    Livewire::test(Form::class)
+{{ formSets }}        ->call('save')
+        ->assertHasNoErrors();
+
+    expect({{ class }}::query()->count())->toBe(1)
+        ->and({{ class }}::query()->first()->account_id)->toBe($cuenta->getKey());
+});
+
+test('borrar pasa por el modal', function () {
+    $cuenta = $this->createAccount();
+    $usuaria = $this->createUser($cuenta, 'customer-admin');
+
+    $this->actingAsTenant($usuaria, $cuenta);
+
+    ${{ variable }} = {{ class }}::factory()->create();
+
+    Livewire::test(Index::class)
+        ->call('confirmDelete', ${{ variable }}->getKey())
+        ->assertSet('showDeleteModal', true)
+        ->call('delete');
+
+    expect({{ class }}::query()->count())->toBe(0);
+});

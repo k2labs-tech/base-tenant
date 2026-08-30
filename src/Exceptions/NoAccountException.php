@@ -12,4 +12,11 @@ class NoAccountException extends RuntimeException
             'User has no accounts. Please contact support or complete onboarding.'
         );
     }
+
+    public static function noActiveAccount(): self
+    {
+        return new self(
+            'No account is in context. Resolve a tenant first, or use Tenant::runFor().'
+        );
+    }
 }

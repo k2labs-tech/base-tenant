@@ -1,5 +1,128 @@
 # Upgrade Guide
 
+## From 1.x to 2.0
+
+Version 2.0 replaces session-backed roles with `spatie/laravel-permission` scoped
+by `account_id`, and introduces a tenancy layer. Plan for a maintenance window:
+the upgrade rewrites the `roles` table and moves role assignments.
+
+### 1. Update dependencies
+
+```bash
+composer require spatie/laravel-permission:^6.0
+composer update base/tenant
+```
+
+The package configures `config/permission.php` itself — do not publish it unless
+you need to change something, and if you do, keep `teams` at `true` and
+`column_names.team_foreign_key` at `account_id`.
+
+### 2. Back up, then migrate
+
+```bash
+mysqldump your_database > backup-before-2.0.sql   # or the equivalent
+php artisan migrate
+php artisan k2labs-base:sync-roles --show
+php artisan k2labs-base:sync-menus
+```
+
+The migrations:
+
+- rearrange `roles`: `name` becomes the identifier (the old `key`), `display_name`
+  holds the label, and `key` stays as a synced alias
+- create `permissions`, `model_has_roles`, `model_has_permissions` and `role_has_permissions`
+- copy every row of `role_user` into `model_has_roles`, using `account_id` as the
+  team and a fixed system team for assignments that had none
+- add `domain`, `subdomain` and `status` to `accounts`, and `account_id` to
+  `personal_access_tokens`
+- create `menus`, `menu_items` and `features`
+
+`role_user` is left untouched so you can compare the result. Drop it once you are
+satisfied.
+
+### 3. Declare your permissions
+
+Roles now carry permissions. Add your own to `config/base-tenant.php` and give
+each role the permissions it should have, then re-run `k2labs-base:sync-roles`.
+Roles with no `permissions` key are synced with none, so nothing is granted by
+accident.
+
+### 4. Replace role checks with permission checks
+
+`hasRole()` still works, but it now answers for the account in context rather
+than reading the session. Application code should generally ask about the ability
+instead:
+
+```php
+// Before
+if ($user->hasRole('customer-admin')) { /* ... */ }
+
+// After
+if ($user->can('invoices.approve')) { /* ... */ }
+```
+
+`storeRolesSession()` is a no-op kept for compatibility. Remove the calls.
+
+### 5. Assign roles inside an account
+
+Role assignment is scoped to the account in context. Outside a request — seeders,
+commands, jobs — set it explicitly:
+
+```php
+use Base\Tenant\Facades\Tenant;
+
+Tenant::runFor($account, fn () => $user->assignRole('customer-admin'));
+```
+
+`$user->roles()->attach($id, ['account_id' => $id])` no longer applies: the pivot
+is `model_has_roles` and spatie fills the team column.
+
+### 6. Scope your own models
+
+Add `BelongsToAccount` to every model holding tenant data, then prove it:
+
+```php
+use Base\Tenant\Traits\BelongsToAccount;
+
+class Invoice extends Model
+{
+    use BelongsToAccount;
+}
+```
+
+```php
+$this->assertTenantIsolated(Invoice::class, fn ($account) => Invoice::factory()->create());
+```
+
+Public routes that look a record up outside any tenant — an invitation accepted
+from an email link, for instance — need `acrossAccounts()`.
+
+### 7. Review the navigation
+
+The sidebar now renders from the database. Register your entries with
+`Menu::register()` in a service provider and run `k2labs-base:sync-menus`. Until
+you do, only the entries the package ships with appear.
+
+### 8. Check `on_missing_tenant`
+
+The default, `auto`, leaves queries unfiltered in console and queue work and
+returns nothing over HTTP when no account could be resolved. If your application
+has admin screens that legitimately read across accounts, use `acrossAccounts()`
+there rather than loosening this setting.
+
+### Breaking changes at a glance
+
+| Before | After |
+|---|---|
+| `roles.key` is the identifier | `roles.name` is the identifier, `key` is an alias |
+| `roles.name` is the label | `roles.display_name` is the label |
+| `role_user` pivot | `model_has_roles`, team column `account_id` |
+| `hasRole()` reads the session | resolves from the database, per account |
+| `$user->roles()->attach($id, [...])` | `Tenant::runFor($account, fn () => $user->assignRole($role))` |
+| `session('current_account_id')` | `Tenant::current()` / `Tenant::currentId()` |
+| `ActivityLog::forAccount($id)` | global scope, or `forAccount($account)` from the trait |
+| `#[Layout('layouts.app')]` | `config('base-tenant.layouts.app')` |
+
 ## From Application to Package
 
 This package was converted from a standalone Laravel 11 application to a reusable package for Laravel 12. This guide helps you understand the changes if you're migrating from the original application.
@@ -198,13 +321,16 @@ Update configuration:
 
 #### Custom Views
 
-Publish and modify views:
+Views are not publishable: the package loads them from its own namespace so
+updates cannot be silently shadowed by a stale copy. To take ownership of the
+markup, copy the whole package into your application:
 
 ```bash
-php artisan vendor:publish --tag=base-tenant-views
+php artisan k2labs-base:scaffold
 ```
 
-Then edit files in `resources/views/vendor/base-tenant/`.
+The views land in `resources/views/tenant/` as yours to edit. See
+`docs/SCAFFOLD-EJECT.md`.
 
 #### Custom Routes
 
@@ -246,7 +372,7 @@ Add to configuration:
 Sync to database:
 
 ```bash
-php artisan base-tenant:sync-roles
+php artisan k2labs-base:sync-roles
 ```
 
 ## Testing Updates
@@ -277,38 +403,23 @@ User::factory()->create();
 
 ## Frontend Changes
 
-### Asset Paths
+The package no longer ships a build. There are no assets to publish and no
+`tailwind.config.js` to extend — your application compiles everything with
+Tailwind v4.
 
-```html
-<!-- Before -->
-<link rel="stylesheet" href="{{ mix('css/app.css') }}">
-<script src="{{ mix('js/app.js') }}"></script>
+Replace any `asset('vendor/base-tenant/...')` link or `tailwind.config.js`
+preset with an import and a `@source` in your own stylesheet:
 
-<!-- After (using package assets) -->
-<link rel="stylesheet" href="{{ asset('vendor/base-tenant/css/app.css') }}">
-<script src="{{ asset('vendor/base-tenant/js/app.js') }}"></script>
+```css
+/* resources/css/app.css */
+@import 'tailwindcss';
+@import '../../vendor/base/tenant/resources/css/base-tenant.css';
 
-<!-- Or build together with your assets -->
-<link rel="stylesheet" href="{{ mix('css/app.css') }}">
+@source '../../vendor/base/tenant/resources/views/**/*.blade.php';
 ```
 
-### Tailwind Configuration
-
-Extend package configuration:
-
-```javascript
-// tailwind.config.js
-import packageConfig from './vendor/base/tenant/tailwind.config.js';
-
-export default {
-    presets: [packageConfig],
-    content: [
-        ...packageConfig.content,
-        './resources/views/**/*.blade.php',
-    ],
-    // Your customizations
-};
-```
+Then load it with `@vite('resources/css/app.css')`. See
+[FRONTEND.md](FRONTEND.md).
 
 ## Common Issues
 
@@ -336,11 +447,13 @@ php artisan livewire:discover
 php artisan optimize:clear
 ```
 
-### Issue: Assets not loading
+### Issue: Styles not applying
 
-**Solution:**
+**Solution:** the package publishes no assets. Check that your
+`resources/css/app.css` imports the theme and declares the `@source` for the
+package views, then rebuild:
 ```bash
-php artisan vendor:publish --tag=base-tenant-assets --force
+npm run build
 ```
 
 ### Issue: Database tables don't exist

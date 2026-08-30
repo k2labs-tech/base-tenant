@@ -1,26 +1,74 @@
 <div>
-    @if($accounts->count() > 1)
-        <div class="flex items-center space-x-2">
-            <svg class="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-            </svg>
-            <select
-                wire:change="switchAccount($event.target.value)"
-                class="px-3 py-1.5 text-sm border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500 bg-white"
-            >
-                @foreach($accounts as $account)
-                    <option value="{{ $account->id }}" {{ $currentAccountId === $account->id ? 'selected' : '' }}>
+    @php
+        // Una sola cuenta y sin ser personal de plataforma: no hay nada entre
+        // lo que elegir, así que el nombre se enseña y ya está. Un desplegable
+        // de un elemento invita a pulsarlo para no encontrar nada.
+        $onlyOne = ! $isStaff && $accounts->count() <= 1;
+    @endphp
+
+    @if($onlyOne)
+        @if($accounts->count() === 1)
+            <div class="flex items-center gap-2 text-sm text-zinc-600 dark:text-zinc-300">
+                <flux:icon.building-office-2 variant="micro" class="text-zinc-400 dark:text-zinc-500" />
+                <span class="truncate">{{ $accounts->first()->name }}</span>
+            </div>
+        @endif
+    @else
+        <flux:dropdown position="bottom" align="start">
+            <flux:button size="sm" icon="building-office-2" icon:trailing="chevron-down" class="max-w-56">
+                <span class="truncate">
+                    {{ $current?->name ?? __('base-tenant::accounts.no_account') }}
+                </span>
+
+                @if($isStaff)
+                    {{-- Que el personal de plataforma sepa siempre que está
+                         mirando datos de un cliente y no los suyos. --}}
+                    <flux:badge size="sm" color="amber" inset="top bottom">
+                        {{ __('base-tenant::accounts.staff') }}
+                    </flux:badge>
+                @endif
+            </flux:button>
+
+            <flux:menu class="min-w-72">
+                @if($searchable)
+                    <div class="px-2 py-1.5">
+                        <flux:input
+                            wire:model.live.debounce.300ms="search"
+                            icon="magnifying-glass"
+                            size="sm"
+                            type="search"
+                            :placeholder="__('base-tenant::accounts.search_placeholder')"
+                            :label:sr-only="__('base-tenant::common.search')"
+                        />
+                    </div>
+
+                    <flux:menu.separator />
+                @endif
+
+                @forelse($accounts as $account)
+                    <flux:menu.item
+                        wire:click="switchAccount('{{ $account->id }}')"
+                        :icon="$currentAccountId === $account->id ? 'check' : null"
+                    >
                         {{ $account->name }}
-                    </option>
-                @endforeach
-            </select>
-        </div>
-    @elseif($accounts->count() === 1)
-        <div class="flex items-center space-x-2 text-sm text-gray-500">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"></path>
-            </svg>
-            <span>{{ $accounts->first()->name }}</span>
-        </div>
+                    </flux:menu.item>
+                @empty
+                    <div class="px-3 py-4 text-center text-xs text-zinc-500 dark:text-zinc-400">
+                        {{ $search !== '' ? __('base-tenant::common.empty_search') : __('base-tenant::accounts.none') }}
+                    </div>
+                @endforelse
+
+                @if($isStaff && $currentAccountId)
+                    <flux:menu.separator />
+
+                    {{-- La salida. Sin ella, entrar en una cuenta es un viaje
+                         de ida: el resolver recuerda la última y no habría
+                         forma de volver a la vista de plataforma. --}}
+                    <flux:menu.item wire:click="leaveAccount" icon="arrow-left-start-on-rectangle">
+                        {{ __('base-tenant::accounts.leave') }}
+                    </flux:menu.item>
+                @endif
+            </flux:menu>
+        </flux:dropdown>
     @endif
 </div>

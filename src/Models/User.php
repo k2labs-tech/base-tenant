@@ -4,8 +4,13 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Models;
 
+use Base\Tenant\Database\Factories\UserFactory;
+use Base\Tenant\Exceptions\NoAccountException;
+use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Traits\HasRolesAndPermissions;
+use Base\Tenant\Traits\HasSettings;
 use Carbon\Carbon;
-use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -15,11 +20,16 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Str;
 use Lab404\Impersonate\Models\Impersonate;
-use Livewire\Features\SupportRedirects\Redirector;
 
 class User extends Authenticatable
 {
-    use HasFactory, HasUuids, Impersonate, Notifiable, SoftDeletes;
+    use HasFactory;
+    use HasRolesAndPermissions;
+    use HasSettings;
+    use HasUuids;
+    use Impersonate;
+    use Notifiable;
+    use SoftDeletes;
 
     /**
      * The attributes that aren't mass assignable.
@@ -50,6 +60,12 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+
+            // Sin el cast llega como 1 y como '0', y `'0'` es una cadena no
+            // vacía: cualquier comprobación escrita sin `(bool)` daría por
+            // administrador de plataforma a quien no lo es.
+            'is_admin' => 'boolean',
+            'must_change_password' => 'boolean',
             'accessed_at' => 'datetime',
             'decimal_places' => 'integer',
             'two_factor_confirmed_at' => 'datetime',
@@ -58,13 +74,32 @@ class User extends Authenticatable
     }
 
     /**
-     * The roles that belong to the user.
+     * Laravel resolves factories by convention from the application namespace,
+     * which never finds a package model. Naming it here lets a host
+     * application call `factory()` on this model without any wiring.
+     *
+     * @var class-string<UserFactory>
      */
-    public function roles(): BelongsToMany
+    protected static $factory = UserFactory::class;
+
+    /**
+     * Users reachable from an account, whether they were attached through the
+     * pivot or only carry it as their primary account.
+     */
+    public function scopeInAccount(Builder $query, Account|string|null $account): Builder
     {
-        return $this->belongsToMany(
-            config('base-tenant.models.role', Role::class)
-        );
+        $accountId = $account instanceof Account ? $account->getKey() : $account;
+
+        if ($accountId === null) {
+            return $query->whereRaw('1 = 0');
+        }
+
+        return $query->where(function (Builder $query) use ($accountId): void {
+            $query->where('users.account_id', $accountId)
+                ->orWhereHas('accounts', function (Builder $query) use ($accountId): void {
+                    $query->where('accounts.id', $accountId);
+                });
+        });
     }
 
     /**
@@ -94,7 +129,7 @@ class User extends Authenticatable
         ?string $accountName = null,
         string $userRole = 'customer-admin',
         bool $toCheckout = true
-    ): Account|Redirector {
+    ): Account {
         $accountClass = config('base-tenant.models.account', Account::class);
 
         $account = $accountClass::create([
@@ -108,18 +143,13 @@ class User extends Authenticatable
 
         $this->account_id = (string) $account->id;
         $this->accounts()->attach($account->id);
-        $this->addRole($userRole);
         $this->save();
 
-        return $account;
-    }
+        Tenant::runFor($account, function () use ($userRole): void {
+            $this->addRole($userRole);
+        });
 
-    /**
-     * The alerts that belong to the user.
-     */
-    public function hasAlerts(): int
-    {
-        return random_int(0, 1);
+        return $account;
     }
 
     /**
@@ -135,99 +165,7 @@ class User extends Authenticatable
      */
     public function isAdmin(): bool
     {
-        return $this->admin;
-    }
-
-    /**
-     * Return true or false if the Role has been assigned properly.
-     */
-    public function addRole(?string $role = null): bool
-    {
-        if (! $role) {
-            return false;
-        }
-
-        $roleClass = config('base-tenant.models.role', Role::class);
-        $roleId = $roleClass::where('key', $role)->value('id');
-
-        if (! $roleId) {
-            return false;
-        }
-
-        try {
-            $this->roles()->attach($roleId);
-
-            return true;
-        } catch (\Throwable $th) {
-            return false;
-        }
-    }
-
-    /**
-     * Store the user roles in session (filtered by current account if applicable).
-     */
-    public function storeRolesSession(): void
-    {
-        $currentAccountId = session('current_account_id');
-
-        if ($currentAccountId) {
-            // Filter roles by current account_id in pivot table
-            // This gets roles where account_id matches OR is null (global roles)
-            $roles = $this->roles()
-                ->where(function ($query) use ($currentAccountId) {
-                    $query->where('role_user.account_id', $currentAccountId)
-                          ->orWhereNull('role_user.account_id');
-                })
-                ->pluck('key')
-                ->toArray();
-        } else {
-            // If no current account, get all roles
-            $roles = $this->roles->pluck('key')->toArray();
-        }
-
-        session(['user.roles' => $roles]);
-    }
-
-    /**
-     * Check if the user has any of the roles.
-     */
-    public function authorizeRoles(array|string $roles): bool
-    {
-        abort_unless($this->hasAnyRole($roles), 401);
-
-        return true;
-    }
-
-    /**
-     * Check if the user has any of the roles.
-     */
-    public function hasAnyRole(array|string $roles): bool
-    {
-        if (is_array($roles)) {
-            foreach ($roles as $role) {
-                if ($this->hasRole($role)) {
-                    return true;
-                }
-            }
-        } else {
-            if ($this->hasRole($roles)) {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    /**
-     * Check if user has a specific role.
-     */
-    public function hasRole(string $role): bool
-    {
-        if (! session()->has('user.roles')) {
-            $this->storeRolesSession();
-        }
-
-        return in_array($role, session()->get('user.roles', []));
+        return (bool) $this->is_admin;
     }
 
     /**
@@ -282,7 +220,11 @@ class User extends Authenticatable
         ?string $timezone = null
     ): string {
         $timezone = $timezone ?? $this->timezone ?? config('app.timezone');
-        $format = $format ?? ($this->date_format.' '.$this->hour_format) ?? 'd/m/Y H:i:s';
+        // `time_format`, not `hour_format`: there is no such column, so the
+        // concatenation produced a date with a trailing space and no time at
+        // all -- and the fallback below it never fired, because concatenating
+        // a null yields an empty string rather than null.
+        $format ??= trim(($this->date_format ?: 'd/m/Y').' '.($this->time_format ?: 'H:i:s'));
 
         return Carbon::parse($dateTime ?? now())->timezone($timezone)->format($format);
     }
@@ -304,9 +246,10 @@ class User extends Authenticatable
      */
     public function applyCurrencyFormat(float $amount, int $decimals = 2): string
     {
-        $thousandsPointer = $this->decimals_pointer == ',' ? '.' : ',';
+        $decimalSeparator = $this->decimals_separator ?: ',';
+        $thousandsSeparator = $this->thousands_separator ?: ($decimalSeparator === ',' ? '.' : ',');
 
-        return number_format($amount, $decimals, $thousandsPointer, $this->decimals_pointer);
+        return number_format($amount, $decimals, $decimalSeparator, $thousandsSeparator);
     }
 
     /**
@@ -404,7 +347,7 @@ class User extends Authenticatable
      */
     public function canImpersonate(): bool
     {
-        return $this->is_admin || is_null($this->account_id);
+        return $this->isSuperAdmin() || $this->can('users.impersonate');
     }
 
     /**
@@ -413,7 +356,7 @@ class User extends Authenticatable
      */
     public function canBeImpersonated(): bool
     {
-        return ! ($this->is_admin || is_null($this->account_id));
+        return ! $this->isSuperAdmin() && ! is_null($this->account_id);
     }
 
     /**
@@ -421,7 +364,7 @@ class User extends Authenticatable
      *
      * Priority: last_account_id > account_id > first account
      *
-     * @throws \Base\Tenant\Exceptions\NoAccountException
+     * @throws NoAccountException
      */
     public function determineDefaultAccount(): string
     {
@@ -439,8 +382,6 @@ class User extends Authenticatable
      * 1. If user has explicit preference (true/false), use that
      * 2. Otherwise, fall back to account's default setting
      * 3. If account has no setting, default to false
-     *
-     * @return bool
      */
     public function shouldReceiveDailySummary(): bool
     {

@@ -3,8 +3,6 @@
 declare(strict_types=1);
 
 use Base\Tenant\Http\Controllers\CheckoutController;
-use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
-use Base\Tenant\Http\Middleware\HasSubscription;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -20,6 +18,11 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
     Route::get('checkout', function () {
         $product = config('base-tenant.subscription.default_product');
         $price = config('base-tenant.subscription.default_price');
+
+        if (! $product || ! $price) {
+            abort(503, __('base-tenant::subscription.not_configured'));
+        }
+
         $trialDays = config('base-tenant.subscription.trial_days', 14);
 
         return Auth::user()->account->newSubscription($product, $price)

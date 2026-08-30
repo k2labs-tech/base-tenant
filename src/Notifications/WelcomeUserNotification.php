@@ -12,6 +12,7 @@ class WelcomeUserNotification extends Notification implements ShouldQueue
     use Queueable;
 
     public string $password;
+
     public string $createdBy;
 
     /**
@@ -41,16 +42,16 @@ class WelcomeUserNotification extends Notification implements ShouldQueue
         $loginUrl = route('base-tenant.login');
 
         return (new MailMessage)
-            ->subject('Welcome to ' . config('app.name'))
-            ->greeting('Hello ' . $notifiable->name . '!')
-            ->line($this->createdBy . ' has created an account for you on ' . config('app.name') . '.')
+            ->subject('Welcome to '.config('app.name'))
+            ->greeting('Hello '.$notifiable->name.'!')
+            ->line($this->createdBy.' has created an account for you on '.config('app.name').'.')
             ->line('Here are your login credentials:')
-            ->line('**Email:** ' . $notifiable->email)
-            ->line('**Temporary Password:** ' . $this->password)
+            ->line('**Email:** '.$notifiable->email)
+            ->line('**Temporary Password:** '.$this->password)
             ->action('Login Now', $loginUrl)
             ->line('**Important:** For security reasons, you will be required to change your password upon first login.')
             ->line('If you have any questions, please contact your administrator.')
-            ->salutation('Best regards, ' . config('app.name') . ' Team');
+            ->salutation('Best regards, '.config('app.name').' Team');
     }
 
     /**

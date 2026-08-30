@@ -18,6 +18,6 @@ return [
         'body' => 'You have been invited to join :app! Click the link below to create your account and get started.',
         'button' => 'Accept Invitation',
         'thanks_message' => 'Thanks for using :app!',
-    ]
+    ],
 
 ];

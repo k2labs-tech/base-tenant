@@ -1,179 +1,155 @@
 <div>
-    <section>
-        <header>
-            <h2 class="text-lg font-medium text-primary-900">
-                {{ __('base-tenant::auth.2fa.title') }}
-            </h2>
-
-            <p class="mt-1 text-sm text-primary-600">
+    <section class="grid gap-6 md:grid-cols-3">
+        <div class="md:col-span-1">
+            <flux:heading size="lg">{{ __('base-tenant::auth.2fa.title') }}</flux:heading>
+            <flux:subheading>
                 @if ($user->hasTwoFactorEnabled())
                     {{ __('base-tenant::auth.2fa.status_enabled') }}
                 @else
                     {{ __('base-tenant::auth.2fa.status_disabled') }}
                 @endif
-            </p>
-        </header>
+            </flux:subheading>
+        </div>
 
-        <div class="mt-6">
+        <div class="md:col-span-2 max-w-xl space-y-6">
             @if ($user->hasTwoFactorEnabled())
-                <x-danger-button wire:click="openDisableModal">
+                <flux:button wire:click="openDisableModal" variant="danger" icon="shield-exclamation">
                     {{ __('base-tenant::auth.2fa.disable') }}
-                </x-danger-button>
+                </flux:button>
+
+                <flux:separator />
+
+                <div class="space-y-3">
+                    <div>
+                        <flux:heading size="sm">{{ __('base-tenant::auth.2fa.recovery_codes_title') }}</flux:heading>
+                        <flux:subheading>{{ __('base-tenant::auth.2fa.recovery_codes_description') }}</flux:subheading>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <flux:button wire:click="$set('showRecoveryCodesModal', true)" size="sm">
+                            {{ __('base-tenant::auth.2fa.view_recovery_codes') }}
+                        </flux:button>
+
+                        <flux:button wire:click="regenerateRecoveryCodes" size="sm">
+                            {{ __('base-tenant::auth.2fa.regenerate_codes') }}
+                        </flux:button>
+                    </div>
+                </div>
             @else
-                <x-primary-button wire:click="openEnableModal">
+                <flux:button wire:click="openEnableModal" variant="primary" icon="shield-check">
                     {{ __('base-tenant::auth.2fa.enable') }}
-                </x-primary-button>
+                </flux:button>
             @endif
         </div>
-
-        @if ($user->hasTwoFactorEnabled())
-            <div class="mt-6 border-t pt-6">
-                <h4 class="text-sm font-medium text-gray-900 mb-3">
-                    {{ __('base-tenant::auth.2fa.recovery_codes_title') }}
-                </h4>
-                <p class="text-sm text-gray-600 mb-4">
-                    {{ __('base-tenant::auth.2fa.recovery_codes_description') }}
-                </p>
-                <div class="flex space-x-3">
-                    <x-secondary-button wire:click="$set('showRecoveryCodesModal', true)">
-                        {{ __('base-tenant::auth.2fa.view_recovery_codes') }}
-                    </x-secondary-button>
-                    <x-secondary-button wire:click="regenerateRecoveryCodes">
-                        {{ __('base-tenant::auth.2fa.regenerate_codes') }}
-                    </x-secondary-button>
-                </div>
-            </div>
-        @endif
     </section>
 
-    <!-- Enable 2FA Modal -->
-    <x-modal name="enable-2fa" :show="$showEnableModal" focusable>
-        <div class="p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                {{ __('base-tenant::auth.2fa.setup_title') }}
-            </h3>
+    <flux:modal wire:model="showEnableModal" name="enable-2fa" class="min-w-[22rem] md:min-w-lg">
+        <div class="space-y-6">
+            <flux:heading size="lg">{{ __('base-tenant::auth.2fa.setup_title') }}</flux:heading>
 
-            <div class="space-y-6">
-                <!-- Step 1: Scan QR Code -->
-                <div>
-                    <p class="text-sm text-gray-600 mb-4">
-                        {{ __('base-tenant::auth.2fa.setup_step1') }}
-                    </p>
-                    <div class="flex justify-center mb-4">
-                        <div class="bg-white p-4 border rounded-lg">
-                            {!! $qrCodeSvg !!}
-                        </div>
-                    </div>
-                    <div class="bg-gray-50 rounded-lg p-3">
-                        <p class="text-xs text-gray-600 mb-2">{{ __('base-tenant::auth.2fa.manual_entry') }}</p>
-                        <p class="text-xs font-mono break-all">{{ $secret }}</p>
+            <div class="space-y-3">
+                <flux:text>{{ __('base-tenant::auth.2fa.setup_step1') }}</flux:text>
+
+                <div class="flex justify-center">
+                    {{-- El código QR es negro sobre transparente: este fondo
+                         claro no lleva pareja oscura a propósito, porque
+                         oscurecerlo dejaría el código sin contraste y sin poder
+                         escanearse. --}}
+                    <div class="rounded-lg border border-zinc-200 bg-white p-4">
+                        {!! $qrCodeSvg !!}
                     </div>
                 </div>
 
-                <!-- Step 2: Enter Verification Code -->
-                <div>
-                    <p class="text-sm text-gray-600 mb-3">
-                        {{ __('base-tenant::auth.2fa.setup_step2') }}
-                    </p>
-                    <x-input-label for="confirmationCode" :value="__('base-tenant::auth.2fa.verification_code')" />
-                    <x-text-input
-                        id="confirmationCode"
-                        wire:model="confirmationCode"
-                        type="text"
-                        class="mt-1 block w-full"
-                        placeholder="000000"
-                        maxlength="6"
-                        autocomplete="off"
-                    />
-                    <x-input-error :messages="$errors->get('confirmationCode')" class="mt-2" />
-                </div>
-
-                <!-- Step 3: Confirm Password -->
-                <div>
-                    <x-input-label for="enable_password" :value="__('base-tenant::auth.2fa.confirm_password')" />
-                    <x-text-input
-                        id="enable_password"
-                        wire:model="password"
-                        type="password"
-                        class="mt-1 block w-full"
-                        autocomplete="current-password"
-                    />
-                    <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                <div class="rounded-lg bg-zinc-50 dark:bg-zinc-950 p-3">
+                    <flux:text size="sm">{{ __('base-tenant::auth.2fa.manual_entry') }}</flux:text>
+                    <p class="mt-1 font-mono text-xs break-all text-zinc-700 dark:text-zinc-200">{{ $secret }}</p>
                 </div>
             </div>
 
-            <div class="mt-6 flex justify-end space-x-3">
-                <x-secondary-button wire:click="$set('showEnableModal', false)">
-                    {{ __('base-tenant::common.cancel') }}
-                </x-secondary-button>
-                <x-primary-button wire:click="enable">
-                    {{ __('base-tenant::auth.2fa.enable') }}
-                </x-primary-button>
-            </div>
-        </div>
-    </x-modal>
+            <flux:input
+                wire:model="confirmationCode"
+                :label="__('base-tenant::auth.2fa.verification_code')"
+                :description="__('base-tenant::auth.2fa.setup_step2')"
+                placeholder="000000"
+                inputmode="numeric"
+                maxlength="6"
+                autocomplete="off"
+            />
 
-    <!-- Disable 2FA Modal -->
-    <x-modal name="disable-2fa" :show="$showDisableModal" focusable>
-        <div class="p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                {{ __('base-tenant::auth.2fa.disable_confirmation_title') }}
-            </h3>
-
-            <p class="text-sm text-gray-600 mb-6">
-                {{ __('base-tenant::auth.2fa.disable_confirmation_description') }}
-            </p>
-
-            <x-input-label for="disable_password" :value="__('base-tenant::auth.2fa.confirm_password')" />
-            <x-text-input
-                id="disable_password"
+            <flux:input
                 wire:model="password"
                 type="password"
-                class="mt-1 block w-full"
+                :label="__('base-tenant::auth.2fa.confirm_password')"
                 autocomplete="current-password"
+                viewable
             />
-            <x-input-error :messages="$errors->get('password')" class="mt-2" />
 
-            <div class="mt-6 flex justify-end space-x-3">
-                <x-secondary-button wire:click="$set('showDisableModal', false)">
-                    {{ __('base-tenant::common.cancel') }}
-                </x-secondary-button>
-                <x-danger-button wire:click="disable">
-                    {{ __('base-tenant::auth.2fa.disable') }}
-                </x-danger-button>
+            <div class="flex justify-end gap-3">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('base-tenant::common.cancel') }}</flux:button>
+                </flux:modal.close>
+
+                <flux:button wire:click="enable" variant="primary">
+                    <span wire:loading.remove wire:target="enable">{{ __('base-tenant::auth.2fa.enable') }}</span>
+                    <span wire:loading wire:target="enable">{{ __('base-tenant::common.processing') }}</span>
+                </flux:button>
             </div>
         </div>
-    </x-modal>
+    </flux:modal>
 
-    <!-- Recovery Codes Modal -->
-    <x-modal name="recovery-codes" :show="$showRecoveryCodesModal" focusable>
-        <div class="p-6">
-            <h3 class="text-lg font-medium text-gray-900 mb-4">
-                {{ __('base-tenant::auth.2fa.recovery_codes_title') }}
-            </h3>
-
-            <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
-                <p class="text-sm text-yellow-800">
-                    {{ __('base-tenant::auth.2fa.recovery_codes_warning') }}
-                </p>
+    <flux:modal wire:model="showDisableModal" name="disable-2fa" class="min-w-[22rem]">
+        <div class="space-y-6">
+            <div>
+                <flux:heading size="lg">{{ __('base-tenant::auth.2fa.disable_confirmation_title') }}</flux:heading>
+                <flux:subheading>{{ __('base-tenant::auth.2fa.disable_confirmation_description') }}</flux:subheading>
             </div>
 
-            <div class="bg-gray-50 rounded-lg p-4 mb-6">
+            <flux:input
+                wire:model="password"
+                type="password"
+                :label="__('base-tenant::auth.2fa.confirm_password')"
+                autocomplete="current-password"
+                viewable
+            />
+
+            <div class="flex justify-end gap-3">
+                <flux:modal.close>
+                    <flux:button variant="ghost">{{ __('base-tenant::common.cancel') }}</flux:button>
+                </flux:modal.close>
+
+                <flux:button wire:click="disable" variant="danger">
+                    <span wire:loading.remove wire:target="disable">{{ __('base-tenant::auth.2fa.disable') }}</span>
+                    <span wire:loading wire:target="disable">{{ __('base-tenant::common.processing') }}</span>
+                </flux:button>
+            </div>
+        </div>
+    </flux:modal>
+
+    <flux:modal wire:model="showRecoveryCodesModal" name="recovery-codes" class="min-w-[22rem]">
+        <div class="space-y-6">
+            <flux:heading size="lg">{{ __('base-tenant::auth.2fa.recovery_codes_title') }}</flux:heading>
+
+            <flux:callout variant="warning" icon="exclamation-triangle">
+                <flux:callout.text>{{ __('base-tenant::auth.2fa.recovery_codes_warning') }}</flux:callout.text>
+            </flux:callout>
+
+            <div class="rounded-lg bg-zinc-50 dark:bg-zinc-950 p-4">
                 <div class="grid grid-cols-2 gap-2">
                     @foreach ($recoveryCodes as $code)
-                        <div class="font-mono text-sm">{{ $code }}</div>
+                        <div class="font-mono text-sm text-zinc-700 dark:text-zinc-200">{{ $code }}</div>
                     @endforeach
                 </div>
             </div>
 
-            <div class="flex justify-between">
-                <x-secondary-button wire:click="downloadRecoveryCodes">
+            <div class="flex justify-between gap-3">
+                <flux:button wire:click="downloadRecoveryCodes" icon="arrow-down-tray">
                     {{ __('base-tenant::auth.2fa.download_codes') }}
-                </x-secondary-button>
-                <x-primary-button wire:click="$set('showRecoveryCodesModal', false)">
-                    {{ __('base-tenant::auth.2fa.codes_saved') }}
-                </x-primary-button>
+                </flux:button>
+
+                <flux:modal.close>
+                    <flux:button variant="primary">{{ __('base-tenant::auth.2fa.codes_saved') }}</flux:button>
+                </flux:modal.close>
             </div>
         </div>
-    </x-modal>
+    </flux:modal>
 </div>

@@ -2,7 +2,9 @@
 
 declare(strict_types=1);
 
+use Base\Tenant\Http\Controllers\Auth\SocialLoginController;
 use Base\Tenant\Http\Controllers\Auth\VerifyEmailController;
+use Base\Tenant\Http\Controllers\InvitationAcceptController;
 use Base\Tenant\Livewire\Auth\ConfirmPassword;
 use Base\Tenant\Livewire\Auth\ForcePasswordChange;
 use Base\Tenant\Livewire\Auth\ForgotPassword;
@@ -11,6 +13,7 @@ use Base\Tenant\Livewire\Auth\Register;
 use Base\Tenant\Livewire\Auth\ResetPassword;
 use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\TwoFactorChallenge;
+use Base\Tenant\Support\Module;
 use Illuminate\Support\Facades\Route;
 
 if (! config('base-tenant.routes.enabled', true)) {
@@ -63,4 +66,19 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
             return redirect('/');
         })->name('base-tenant.logout');
     });
+
+    // Social login. The same pair of routes serves signing in and linking
+    // from the profile; which one happens is decided by whether there is a
+    // session.
+    if (Module::enabled(Module::SOCIAL)) {
+        Route::get('auth/{provider}/redirect', [SocialLoginController::class, 'redirect'])
+            ->name('base-tenant.social.redirect');
+
+        Route::get('auth/{provider}/callback', [SocialLoginController::class, 'callback'])
+            ->name('base-tenant.social.callback');
+    }
+
+    // Invitation acceptance (public - before auth check)
+    Route::get('invitations/accept/{token}', InvitationAcceptController::class)
+        ->name('base-tenant.invitations.accept');
 });

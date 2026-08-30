@@ -3,6 +3,14 @@
 return [
     // Management
     'management_title' => 'Gestión de Cuentas',
+    'management_description' => 'Todas las cuentas a las que llegas, con su plan y cuánta gente hay en cada una.',
+    'created' => 'Creada',
+    'empty_description' => 'Crea la primera cuenta para empezar a trabajar.',
+    'filter_subscription' => 'Suscripción',
+    'all_subscriptions' => 'Cualquier suscripción',
+    'subscription_active' => 'Activa',
+    'subscription_trialling' => 'En prueba',
+    'subscription_none' => 'Sin suscripción',
     'add_new' => 'Agregar Nueva Cuenta',
     'search_placeholder' => 'Buscar cuentas...',
 
@@ -11,6 +19,10 @@ return [
     'users_count' => 'Usuarios',
     'status' => 'Estado',
     'actions' => 'Acciones',
+    'owner_short' => 'Propietario',
+    'no_owner' => 'Sin asignar',
+    'no_email' => 'Sin correo de contacto',
+    'inactive_summary' => '{1} :count cuenta está inactiva y nadie puede trabajar dentro|[2,*] :count cuentas están inactivas y nadie puede trabajar dentro',
 
     // Status
     'active' => 'Activa',
@@ -61,6 +73,11 @@ return [
     'vat' => 'CIF/NIF',
 
     // Account users
+    'edit_account_description' => 'Todo lo de esta página se guarda junto. Las personas de la cuenta se listan abajo, pero se editan desde su propia ficha.',
+    'account_information_description' => 'El nombre por el que se conoce la cuenta, quién la posee y si se puede usar siquiera.',
+    'contact_details' => 'Contacto y Facturación',
+    'contact_details_description' => 'Dónde se localiza a la cuenta y qué va en sus facturas. Nada de esto es obligatorio.',
+    'active_description' => 'Una cuenta inactiva conserva todos sus datos, pero nadie puede trabajar dentro.',
     'account_users' => 'Usuarios de la Cuenta',
     'account_users_description' => 'Usuarios pertenecientes a esta cuenta.',
 
@@ -73,4 +90,10 @@ return [
     'force_password_enabled_description' => 'Siempre requerir cambio de contraseña para nuevos usuarios en esta cuenta',
     'force_password_disabled' => 'Nunca requerir',
     'force_password_disabled_description' => 'Nunca requerir cambio de contraseña para nuevos usuarios en esta cuenta',
+    'no_account' => 'Sin cuenta',
+    'staff' => 'Plataforma',
+    'staff_entered' => ':name ha entrado en esta cuenta desde la administración de la plataforma.',
+    'none' => 'No hay cuentas',
+    'leave' => 'Salir de esta cuenta',
+
 ];

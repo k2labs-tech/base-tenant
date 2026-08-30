@@ -39,19 +39,31 @@ The base-tenant notification system provides real-time notifications for project
 
 ### Dispatching Notifications
 
+#### Notify Project Users (requires host app implementation)
+
+`NotificationService::notifyProjectUsers()` expects a `$project` object that implements a `getAllMembers()` method returning a collection of User models. This method is NOT provided by the base-tenant package -- your host application must implement it on your Project model (or equivalent).
+
 ```php
 use Base\Tenant\Services\NotificationService;
-use Base\Tenant\Notifications\Project\ProjectSettingsUpdatedNotification;
 
-// Notify all project users except the current user
+// Your Project model must have: public function getAllMembers(): Collection
+// This returns all users who should receive notifications for this project.
 NotificationService::notifyProjectUsers(
-    $project,
-    new ProjectSettingsUpdatedNotification(
-        $project,
-        auth()->user(),
-        ['name', 'description']
-    ),
-    auth()->user()
+    $project,                       // Must have getAllMembers() method
+    new YourCustomNotification(...), // Extends BaseTenantNotification
+    auth()->user()                  // Excluded from recipients
+);
+```
+
+#### Notify Specific Users (no host app dependency)
+
+```php
+use Base\Tenant\Services\NotificationService;
+
+// When you already know exactly who should receive the notification
+NotificationService::notifySpecificUsers(
+    $users,       // Array of User model instances
+    new YourCustomNotification(...)
 );
 ```
 

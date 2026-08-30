@@ -56,7 +56,7 @@ return [
     'next' => 'Next',
     'first' => 'First',
     'last' => 'Last',
-    'showing' => 'Showing',
+    'showing' => 'Showing :from–:to of :total',
     'of' => 'of',
     'entries' => 'entries',
     'per_page' => 'per page',
@@ -80,4 +80,17 @@ return [
     'please_try_again' => 'Please try again',
     'no_results_found' => 'No results found',
     'no_data_available' => 'No data available',
+
+    // Tables
+    'all' => 'All',
+    'filters' => 'Filters',
+    'clear_filters' => 'Clear filters',
+    'actions' => 'Actions',
+    'empty_title' => 'Nothing here yet',
+    'empty_search' => 'No matches for these filters',
+    'empty_search_hint' => 'Try a different search or drop some filters.',
+    'saving' => 'Saving...',
+    'density_comfortable' => 'Comfortable rows',
+    'density_compact' => 'Compact rows',
+
 ];

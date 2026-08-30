@@ -4,6 +4,9 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Models;
 
+use Base\Tenant\Database\Factories\AccountFactory;
+use Base\Tenant\Services\FeatureService;
+use Base\Tenant\Traits\HasSettings;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,7 +17,7 @@ use Laravel\Cashier\Billable;
 
 class Account extends Model
 {
-    use Billable, HasFactory, HasUuids, SoftDeletes;
+    use Billable, HasFactory, HasSettings, HasUuids, SoftDeletes;
 
     /**
      * Get the attributes that aren't mass assignable.
@@ -34,6 +37,15 @@ class Account extends Model
         'force_password_change' => 'boolean',
         'onboarded_at' => 'datetime',
     ];
+
+    /**
+     * Laravel resolves factories by convention from the application namespace,
+     * which never finds a package model. Naming it here lets a host
+     * application call `factory()` on this model without any wiring.
+     *
+     * @var class-string<AccountFactory>
+     */
+    protected static $factory = AccountFactory::class;
 
     /**
      * Get the users that belong to the account.
@@ -61,7 +73,7 @@ class Account extends Model
      */
     public function stripeEmail(): ?string
     {
-        return $this->owner->email;
+        return $this->owner?->email ?? $this->email;
     }
 
     /**
@@ -78,5 +90,25 @@ class Account extends Model
     public function hasActiveSubscription(): bool
     {
         return $this->subscriptions()->active()->count() > 0;
+    }
+
+    public function planCan(string $feature): bool
+    {
+        return FeatureService::accountCan($this, $feature);
+    }
+
+    public function planLimit(string $feature): int
+    {
+        return FeatureService::getLimit($this, $feature);
+    }
+
+    public function isWithinPlanLimit(string $feature, int $currentUsage): bool
+    {
+        return FeatureService::isWithinLimit($this, $feature, $currentUsage);
+    }
+
+    public function getPlanName(): string
+    {
+        return FeatureService::getAccountPlanName($this);
     }
 }

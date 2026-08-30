@@ -12,16 +12,16 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            if (!Schema::hasColumn('users', 'locale')) {
+            if (! Schema::hasColumn('users', 'locale')) {
                 $table->string('locale', 5)->default('en')->after('email_verified_at');
             }
-            if (!Schema::hasColumn('users', 'currency')) {
+            if (! Schema::hasColumn('users', 'currency')) {
                 $table->string('currency', 3)->default('USD')->after('locale');
             }
-            if (!Schema::hasColumn('users', 'decimal_places')) {
+            if (! Schema::hasColumn('users', 'decimal_places')) {
                 $table->unsignedTinyInteger('decimal_places')->default(2)->after('currency');
             }
-            if (!Schema::hasColumn('users', 'timezone')) {
+            if (! Schema::hasColumn('users', 'timezone')) {
                 $table->string('timezone', 50)->default('UTC')->after('decimal_places');
             }
         });

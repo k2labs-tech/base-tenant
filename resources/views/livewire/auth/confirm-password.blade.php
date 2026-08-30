@@ -1,27 +1,24 @@
-<div>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+<div class="space-y-6">
+    <flux:text>
         {{ __('This is a secure area of the application. Please confirm your password before continuing.') }}
-    </div>
+    </flux:text>
 
-    <form wire:submit="confirmPassword">
-        <!-- Password -->
-        <div>
-            <x-base-tenant::input-label for="password" :value="__('Password')" />
+    <form wire:submit="confirmPassword" class="space-y-6">
+        <flux:input
+            wire:model="password"
+            type="password"
+            :label="__('Password')"
+            autocomplete="current-password"
+            viewable
+            required
+            autofocus
+        />
 
-            <x-base-tenant::text-input wire:model="password"
-                          id="password"
-                          class="block mt-1 w-full"
-                          type="password"
-                          name="password"
-                          required autocomplete="current-password" />
-
-            <x-base-tenant::input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
-
-        <div class="flex justify-end mt-4">
-            <x-base-tenant::primary-button>
-                {{ __('Confirm') }}
-            </x-base-tenant::primary-button>
+        <div class="flex justify-end">
+            <flux:button type="submit" variant="primary">
+                <span wire:loading.remove wire:target="confirmPassword">{{ __('Confirm') }}</span>
+                <span wire:loading wire:target="confirmPassword">{{ __('base-tenant::common.processing') }}</span>
+            </flux:button>
         </div>
     </form>
 </div>

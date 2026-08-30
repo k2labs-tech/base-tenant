@@ -11,14 +11,23 @@ abstract class BaseTenantNotification extends Notification implements ShouldQueu
     use Queueable;
 
     protected string $title;
+
     protected string $message;
+
     protected string $actionUrl;
+
     protected string $actionText = 'View';
+
     protected string $icon = 'bell';
+
     protected string $priority = 'low'; // low, medium, high
+
     protected string $category;
+
     protected array $causer;
+
     protected array $project;
+
     protected array $details = [];
 
     /**
@@ -53,11 +62,11 @@ abstract class BaseTenantNotification extends Notification implements ShouldQueu
      */
     public function getPriorityColorClass(): string
     {
-        return match($this->priority) {
-            'high' => 'bg-red-500',
-            'medium' => 'bg-yellow-500',
-            'low' => 'bg-blue-500',
-            default => 'bg-primary-500',
+        return match ($this->priority) {
+            'high' => 'bg-danger-500',
+            'medium' => 'bg-warning-500',
+            'low' => 'bg-info-500',
+            default => 'bg-zinc-500',
         };
     }
 }

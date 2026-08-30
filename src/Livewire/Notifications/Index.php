@@ -11,9 +11,14 @@ class Index extends Component
     use WithPagination;
 
     public $filterPriority = 'all';
+
     public $filterReadStatus = 'all'; // all, read, unread
+
     public $search = '';
+
     public $selectedNotifications = [];
+
+    public bool $showDeleteModal = false;
 
     protected $queryString = [
         'filterPriority' => ['except' => 'all'],
@@ -33,6 +38,18 @@ class Index extends Component
 
     public function updatingFilterReadStatus()
     {
+        $this->resetPage();
+    }
+
+    /**
+     * Los tres filtros vuelven a su valor inicial de una vez.
+     *
+     * La página también: seguir en la cuarta después de soltar los filtros deja
+     * una lista vacía encima de datos que sí existen.
+     */
+    public function resetFilters(): void
+    {
+        $this->reset(['search', 'filterPriority', 'filterReadStatus']);
         $this->resetPage();
     }
 
@@ -59,8 +76,15 @@ class Index extends Component
         $this->dispatch('notificationRead');
     }
 
+    public function confirmDeleteSelected()
+    {
+        $this->showDeleteModal = true;
+    }
+
     public function deleteSelected()
     {
+        $this->showDeleteModal = false;
+
         auth()->user()->notifications()
             ->whereIn('id', $this->selectedNotifications)
             ->delete();
@@ -85,10 +109,10 @@ class Index extends Component
         }
 
         // Apply search
-        if (!empty($this->search)) {
-            $query->where(function($q) {
+        if (! empty($this->search)) {
+            $query->where(function ($q) {
                 $q->where('data->title', 'like', "%{$this->search}%")
-                  ->orWhere('data->message', 'like', "%{$this->search}%");
+                    ->orWhere('data->message', 'like', "%{$this->search}%");
             });
         }
 
@@ -96,6 +120,12 @@ class Index extends Component
 
         return view('base-tenant::livewire.notifications.index', [
             'notifications' => $notifications,
+            // El recuento de la cabecera cuenta la bandeja entera, no la página
+            // ni lo que dejen ver los filtros.
+            'unreadCount' => auth()->user()->unreadNotifications()->count(),
+            'hasActiveFilters' => $this->search !== ''
+                || $this->filterPriority !== 'all'
+                || $this->filterReadStatus !== 'all',
         ])->layout('base-tenant::layouts.app');
     }
 }

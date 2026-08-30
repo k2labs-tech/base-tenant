@@ -12,10 +12,9 @@ class NotificationService
      * - ProjectAdmins (account-level access)
      * - Collaborators explicitly assigned to the project
      *
-     * @param mixed $project Project model instance
-     * @param \Illuminate\Notifications\Notification $notification Notification instance
-     * @param mixed $causer User who triggered the action
-     * @return void
+     * @param  mixed  $project  Project model instance
+     * @param  \Illuminate\Notifications\Notification  $notification  Notification instance
+     * @param  mixed  $causer  User who triggered the action
      */
     public static function notifyProjectUsers($project, $notification, $causer): void
     {
@@ -33,9 +32,8 @@ class NotificationService
      * Notify specific users
      * Used when you already have the exact list of recipients
      *
-     * @param array $users Array of User model instances
-     * @param \Illuminate\Notifications\Notification $notification Notification instance
-     * @return void
+     * @param  array  $users  Array of User model instances
+     * @param  \Illuminate\Notifications\Notification  $notification  Notification instance
      */
     public static function notifySpecificUsers(array $users, $notification): void
     {
@@ -49,8 +47,7 @@ class NotificationService
     /**
      * Get unread notification count for a user
      *
-     * @param mixed $user User model instance
-     * @return int
+     * @param  mixed  $user  User model instance
      */
     public static function getUnreadCount($user): int
     {
@@ -60,9 +57,8 @@ class NotificationService
     /**
      * Mark notification as read
      *
-     * @param mixed $user User model instance
-     * @param string $notificationId Notification UUID
-     * @return void
+     * @param  mixed  $user  User model instance
+     * @param  string  $notificationId  Notification UUID
      */
     public static function markAsRead($user, string $notificationId): void
     {
@@ -76,8 +72,7 @@ class NotificationService
     /**
      * Mark all notifications as read
      *
-     * @param mixed $user User model instance
-     * @return void
+     * @param  mixed  $user  User model instance
      */
     public static function markAllAsRead($user): void
     {

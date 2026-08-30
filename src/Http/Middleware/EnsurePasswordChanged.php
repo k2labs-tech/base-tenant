@@ -11,14 +11,14 @@ class EnsurePasswordChanged
     /**
      * Handle an incoming request.
      *
-     * @param  \Closure(\Illuminate\Http\Request): (\Symfony\Component\HttpFoundation\Response)  $next
+     * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
         // Check if feature is enabled
-        if (!config('base-tenant.force_password_change.enabled', false)) {
+        if (! config('base-tenant.force_password_change.enabled', false)) {
             return $next($request);
         }
 
