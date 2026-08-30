@@ -28,11 +28,24 @@ class HasSubscription
             return $next($request);
         }
 
+        // Bypass in non-production if Stripe is not configured
+        if (! app()->environment('production') && ! $this->isStripeConfigured()) {
+            return $next($request);
+        }
+
         // Check if user has active subscription
         if (! Auth::user()?->account?->hasActiveSubscription()) {
             return redirect()->route('base-tenant.checkout');
         }
 
         return $next($request);
+    }
+
+    protected function isStripeConfigured(): bool
+    {
+        return config('cashier.key')
+            && config('cashier.secret')
+            && config('base-tenant.subscription.default_product')
+            && config('base-tenant.subscription.default_price');
     }
 }

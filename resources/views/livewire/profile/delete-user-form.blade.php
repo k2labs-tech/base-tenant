@@ -1,54 +1,56 @@
-<section class="space-y-6">
-    <header>
-        <h2 class="text-lg font-medium text-primary-900">
-            {{ __('base-tenant::app.profile.delete_account') }}
-        </h2>
+<section class="grid gap-6 md:grid-cols-3">
+    <div class="md:col-span-1">
+        <flux:heading size="lg">{{ __('base-tenant::app.profile.delete_account') }}</flux:heading>
+        <flux:subheading>{{ __('base-tenant::app.profile.delete_account_description') }}</flux:subheading>
+    </div>
 
-        <p class="mt-1 text-sm text-primary-600">
-            {{ __('base-tenant::app.profile.delete_account_description') }}
-        </p>
-    </header>
+    <div class="md:col-span-2 max-w-xl">
+        <flux:modal.trigger name="confirm-user-deletion">
+            <flux:button variant="danger" icon="trash">
+                {{ __('base-tenant::app.profile.delete_account') }}
+            </flux:button>
+        </flux:modal.trigger>
 
-    <x-danger-button
-        x-data=""
-        x-on:click.prevent="$dispatch('open-modal', 'confirm-user-deletion')"
-    >{{ __('base-tenant::app.profile.delete_account') }}</x-danger-button>
+        <flux:modal name="confirm-user-deletion" class="min-w-[22rem]">
+            <form wire:submit="deleteUser" class="space-y-6">
+                <div>
+                    <flux:heading size="lg">{{ __('base-tenant::app.profile.are_you_sure') }}</flux:heading>
 
-    <x-modal name="confirm-user-deletion" :show="$errors->isNotEmpty()" focusable>
-        <form wire:submit="deleteUser" class="p-6">
+                    {{-- Un modal de borrado que no nombra lo que borra invita a
+                         confirmar sin leer: aquí va el titular concreto. --}}
+                    <flux:subheading>
+                        {{ __('base-tenant::app.profile.delete_account_target', [
+                            'name' => auth()->user()->name,
+                            'email' => auth()->user()->email,
+                        ]) }}
+                    </flux:subheading>
 
-            <h2 class="text-lg font-medium text-primary-900">
-                {{ __('base-tenant::app.profile.are_you_sure') }}
-            </h2>
+                    <flux:callout variant="danger" icon="exclamation-triangle" class="mt-4">
+                        <flux:callout.text>
+                            {{ __('base-tenant::app.profile.delete_account_warning') }}
+                        </flux:callout.text>
+                    </flux:callout>
+                </div>
 
-            <p class="mt-1 text-sm text-primary-600">
-                {{ __('base-tenant::app.profile.delete_account_warning') }}
-            </p>
-
-            <div class="mt-6">
-                <x-input-label for="password" value="{{ __('base-tenant::app.profile.password') }}" class="sr-only" />
-
-                <x-text-input
+                <flux:input
                     wire:model="password"
-                    id="password"
-                    name="password"
                     type="password"
-                    class="mt-1 block w-3/4"
-                    placeholder="{{ __('base-tenant::app.profile.password') }}"
+                    :label="__('base-tenant::app.profile.password')"
+                    :placeholder="__('base-tenant::app.profile.password')"
+                    viewable
                 />
 
-                <x-input-error :messages="$errors->get('password')" class="mt-2" />
-            </div>
+                <div class="flex justify-end gap-2">
+                    <flux:modal.close>
+                        <flux:button variant="ghost">{{ __('base-tenant::app.profile.cancel') }}</flux:button>
+                    </flux:modal.close>
 
-            <div class="mt-6 flex justify-end">
-                <x-secondary-button x-on:click="$dispatch('close')">
-                    {{ __('base-tenant::app.profile.cancel') }}
-                </x-secondary-button>
-
-                <x-danger-button class="ms-3">
-                    {{ __('base-tenant::app.profile.delete_account') }}
-                </x-danger-button>
-            </div>
-        </form>
-    </x-modal>
+                    <flux:button type="submit" variant="danger">
+                        <span wire:loading.remove wire:target="deleteUser">{{ __('base-tenant::app.profile.delete_account') }}</span>
+                        <span wire:loading wire:target="deleteUser">{{ __('base-tenant::common.processing') }}</span>
+                    </flux:button>
+                </div>
+            </form>
+        </flux:modal>
+    </div>
 </section>

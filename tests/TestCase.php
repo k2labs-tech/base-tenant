@@ -5,57 +5,139 @@ declare(strict_types=1);
 namespace Base\Tenant\Tests;
 
 use Base\Tenant\BaseTenantServiceProvider;
+use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Models\Account;
+use Base\Tenant\Models\Role;
+use Base\Tenant\Models\User;
+use Base\Tenant\Services\PermissionRegistry;
+use Flux\FluxServiceProvider;
+use FluxPro\FluxProServiceProvider;
 use Illuminate\Database\Eloquent\Factories\Factory;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Lab404\Impersonate\ImpersonateServiceProvider;
+use Laravel\Cashier\CashierServiceProvider;
 use Livewire\LivewireServiceProvider;
 use Orchestra\Testbench\TestCase as Orchestra;
+use Spatie\Permission\PermissionServiceProvider;
 
 class TestCase extends Orchestra
 {
+    use RefreshDatabase;
+    use TenancyAssertions;
+
     protected function setUp(): void
     {
         parent::setUp();
 
         Factory::guessFactoryNamesUsing(
-            fn (string $modelName) => 'Base\\Tenant\\Database\\Factories\\'.class_basename($modelName).'Factory'
+            fn (string $modelName): string => 'Base\\Tenant\\Database\\Factories\\'.class_basename($modelName).'Factory'
         );
+    }
+
+    protected function tearDown(): void
+    {
+        Tenant::forget();
+
+        parent::tearDown();
     }
 
     protected function getPackageProviders($app): array
     {
-        return [
-            BaseTenantServiceProvider::class,
+        return array_values(array_filter([
+            PermissionServiceProvider::class,
+            CashierServiceProvider::class,
+            ImpersonateServiceProvider::class,
             LivewireServiceProvider::class,
-        ];
+            FluxServiceProvider::class,
+            // Flux Pro is optional: the package uses only free Flux components.
+            class_exists(FluxProServiceProvider::class) ? FluxProServiceProvider::class : null,
+            BaseTenantServiceProvider::class,
+        ]));
     }
 
     public function getEnvironmentSetUp($app): void
     {
+        config()->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         config()->set('database.default', 'testing');
         config()->set('database.connections.testing', [
             'driver' => 'sqlite',
             'database' => ':memory:',
             'prefix' => '',
+            'foreign_key_constraints' => false,
         ]);
 
-        // Set up package configuration for testing
         config()->set('base-tenant.subscription.enabled', false);
-        config()->set('base-tenant.multi_team', false);
+        config()->set('base-tenant.multi_team', true);
         config()->set('base-tenant.home_url', 'base-tenant.dashboard');
+        config()->set('base-tenant.menu.cache.enabled', false);
+        config()->set('auth.providers.users.model', User::class);
+    }
 
-        // Run package migrations
-        $migration = include __DIR__.'/../database/migrations/0001_01_00_000000_create_accounts_table.php';
-        $migration->up();
+    /**
+     * Write the configured permission catalogue and global roles, which most
+     * tests need before they can assign anything.
+     */
+    protected function syncPermissions(): void
+    {
+        PermissionRegistry::sync();
+    }
 
-        $migration = include __DIR__.'/../database/migrations/0001_01_01_000000_create_users_table.php';
-        $migration->up();
+    protected function createAccount(array $attributes = []): Account
+    {
+        return Account::factory()->create($attributes);
+    }
 
-        $migration = include __DIR__.'/../database/migrations/2023_08_05_104819_create_roles_table.php';
-        $migration->up();
+    /**
+     * A user attached to an account, optionally holding a role inside it.
+     */
+    protected function createUser(?Account $account = null, ?string $role = null, array $attributes = []): User
+    {
+        $account ??= $this->createAccount();
 
-        $migration = include __DIR__.'/../database/migrations/2023_08_05_105633_create_role_user_table.php';
-        $migration->up();
+        $user = User::factory()->create([
+            'account_id' => $account->getKey(),
+            ...$attributes,
+        ]);
 
-        $migration = include __DIR__.'/../database/migrations/2023_08_06_213047_create_account_user_table.php';
-        $migration->up();
+        $user->accounts()->syncWithoutDetaching([$account->getKey()]);
+
+        if ($role) {
+            Tenant::runFor($account, fn () => $user->assignRole($role));
+        }
+
+        return $user;
+    }
+
+    /**
+     * Build a role owned by the account with an explicit permission list.
+     *
+     * @param  array<int, string>  $permissions
+     */
+    protected function createRole(Account $account, string $name, array $permissions = []): Role
+    {
+        $role = Role::create([
+            'name' => $name,
+            'display_name' => $name,
+            'guard_name' => 'web',
+            'account_id' => $account->getKey(),
+            'is_system' => false,
+        ]);
+
+        if ($permissions !== []) {
+            $role->syncPermissions($permissions);
+        }
+
+        return $role;
+    }
+
+    /**
+     * Authenticate as a user of the given account, with that account in
+     * context, which is what a real request would look like.
+     */
+    protected function actingAsTenant(User $user, ?Account $account = null): static
+    {
+        Tenant::set($account ?? $user->account);
+
+        return $this->actingAs($user);
     }
 }

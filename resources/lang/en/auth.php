@@ -18,6 +18,20 @@ return [
     'throttle' => 'Too many login attempts. Please try again in :seconds seconds.',
     'unauthorized' => 'You are not authorized to access this resource.',
 
+    // Force Password Change
+    'change_password' => 'Change Your Password',
+    'change_password_required' => 'For security reasons, you must change your password before continuing.',
+    'password_change_required' => 'Password Change Required',
+    'account_created_by_admin' => 'Your account was created by an administrator. Please create your own secure password.',
+    'current_password' => 'Current Password',
+    'new_password' => 'New Password',
+    'confirm_new_password' => 'Confirm New Password',
+    'password_requirements' => 'Must be at least 8 characters and different from current password',
+    'logout_instead' => 'Logout Instead',
+    'current_password_incorrect' => 'The current password is incorrect.',
+    'password_changed' => 'Password Changed',
+    'password_changed_success' => 'Your password has been updated successfully. You can now access the application.',
+
     // Two Factor Authentication
     '2fa' => [
         'title' => 'Two-Factor Authentication',
@@ -54,6 +68,9 @@ return [
         'disabled_title' => 'Two-Factor Authentication Disabled',
         'disabled_description' => 'Two-factor authentication has been disabled for your account.',
         'recovery_codes_regenerated' => 'Recovery codes have been regenerated successfully.',
+        'invalid_recovery_code' => 'The recovery code is invalid.',
+        'recovery_code_used' => 'Recovery code used',
+        'recovery_code_warning' => 'That code can no longer be used. Regenerate your recovery codes if you are running low.',
     ],
 
 ];

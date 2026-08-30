@@ -12,14 +12,20 @@ use PragmaRX\Google2FA\Google2FA;
 
 class TwoFactorAuthentication extends Component
 {
-
     public $showEnableModal = false;
+
     public $showDisableModal = false;
+
     public $showRecoveryCodesModal = false;
+
     public $confirmationCode = '';
+
     public $password = '';
+
     public $qrCodeSvg = '';
+
     public $secret = '';
+
     public $recoveryCodes = [];
 
     protected $rules = [
@@ -56,7 +62,7 @@ class TwoFactorAuthentication extends Component
 
     public function generateSecret()
     {
-        $google2fa = new Google2FA();
+        $google2fa = new Google2FA;
         $this->secret = $google2fa->generateSecretKey();
 
         // Generate QR code
@@ -69,7 +75,7 @@ class TwoFactorAuthentication extends Component
         // Generate SVG QR code
         $renderer = new ImageRenderer(
             new RendererStyle(200),
-            new SvgImageBackEnd()
+            new SvgImageBackEnd
         );
         $writer = new Writer($renderer);
         $this->qrCodeSvg = $writer->writeString($qrCodeUrl);
@@ -83,20 +89,22 @@ class TwoFactorAuthentication extends Component
         ]);
 
         // Verify password
-        if (!auth()->validate([
+        if (! auth()->validate([
             'email' => auth()->user()->email,
             'password' => $this->password,
         ])) {
             $this->addError('password', __('base-tenant::auth.password'));
+
             return;
         }
 
         // Verify the code
-        $google2fa = new Google2FA();
+        $google2fa = new Google2FA;
         $valid = $google2fa->verifyKey($this->secret, $this->confirmationCode);
 
-        if (!$valid) {
+        if (! $valid) {
             $this->addError('confirmationCode', __('base-tenant::auth.2fa.invalid_code'));
+
             return;
         }
 
@@ -123,11 +131,12 @@ class TwoFactorAuthentication extends Component
         ]);
 
         // Verify password
-        if (!auth()->validate([
+        if (! auth()->validate([
             'email' => auth()->user()->email,
             'password' => $this->password,
         ])) {
             $this->addError('password', __('base-tenant::auth.password'));
+
             return;
         }
 
@@ -158,7 +167,7 @@ class TwoFactorAuthentication extends Component
     public function downloadRecoveryCodes()
     {
         $codes = implode("\n", $this->recoveryCodes);
-        $filename = 'recovery-codes-' . date('Y-m-d') . '.txt';
+        $filename = 'recovery-codes-'.date('Y-m-d').'.txt';
 
         return response()->streamDownload(function () use ($codes) {
             echo $codes;

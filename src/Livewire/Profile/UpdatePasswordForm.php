@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire\Profile;
 
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rules\Password;
@@ -13,7 +14,9 @@ use Livewire\Component;
 class UpdatePasswordForm extends Component
 {
     public string $current_password = '';
+
     public string $password = '';
+
     public string $password_confirmation = '';
 
     /**
@@ -37,6 +40,12 @@ class UpdatePasswordForm extends Component
         ]);
 
         $this->reset('current_password', 'password', 'password_confirmation');
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::app.profile.password_updated'),
+            text: __('base-tenant::app.profile.saved'),
+        );
 
         $this->dispatch('password-updated');
     }

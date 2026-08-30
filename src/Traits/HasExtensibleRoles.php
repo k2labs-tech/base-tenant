@@ -4,85 +4,61 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Traits;
 
-use Base\Tenant\Models\Role;
+use Base\Tenant\Services\PermissionRegistry;
 use Illuminate\Support\Collection;
 
 trait HasExtensibleRoles
 {
     /**
-     * Get all roles defined in the configuration.
+     * Every role declared in configuration, across all groups.
+     *
+     * @return Collection<int, array<string, mixed>>
      */
     public static function getAllConfiguredRoles(): Collection
     {
         $config = config('base-tenant.roles', []);
 
-        $roles = collect([
+        return collect([
             ...$config['system'] ?? [],
             ...$config['customer'] ?? [],
             ...$config['custom'] ?? [],
         ]);
-
-        return $roles;
     }
 
-    /**
-     * Get system roles from configuration.
-     */
+    /** @return Collection<int, array<string, mixed>> */
     public static function getSystemRoles(): Collection
     {
         return collect(config('base-tenant.roles.system', []));
     }
 
-    /**
-     * Get customer roles from configuration.
-     */
+    /** @return Collection<int, array<string, mixed>> */
     public static function getCustomerRoles(): Collection
     {
         return collect(config('base-tenant.roles.customer', []));
     }
 
-    /**
-     * Get custom roles defined by the application.
-     */
+    /** @return Collection<int, array<string, mixed>> */
     public static function getCustomRoles(): Collection
     {
         return collect(config('base-tenant.roles.custom', []));
     }
 
     /**
-     * Sync configured roles to database.
+     * Write the configured permissions and roles to the database.
      */
     public static function syncRolesToDatabase(): void
     {
-        $configuredRoles = static::getAllConfiguredRoles();
-
-        foreach ($configuredRoles as $roleData) {
-            Role::query()->updateOrCreate(
-                ['key' => $roleData['key']],
-                [
-                    'name' => $roleData['name'],
-                    'is_system' => $roleData['is_system'],
-                ]
-            );
-        }
+        PermissionRegistry::sync();
     }
 
-    /**
-     * Check if a role key is defined in configuration.
-     */
     public static function roleExists(string $key): bool
     {
-        return static::getAllConfiguredRoles()
-            ->pluck('key')
-            ->contains($key);
+        return static::getAllConfiguredRoles()->pluck('key')->contains($key);
     }
 
-    /**
-     * Get role by key from configuration.
-     */
+    /** @return array<string, mixed>|null */
     public static function getRoleByKey(string $key): ?array
     {
-        return static::getAllConfiguredRoles()
-            ->firstWhere('key', $key);
+        return static::getAllConfiguredRoles()->firstWhere('key', $key);
     }
 }

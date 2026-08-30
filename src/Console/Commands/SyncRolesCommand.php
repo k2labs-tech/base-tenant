@@ -4,51 +4,52 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Console\Commands;
 
-use Base\Tenant\Traits\HasExtensibleRoles;
+use Base\Tenant\Console\Concerns\HasDeprecatedAlias;
+use Base\Tenant\Models\Permission;
+use Base\Tenant\Models\Role;
+use Base\Tenant\Services\PermissionRegistry;
 use Illuminate\Console\Command;
 
 class SyncRolesCommand extends Command
 {
-    use HasExtensibleRoles;
+    use HasDeprecatedAlias;
 
-    /**
-     * The name and signature of the console command.
-     *
-     * @var string
-     */
-    protected $signature = 'base-tenant:sync-roles';
+    protected $signature = 'k2labs-base:sync-roles {--show : List the resulting roles and their permissions}';
 
-    /**
-     * The console command description.
-     *
-     * @var string
-     */
-    protected $description = 'Sync roles from configuration to database';
+    protected $description = 'Write the configured permissions and global roles to the database';
 
-    /**
-     * Execute the console command.
-     */
     public function handle(): int
     {
-        $this->info('Syncing roles from configuration...');
+        $this->info('Syncing permissions and roles from configuration...');
 
-        $roles = static::getAllConfiguredRoles();
+        $result = PermissionRegistry::sync();
 
-        $this->info("Found {$roles->count()} roles in configuration.");
+        $this->comment("Synced {$result['permissions']} permissions and {$result['roles']} roles.");
 
-        static::syncRolesToDatabase();
-
-        $this->info('Roles synced successfully!');
-
-        $this->table(
-            ['Key', 'Name', 'System Role'],
-            $roles->map(fn ($role) => [
-                $role['key'],
-                $role['name'],
-                $role['is_system'] ? 'Yes' : 'No',
-            ])->toArray()
-        );
+        if ($this->option('show')) {
+            $this->showRoles();
+        }
 
         return self::SUCCESS;
+    }
+
+    protected function showRoles(): void
+    {
+        $rows = Role::query()
+            ->whereNull('account_id')
+            ->with('permissions')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Role $role): array => [
+                $role->name,
+                $role->display_name,
+                $role->is_system ? 'yes' : 'no',
+                $role->permissions->count(),
+            ])
+            ->all();
+
+        $this->table(['Role', 'Label', 'System', 'Permissions'], $rows);
+
+        $this->comment('Permission catalogue: '.Permission::query()->count().' entries.');
     }
 }

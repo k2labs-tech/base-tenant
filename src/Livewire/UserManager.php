@@ -1,168 +1,134 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Base\Tenant\Livewire;
 
-use Base\Tenant\Models\Account;
+use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
 use Flux\Flux;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 
-#[Layout('layouts.app')]
+#[Layout('base-tenant::layouts.app')]
 class UserManager extends Component
 {
-    use WithPagination;
-
-    public $deletingUser = null;
-
-    public $search = '';
-
-    public function mount()
-    {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
-        $isProjectCollaborator = $user->hasRole('project-collaborator');
-
-        // System admins, project-admins, or project-collaborators can access
-        if (! $isSystemAdmin && ! $isProjectAdmin && ! $isProjectCollaborator) {
-            abort(403, __('base-tenant::auth.unauthorized'));
-        }
+    // El trait se aplica con alias porque `resetFilters()` se amplía aquí con
+    // el rol, y `parent::` no serviría: un trait se aplana dentro de la clase.
+    use InteractsWithTable {
+        resetFilters as protected resetTableFilters;
     }
 
-    public function render()
+    public ?User $deletingUser = null;
+
+    /**
+     * A diferencia de `sortBy`, el rol no lleva lista blanca, y es a propósito:
+     * va como valor enlazado a un `where`, así que no hay inyección, y filtrar
+     * por un rol que no existe no devuelve a nadie. Lo único que se filtra es
+     * que ese nombre de rol existe, y los nombres ya se ven en el editor de
+     * usuarios. Antes de "arreglarlo", que conste que se miró.
+     */
+    #[Url(except: '')]
+    public string $filterRole = '';
+
+    public function mount(): void
     {
-        $user = Auth::user();
-        $currentAccountId = session('current_account_id');
+        $this->authorize('viewAny', $this->userModel());
+    }
 
-        // System admins see all users, others see only their account's users
-        if ($user->is_admin || is_null($user->account_id)) {
-            // Admin users see all users in the system
-            $users = User::query()
-                ->with('roles', 'account')
-                ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('name', 'like', '%'.$this->search.'%')
-                            ->orWhere('email', 'like', '%'.$this->search.'%');
-                    });
-                })
-                ->orderBy('name')
-                ->paginate(10);
-        } else {
-            // Project admins see only their account's users
-            // In multi-team mode, use the pivot table; otherwise use account_id
-            $multiTeam = config('base-tenant.multi_team', false);
-
-            if ($multiTeam) {
-                // Multi-team: get users from account_user pivot table
-                $users = User::query()
-                    ->whereHas('accounts', function ($query) use ($currentAccountId) {
-                        $query->where('accounts.id', $currentAccountId);
-                    })
-                    ->with([
-                        'roles' => function ($query) use ($currentAccountId) {
-                            $query->wherePivot('account_id', $currentAccountId);
-                        },
-                        'account'
-                    ])
-                    ->when($this->search, function ($query) {
-                        $query->where(function ($q) {
-                            $q->where('name', 'like', '%'.$this->search.'%')
-                                ->orWhere('email', 'like', '%'.$this->search.'%');
-                        });
-                    })
-                    ->orderBy('name')
-                    ->paginate(10);
-            } else {
-                // Single-team: get users by account_id field
-                $users = User::query()
-                    ->where('account_id', $currentAccountId)
-                    ->with([
-                        'roles' => function ($query) use ($currentAccountId) {
-                            $query->wherePivot('account_id', $currentAccountId);
-                        },
-                        'account'
-                    ])
-                    ->when($this->search, function ($query) {
-                        $query->where(function ($q) {
-                            $q->where('name', 'like', '%'.$this->search.'%')
-                                ->orWhere('email', 'like', '%'.$this->search.'%');
-                        });
-                    })
-                    ->orderBy('name')
-                    ->paginate(10);
-            }
-        }
-
-        $roles = Role::nonSystem()->orderBy('name')->get();
-
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
-        $canEdit = $isSystemAdmin || $isProjectAdmin;
+    public function render(): View
+    {
+        $users = $this->users();
 
         return view('base-tenant::livewire.user-manager', [
             'users' => $users,
-            'roles' => $roles,
-            'isSystemAdmin' => $isSystemAdmin,
-            'canEdit' => $canEdit,
+            'isEmptyTable' => $this->isEmptyResult($users),
+            'roles' => Role::query()->assignable()->orderBy('display_name')->get(),
+            'isSystemAdmin' => Auth::user()->isSuperAdmin(),
+            'canEdit' => Auth::user()->can('create', $this->userModel()),
+            'hasActiveFilters' => $this->hasActiveFilters(),
+            'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'density' => $this->resolvedDensity(),
+            'rowPadding' => $this->densityClasses(),
+            'summary' => $this->summary(),
         ]);
     }
 
-    public function confirmDelete(User $user)
+    /**
+     * El modelo que la aplicación tiene configurado, no el del paquete.
+     *
+     * Las relaciones polimórficas guardan el nombre de la clase: los roles de
+     * un usuario se escriben con el `model_type` del modelo configurado, así
+     * que consultar la clase del paquete devuelve un morph distinto y la
+     * relación no casa. Las políticas se registran contra la misma clase
+     * configurada, de modo que autorizar contra otra tampoco encuentra la suya.
+     *
+     * @return class-string<User>
+     */
+    protected function userModel(): string
     {
+        return config('base-tenant.models.user', User::class);
+    }
+
+    /**
+     * Las cifras de la tira de contexto. Se calculan sobre el alcance de la
+     * pantalla, no sobre la página: quien mira quiere saber cuántos hay, no
+     * cuántos está viendo ahora mismo.
+     *
+     * @return array<string, int>
+     */
+    protected function summary(): array
+    {
+        $base = fn () => $this->userModel()::query()->unless(
+            Auth::user()->isSuperAdmin(),
+            fn (Builder $query): Builder => $query->inAccount(Tenant::current())
+        );
+
+        return [
+            'total' => $base()->count(),
+            'unverified' => $base()->whereNull('email_verified_at')->count(),
+        ];
+    }
+
+    /** Decide cuál de los dos vacíos se muestra y si se ofrece limpiar. */
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== '' || $this->filterRole !== '';
+    }
+
+    public function updatedFilterRole(): void
+    {
+        $this->resetPage();
+    }
+
+    /** El rol es un filtro más: `resetFilters()` del trait no lo conoce. */
+    public function resetFilters(): void
+    {
+        $this->reset('filterRole');
+
+        $this->resetTableFilters();
+    }
+
+    public function confirmDelete(User $user): void
+    {
+        $this->authorize('delete', $user);
+
         $this->deletingUser = $user;
         $this->modal('delete-user-modal')->show();
     }
 
-    public function deleteUser()
+    public function deleteUser(): void
     {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
+        $this->authorize('delete', $this->deletingUser);
 
-        // Only system admins and project admins can delete users
-        if (! $isSystemAdmin && ! $isProjectAdmin) {
-            abort(403, __('base-tenant::auth.unauthorized'));
-        }
-
-        if ($this->deletingUser->id === Auth::id()) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::users.error_deleting_user'),
-                text: __('base-tenant::users.cannot_delete_own_account'),
-            );
-            $this->modal('delete-user-modal')->close();
-
-            return;
-        }
-
-        // System admins can delete users completely
-        if ($isSystemAdmin) {
-            // For system admins, completely delete the user
-            $this->deletingUser->delete();
-        } else {
-            // For project admins, verify they're deleting a user from the current account
-            $currentAccountId = session('current_account_id');
-            $multiTeam = config('base-tenant.multi_team', false);
-
-            if ($multiTeam) {
-                // Multi-team: check if user belongs to current account via pivot
-                if (!$this->deletingUser->accounts->contains($currentAccountId)) {
-                    abort(403, __('base-tenant::auth.unauthorized'));
-                }
-            } else {
-                // Single-team: check direct account_id
-                if ($this->deletingUser->account_id !== $currentAccountId) {
-                    abort(403, __('base-tenant::auth.unauthorized'));
-                }
-            }
-
-            // Remove the user completely from the system
-            $this->deletingUser->delete();
-        }
+        $this->deletingUser->delete();
 
         $this->modal('delete-user-modal')->close();
         $this->deletingUser = null;
@@ -174,43 +140,53 @@ class UserManager extends Component
         );
     }
 
-    public function updatingSearch()
+    public function impersonate(string $userId): mixed
     {
-        $this->resetPage();
-    }
+        $target = User::findOrFail($userId);
 
-    public function impersonate($userId)
-    {
-        $user = Auth::user();
+        $this->authorize('impersonate', $target);
 
-        // Only system admins can impersonate
-        if (! $user->canImpersonate()) {
-            abort(403, __('base-tenant::auth.unauthorized'));
-        }
-
-        $targetUser = User::findOrFail($userId);
-
-        // Cannot impersonate system admins
-        if (! $targetUser->canBeImpersonated()) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::users.cannot_impersonate'),
-                text: __('base-tenant::users.cannot_impersonate_admin'),
-            );
-            return;
-        }
-
-        $user->impersonate($targetUser);
-
-        // Refresh roles in session for the impersonated user
-        auth()->user()->storeRolesSession();
+        Auth::user()->impersonate($target);
 
         Flux::toast(
             variant: 'success',
             heading: __('base-tenant::users.impersonating'),
-            text: __('base-tenant::users.impersonating_as', ['name' => $targetUser->name]),
+            text: __('base-tenant::users.impersonating_as', ['name' => $target->name]),
         );
 
         return redirect()->route('base-tenant.dashboard');
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function sortableColumns(): array
+    {
+        return ['name', 'email', 'created_at'];
+    }
+
+    protected function users(): LengthAwarePaginator
+    {
+        $user = Auth::user();
+
+        $query = $this->userModel()::query()
+            ->unless(
+                $user->isSuperAdmin(),
+                fn (Builder $query): Builder => $query->inAccount(Tenant::current())
+            )
+            ->with(['roles', 'account'])
+            ->when($this->search, function (Builder $query): void {
+                $query->where(function (Builder $query): void {
+                    $query->where('name', 'like', "%{$this->search}%")
+                        ->orWhere('email', 'like', "%{$this->search}%");
+                });
+            })
+            ->when($this->filterRole !== '', function (Builder $query): void {
+                $query->whereHas('roles', function (Builder $query): void {
+                    $query->where('name', $this->filterRole);
+                });
+            });
+
+        return $this->applySort($query, 'name')->paginate($this->resolvedPerPage());
     }
 }

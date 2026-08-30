@@ -1,107 +1,111 @@
-<section>
-    <header>
-        <h2 class="text-lg font-medium text-primary-900">
-            {{ __('base-tenant::app.profile.preferences') }}
-        </h2>
-
-        <p class="mt-1 text-sm text-primary-600">
-            {{ __('base-tenant::app.profile.preferences_description') }}
-        </p>
-    </header>
-
-    <form wire:submit="updatePreferences" class="mt-6 space-y-6">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Language -->
-            <div>
-                <x-input-label for="locale" :value="__('base-tenant::app.profile.language')" />
-                <select wire:model="locale" id="locale" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @foreach($this->locales as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('locale')" class="mt-2" />
+<div>
+    <form wire:submit="updatePreferences" class="space-y-10">
+        <section class="grid gap-6 md:grid-cols-3">
+            <div class="md:col-span-1">
+                <flux:heading size="lg">{{ __('base-tenant::app.profile.regional') }}</flux:heading>
+                <flux:subheading>{{ __('base-tenant::app.profile.regional_description') }}</flux:subheading>
             </div>
 
-            <!-- Currency -->
-            <div>
-                <x-input-label for="currency" :value="__('base-tenant::app.profile.currency')" />
-                <select wire:model="currency" id="currency" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @foreach($this->currencies as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('currency')" class="mt-2" />
+            <div class="md:col-span-2 max-w-xl">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <flux:select wire:model="locale" :label="__('base-tenant::app.profile.language')">
+                        @foreach($this->locales as $key => $label)
+                            <flux:select.option value="{{ $key }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select wire:model="timezone" :label="__('base-tenant::app.profile.timezone')">
+                        @foreach($this->timezones as $key => $label)
+                            <flux:select.option value="{{ $key }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select wire:model="date_format" :label="__('base-tenant::app.profile.date_format')">
+                        @foreach($this->dateFormats as $key => $label)
+                            <flux:select.option value="{{ $key }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select wire:model="time_format" :label="__('base-tenant::app.profile.time_format')">
+                        @foreach($this->timeFormats as $key => $label)
+                            <flux:select.option value="{{ $key }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+            </div>
+        </section>
+
+        <flux:separator />
+
+        <section class="grid gap-6 md:grid-cols-3">
+            <div class="md:col-span-1">
+                <flux:heading size="lg">{{ __('base-tenant::app.profile.number_formatting') }}</flux:heading>
+                <flux:subheading>{{ __('base-tenant::app.profile.number_formatting_description') }}</flux:subheading>
             </div>
 
-            <!-- Decimal Places -->
-            <div>
-                <x-input-label for="decimal_places" :value="__('base-tenant::app.profile.decimal_places')" />
-                <select wire:model="decimal_places" id="decimal_places" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @for($i = 0; $i <= 4; $i++)
-                        <option value="{{ $i }}">{{ $i }}</option>
-                    @endfor
-                </select>
-                <x-input-error :messages="$errors->get('decimal_places')" class="mt-2" />
+            <div class="md:col-span-2 max-w-xl">
+                <div class="grid gap-4 sm:grid-cols-2">
+                    <flux:select wire:model="currency" :label="__('base-tenant::app.profile.currency')">
+                        @foreach($this->currencies as $key => $label)
+                            <flux:select.option value="{{ $key }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select wire:model="decimal_places" :label="__('base-tenant::app.profile.decimal_places')">
+                        @for($i = 0; $i <= 4; $i++)
+                            <flux:select.option value="{{ $i }}">{{ $i }}</flux:select.option>
+                        @endfor
+                    </flux:select>
+
+                    <flux:select wire:model="decimals_separator" :label="__('base-tenant::app.profile.decimals_separator')">
+                        @foreach($this->separators as $key => $label)
+                            <flux:select.option value="{{ $key }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+
+                    <flux:select wire:model="thousands_separator" :label="__('base-tenant::app.profile.thousands_separator')">
+                        @foreach($this->separators as $key => $label)
+                            <flux:select.option value="{{ $key }}">{{ $label }}</flux:select.option>
+                        @endforeach
+                    </flux:select>
+                </div>
+            </div>
+        </section>
+
+        <flux:separator />
+
+        <section class="grid gap-6 md:grid-cols-3">
+            <div class="md:col-span-1">
+                <flux:heading size="lg">{{ __('base-tenant::app.profile.email_notifications') }}</flux:heading>
+                <flux:subheading>{{ __('base-tenant::app.profile.email_notifications_description') }}</flux:subheading>
             </div>
 
-            <!-- Timezone -->
-            <div>
-                <x-input-label for="timezone" :value="__('base-tenant::app.profile.timezone')" />
-                <select wire:model="timezone" id="timezone" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @foreach($this->timezones as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('timezone')" class="mt-2" />
+            <div class="md:col-span-2 max-w-xl">
+                <flux:select
+                    wire:model="daily_notification_summary"
+                    :label="__('base-tenant::app.profile.daily_notification_summary')"
+                    :description="__('base-tenant::app.profile.daily_notification_summary_description')"
+                >
+                    <flux:select.option value="">
+                        {{ __('base-tenant::app.profile.use_account_default', [
+                            'state' => (auth()->user()->account->daily_notification_summary ?? false)
+                                ? __('base-tenant::app.profile.account_default_enabled')
+                                : __('base-tenant::app.profile.account_default_disabled'),
+                        ]) }}
+                    </flux:select.option>
+                    <flux:select.option value="1">{{ __('base-tenant::app.profile.always_enabled') }}</flux:select.option>
+                    <flux:select.option value="0">{{ __('base-tenant::app.profile.always_disabled') }}</flux:select.option>
+                </flux:select>
             </div>
+        </section>
 
-            <!-- Decimal Separator -->
-            <div>
-                <x-input-label for="decimals_separator" :value="__('base-tenant::app.profile.decimals_separator')" />
-                <select wire:model="decimals_separator" id="decimals_separator" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @foreach($this->separators as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('decimals_separator')" class="mt-2" />
-            </div>
+        <flux:separator />
 
-            <!-- Thousands Separator -->
-            <div>
-                <x-input-label for="thousands_separator" :value="__('base-tenant::app.profile.thousands_separator')" />
-                <select wire:model="thousands_separator" id="thousands_separator" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @foreach($this->separators as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('thousands_separator')" class="mt-2" />
-            </div>
-
-            <!-- Date Format -->
-            <div>
-                <x-input-label for="date_format" :value="__('base-tenant::app.profile.date_format')" />
-                <select wire:model="date_format" id="date_format" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @foreach($this->dateFormats as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('date_format')" class="mt-2" />
-            </div>
-
-            <!-- Time Format -->
-            <div>
-                <x-input-label for="time_format" :value="__('base-tenant::app.profile.time_format')" />
-                <select wire:model="time_format" id="time_format" class="mt-1 w-full px-4 py-2.5 bg-white border border-surface-300 rounded-lg text-primary-900 focus:border-accent-500 focus:ring-2 focus:ring-accent-500/20 focus:outline-hidden transition-all duration-200">
-                    @foreach($this->timeFormats as $key => $label)
-                        <option value="{{ $key }}">{{ $label }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('time_format')" class="mt-2" />
-            </div>
-        </div>
-
-        <div class="flex items-center gap-4">
-            <x-primary-button>{{ __('base-tenant::app.profile.save') }}</x-primary-button>
+        <div class="flex justify-end">
+            <flux:button type="submit" variant="primary">
+                <span wire:loading.remove wire:target="updatePreferences">{{ __('base-tenant::app.profile.save') }}</span>
+                <span wire:loading wire:target="updatePreferences">{{ __('base-tenant::common.saving') }}</span>
+            </flux:button>
         </div>
     </form>
-</section>
+</div>

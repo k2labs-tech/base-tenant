@@ -1,0 +1,24 @@
+<div class="mx-auto max-w-3xl space-y-5">
+    <div class="space-y-1">
+        <h1 class="text-xl font-semibold tracking-tight text-zinc-900 dark:text-white">
+            {{ $recordId ? __('{{ kebab }}.edit') : __('{{ kebab }}.create') }}
+        </h1>
+    </div>
+
+    <form wire:submit="save" class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-800 dark:bg-zinc-900">
+        <div class="grid gap-5 p-5 sm:grid-cols-2">
+{{ inputs }}
+        </div>
+
+        <div class="flex items-center justify-end gap-3 border-t border-zinc-200 bg-zinc-50/60 px-5 py-3 dark:border-zinc-800 dark:bg-zinc-900/40">
+            <flux:button variant="ghost" :href="route('{{ kebab }}.index')" wire:navigate>
+                {{ __('base-tenant::common.cancel') }}
+            </flux:button>
+
+            <flux:button type="submit" variant="primary">
+                <span wire:loading.remove wire:target="save">{{ __('base-tenant::common.save') }}</span>
+                <span wire:loading wire:target="save">{{ __('base-tenant::common.processing') }}</span>
+            </flux:button>
+        </div>
+    </form>
+</div>

@@ -1,136 +1,106 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Base\Tenant\Livewire;
 
+use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\User;
 use Flux\Flux;
+use Illuminate\Contracts\View\View;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('layouts.app')]
+#[Layout('base-tenant::layouts.app')]
 class EditAccount extends Component
 {
     public ?Account $account = null;
 
     public bool $isCreateMode = false;
 
-    // Account fields
-    public $name = '';
+    public string $name = '';
 
-    public $active = true;
+    public bool $active = true;
 
-    public $email = '';
+    public string $email = '';
 
-    public $phone = '';
+    public string $phone = '';
 
-    public $address = '';
+    public string $address = '';
 
-    public $city = '';
+    public string $city = '';
 
-    public $state = '';
+    public string $state = '';
 
-    public $country = '';
+    public string $country = '';
 
-    public $postal_code = '';
+    public string $postal_code = '';
 
-    public $vat = '';
+    public string $vat = '';
 
-    public $selected_owner_id = null;
+    public ?string $selected_owner_id = null;
 
-    public function mount(?Account $account = null)
+    public string $force_password_change = '';
+
+    public function mount(?Account $account = null): void
     {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
-
-        // System admins or project-admins can access
-        if (! $isSystemAdmin && ! $isProjectAdmin) {
-            abort(403, __('base-tenant::auth.unauthorized'));
-        }
-
-        // If project-admin, verify they're editing an account they have access to
-        if ($isProjectAdmin && ! $isSystemAdmin) {
-            $currentAccountId = session('current_account_id');
-            $multiTeam = config('base-tenant.multi_team', false);
-
-            if ($account && $account->exists) {
-                // Verify they have access to this account
-                if ($multiTeam) {
-                    // Multi-team: check via pivot
-                    if (!$user->accounts->contains($account->id)) {
-                        abort(403, __('base-tenant::auth.unauthorized'));
-                    }
-                } else {
-                    // Single-team: check if it's current account
-                    if ($account->id !== $currentAccountId) {
-                        abort(403, __('base-tenant::auth.unauthorized'));
-                    }
-                }
-            } else {
-                // If no account provided, load current account
-                $account = Account::find($currentAccountId);
-                if (! $account) {
-                    abort(404);
-                }
-            }
-        }
+        $account ??= Tenant::current();
 
         if ($account && $account->exists) {
+            $this->authorize('update', $account);
             $this->account = $account;
-            $this->isCreateMode = false;
-            $this->name = $account->name;
-            $this->active = (bool) $account->active;
-            $this->email = $account->email ?? '';
-            $this->phone = $account->phone ?? '';
-            $this->address = $account->address ?? '';
-            $this->city = $account->city ?? '';
-            $this->state = $account->state ?? '';
-            $this->country = $account->country ?? '';
-            $this->postal_code = $account->postal_code ?? '';
-            $this->vat = $account->vat ?? '';
-            $this->selected_owner_id = $account->user_id;
-        } else {
-            $this->isCreateMode = true;
-            $this->account = new Account;
+            $this->fillFromAccount($account);
+
+            return;
         }
+
+        $this->authorize('create', Account::class);
+
+        $this->isCreateMode = true;
+        $this->account = new Account;
     }
 
-    public function saveAccount()
+    public function saveAccount(): mixed
     {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
+        $this->isCreateMode
+            ? $this->authorize('create', Account::class)
+            : $this->authorize('update', $this->account);
 
-        // Both system admins and project admins can edit all fields
         $validated = $this->validate([
-            'name' => 'required|string|max:255',
-            'active' => 'boolean',
-            'email' => 'nullable|email|max:255',
-            'phone' => 'nullable|string|max:20',
-            'address' => 'nullable|string|max:255',
-            'city' => 'nullable|string|max:100',
-            'state' => 'nullable|string|max:100',
-            'country' => 'nullable|string|max:100',
-            'postal_code' => 'nullable|string|max:20',
-            'vat' => 'nullable|string|max:50',
-            'selected_owner_id' => 'nullable|exists:users,id',
+            'name' => ['required', 'string', 'max:255'],
+            'active' => ['boolean'],
+            'email' => ['nullable', 'email', 'max:255'],
+            'phone' => ['nullable', 'string', 'max:20'],
+            'address' => ['nullable', 'string', 'max:255'],
+            'city' => ['nullable', 'string', 'max:100'],
+            'state' => ['nullable', 'string', 'max:100'],
+            'country' => ['nullable', 'string', 'max:100'],
+            'postal_code' => ['nullable', 'string', 'max:20'],
+            'vat' => ['nullable', 'string', 'max:50'],
+            'selected_owner_id' => ['nullable', 'exists:users,id'],
+            'force_password_change' => ['nullable', 'in:0,1,'],
         ]);
 
+        $attributes = [
+            'name' => $validated['name'],
+            'active' => $validated['active'] ?? true,
+            'email' => $validated['email'] ?: null,
+            'phone' => $validated['phone'] ?: null,
+            'address' => $validated['address'] ?: null,
+            'city' => $validated['city'] ?: null,
+            'state' => $validated['state'] ?: null,
+            'country' => $validated['country'] ?: null,
+            'postal_code' => $validated['postal_code'] ?: null,
+            'vat' => $validated['vat'] ?: null,
+            'user_id' => $validated['selected_owner_id'] ?: null,
+            'force_password_change' => $this->forcePasswordChangeValue(),
+        ];
+
         if ($this->isCreateMode) {
-            $account = Account::create([
-                'name' => $validated['name'],
-                'active' => $validated['active'] ?? true,
-                'email' => $validated['email'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-                'address' => $validated['address'] ?? null,
-                'city' => $validated['city'] ?? null,
-                'state' => $validated['state'] ?? null,
-                'country' => $validated['country'] ?? null,
-                'postal_code' => $validated['postal_code'] ?? null,
-                'vat' => $validated['vat'] ?? null,
-                'user_id' => $validated['selected_owner_id'] ?? null,
-            ]);
+            $account = Account::create($attributes);
 
             Flux::toast(
                 variant: 'success',
@@ -139,50 +109,73 @@ class EditAccount extends Component
             );
 
             return redirect()->route('base-tenant.accounts.edit', $account);
-        } else {
-            $this->account->update([
-                'name' => $validated['name'],
-                'active' => $validated['active'],
-                'email' => $validated['email'] ?? null,
-                'phone' => $validated['phone'] ?? null,
-                'address' => $validated['address'] ?? null,
-                'city' => $validated['city'] ?? null,
-                'state' => $validated['state'] ?? null,
-                'country' => $validated['country'] ?? null,
-                'postal_code' => $validated['postal_code'] ?? null,
-                'vat' => $validated['vat'] ?? null,
-                'user_id' => $validated['selected_owner_id'] ?? null,
-            ]);
-
-            Flux::toast(
-                variant: 'success',
-                heading: __('base-tenant::accounts.account_updated'),
-                text: __('base-tenant::accounts.updated_successfully'),
-            );
         }
+
+        $this->account->update($attributes);
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::accounts.account_updated'),
+            text: __('base-tenant::accounts.updated_successfully'),
+        );
+
+        return null;
     }
 
-    public function render()
+    public function render(): View
     {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
+        return view('base-tenant::livewire.edit-account', [
+            'users' => User::query()->orderBy('name')->get(),
+            'accountUsers' => $this->accountUsers(),
+            'isSystemAdmin' => Auth::user()->isSuperAdmin(),
+            'globalForcePasswordChangeEnabled' => config('base-tenant.force_password_change.enabled', false),
+        ]);
+    }
 
-        // Get all users for owner selection
-        $users = User::orderBy('name')->get();
-
-        // Get account users if editing
-        $accountUsers = collect();
-        if (! $this->isCreateMode && $this->account->id) {
-            $accountUsers = $this->account->users()
-                ->with('roles')
-                ->orderBy('name')
-                ->get();
+    /**
+     * Members of the account, with the roles they hold inside it.
+     *
+     * @return Collection<int, User>
+     */
+    protected function accountUsers(): Collection
+    {
+        if ($this->isCreateMode || ! $this->account?->exists) {
+            return new Collection;
         }
 
-        return view('base-tenant::livewire.edit-account', [
-            'users' => $users,
-            'accountUsers' => $accountUsers,
-            'isSystemAdmin' => $isSystemAdmin,
-        ]);
+        return Tenant::runFor(
+            $this->account,
+            fn (): Collection => $this->account->users()->with('roles')->orderBy('name')->get()
+        );
+    }
+
+    protected function forcePasswordChangeValue(): ?bool
+    {
+        return match ($this->force_password_change) {
+            '1' => true,
+            '0' => false,
+            default => null,
+        };
+    }
+
+    protected function fillFromAccount(Account $account): void
+    {
+        $this->name = $account->name;
+        $this->active = (bool) $account->active;
+        $this->email = $account->email ?? '';
+        $this->phone = $account->phone ?? '';
+        $this->address = $account->address ?? '';
+        $this->city = $account->city ?? '';
+        $this->state = $account->state ?? '';
+        $this->country = $account->country ?? '';
+        $this->postal_code = $account->postal_code ?? '';
+        $this->vat = $account->vat ?? '';
+        $this->selected_owner_id = $account->user_id;
+
+        $this->force_password_change = match ($account->force_password_change) {
+            true => '1',
+            false => '0',
+            default => '',
+        };
     }
 }

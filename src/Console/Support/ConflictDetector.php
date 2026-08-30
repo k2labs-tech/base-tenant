@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Console\Support;
 
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Schema;
 
 class ConflictDetector
 {
@@ -64,13 +65,32 @@ class ConflictDetector
     /**
      * Check if base-tenant is already installed
      */
+    /**
+     * Whether a previous installation exists that re-running would disturb.
+     *
+     * Configuration alone is not enough of a signal: a starter kit ships the
+     * config file, the environment variables and a User model extending the
+     * package on purpose, and a project created from one has installed
+     * nothing yet. What settles it is whether the schema is in place.
+     */
     public function isAlreadyInstalled(): bool
     {
-        $configExists = File::exists($this->basePath.'/config/base-tenant.php');
-        $envHasVars = $this->hasBaseTenantEnvVariables();
-        $userModelExtends = $this->detectUserModelConflict();
+        if (! $this->hasBeenMigrated()) {
+            return false;
+        }
 
-        return $configExists && $envHasVars && $userModelExtends;
+        return File::exists($this->basePath.'/config/base-tenant.php')
+            && $this->hasBaseTenantEnvVariables()
+            && $this->detectUserModelConflict();
+    }
+
+    public function hasBeenMigrated(): bool
+    {
+        try {
+            return Schema::hasTable('accounts');
+        } catch (\Throwable) {
+            return false;
+        }
     }
 
     /**

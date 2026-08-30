@@ -1,45 +1,55 @@
-<div>
-    <!-- Session Status -->
-    <x-base-tenant::auth-session-status class="mb-4" :status="session('status')" />
+<div class="space-y-6">
+    @if (session('status'))
+        <flux:callout variant="success" icon="check-circle">
+            <flux:callout.text>{{ session('status') }}</flux:callout.text>
+        </flux:callout>
+    @endif
 
-    <form wire:submit="login">
-        <!-- Email Address -->
-        <div>
-            <x-base-tenant::input-label for="email" :value="__('Email')" />
-            <x-base-tenant::text-input wire:model="form.email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
-            <x-base-tenant::input-error :messages="$errors->get('form.email')" class="mt-2" />
-        </div>
+    {{-- El error de un intento social vuelve al login, y sin esto se perdería
+         en silencio: la persona volvería a la misma pantalla sin saber por qué. --}}
+    @error('social')
+        <flux:callout variant="danger" icon="exclamation-triangle" class="mb-6">
+            <flux:callout.text>{{ $message }}</flux:callout.text>
+        </flux:callout>
+    @enderror
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-base-tenant::input-label for="password" :value="__('Password')" />
+    <x-base-tenant::social-buttons class="mb-6" />
 
-            <x-base-tenant::text-input wire:model="form.password" id="password" class="block mt-1 w-full"
-                            type="password"
-                            name="password"
-                            required autocomplete="current-password" />
+    <form wire:submit="login" class="space-y-6">
+        {{-- El aviso de credenciales incorrectas y el de demasiados intentos
+             llegan bajo `form.email`, que es de donde Flux saca el nombre del
+             campo: atar esto a `email` a secas dejaría el formulario mudo. --}}
+        <flux:input
+            wire:model="form.email"
+            type="email"
+            :label="__('Email')"
+            autocomplete="username"
+            required
+            autofocus
+        />
 
-            <x-base-tenant::input-error :messages="$errors->get('form.password')" class="mt-2" />
-        </div>
+        <flux:input
+            wire:model="form.password"
+            type="password"
+            :label="__('Password')"
+            autocomplete="current-password"
+            viewable
+            required
+        />
 
-        <!-- Remember Me -->
-        <div class="block mt-4">
-            <label for="remember" class="inline-flex items-center">
-                <input wire:model="form.remember" id="remember" type="checkbox" class="rounded-smdark:bg-gray-900 border-gray-300 dark:border-gray-700 text-indigo-600 shadow-xs focus:ring-indigo-500 dark:focus:ring-indigo-600 dark:focus:ring-offset-gray-800" name="remember">
-                <span class="ms-2 text-sm text-gray-600 dark:text-gray-400">{{ __('Remember me') }}</span>
-            </label>
-        </div>
+        <flux:checkbox wire:model="form.remember" :label="__('Remember me')" />
 
-        <div class="flex items-center justify-end mt-4">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800" href="{{ route('password.request') }}" wire:navigate>
+        <div class="flex items-center justify-end gap-4">
+            @if (Route::has('base-tenant.password.request'))
+                <flux:link :href="route('base-tenant.password.request')" wire:navigate variant="subtle" class="text-sm">
                     {{ __('Forgot your password?') }}
-                </a>
+                </flux:link>
             @endif
 
-            <x-base-tenant::primary-button class="ms-3">
-                {{ __('Log in') }}
-            </x-base-tenant::primary-button>
+            <flux:button type="submit" variant="primary">
+                <span wire:loading.remove wire:target="login">{{ __('Log in') }}</span>
+                <span wire:loading wire:target="login">{{ __('base-tenant::common.processing') }}</span>
+            </flux:button>
         </div>
     </form>
 </div>

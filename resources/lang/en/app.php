@@ -24,6 +24,16 @@ return [
         'project_types' => 'Project Types',
         'priorities' => 'Priorities',
         'procedures' => 'Procedures',
+        'invitations' => 'Invitations',
+        'accounts' => 'Accounts',
+        'activity' => 'Activity log',
+        'navigation' => 'Navigation',
+        'features' => 'Features',
+        'usage' => 'Usage',
+        'files' => 'Files',
+        'languages' => 'Languages',
+        'transfers' => 'Transfers',
+        'connections' => 'Connections',
         'main_menu' => 'Main Menu',
     ],
 
@@ -181,6 +191,14 @@ return [
     // General
     'members' => 'members',
 
+    // Appearance
+    'appearance' => [
+        'label' => 'Appearance',
+        'light' => 'Light',
+        'dark' => 'Dark',
+        'system' => 'System',
+    ],
+
     // User & Profile
     'user' => [
         'profile' => 'Profile',
@@ -201,14 +219,14 @@ return [
             'settings' => 'Settings',
             'logout' => 'Logout',
             'billing' => 'Billing',
-        ]
+        ],
     ],
 
     // Profile
     'profile' => [
         'title' => 'Profile',
-        'profile_information' => 'Profile Information',
-        'update_profile_information' => "Update your account's profile information and email address.",
+        'information' => 'Information',
+        'update_profile_information' => "Update your account's profile name and email address.",
         'name' => 'Name',
         'email' => 'Email',
         'email_unverified' => 'Your email address is unverified.',
@@ -239,5 +257,22 @@ return [
         'time_format' => 'Time Format',
         'preferences_updated' => 'Preferences Updated',
         'preferences_updated_description' => 'Your preferences have been saved successfully.',
+        'subtitle' => 'Your details, how the interface is written for you, and how to close the account.',
+        'profile_updated' => 'Profile updated',
+        'password_updated' => 'Password updated',
+        'delete_account_target' => 'You are about to delete :name (:email).',
+        'regional' => 'Regional',
+        'regional_description' => 'The language the interface is written in, and how dates and times are read where you are.',
+        'number_formatting' => 'Number Formatting',
+        'number_formatting_description' => 'How amounts are written for you. It changes the way figures are shown, never the figures themselves.',
+        'email_notifications' => 'Email Notifications',
+        'email_notifications_description' => 'What reaches your inbox. Leaving it on the account default means it follows whatever the account decides, now and later.',
+        'daily_notification_summary' => 'Daily Notification Summary',
+        'daily_notification_summary_description' => 'One email a day with yesterday\'s unread notifications, grouped by project.',
+        'use_account_default' => 'Use account default (:state)',
+        'account_default_enabled' => 'enabled',
+        'account_default_disabled' => 'disabled',
+        'always_enabled' => 'Always enabled',
+        'always_disabled' => 'Always disabled',
     ],
 ];

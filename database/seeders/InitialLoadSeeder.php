@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Database\Seeders;
 
+use Base\Tenant\Facades\Menu;
 use Base\Tenant\Traits\HasExtensibleRoles;
 use Illuminate\Database\Seeder;
 
 /**
- * Initial Load Seeder - Creates default system and customer roles
- *
- * This seeder syncs all configured roles (both system and customer) to the database.
- * It is typically run during initial setup to populate default roles.
+ * Writes the permission catalogue, the global roles and the product menus
+ * declared in configuration. Run it on install and after any change to them.
  */
 class InitialLoadSeeder extends Seeder
 {
@@ -22,11 +21,14 @@ class InitialLoadSeeder extends Seeder
      */
     public function run(): void
     {
-        $this->command->info('Syncing default roles from configuration...');
+        $this->command->info('Syncing permissions and roles from configuration...');
 
-        // Sync all roles from configuration
         static::syncRolesToDatabase();
 
-        $this->command->info('Default roles created successfully!');
+        $this->command->info('Syncing navigation menus...');
+
+        Menu::sync();
+
+        $this->command->info('Default permissions, roles and menus created successfully!');
     }
 }

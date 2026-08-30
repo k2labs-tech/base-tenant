@@ -2,6 +2,10 @@
 
 return [
     'management_title' => 'User Management',
+    'management_description' => 'Invite people, assign roles and manage access to this account.',
+    'filter_role' => 'Role',
+    'all_roles' => 'All roles',
+    'empty_description' => 'Add the first user to start sharing this account.',
     'add_new' => 'Add New User',
     'search_placeholder' => 'Search users...',
     'name' => 'Name',
@@ -23,12 +27,12 @@ return [
     'update_user' => 'Update User',
     'remove_user' => 'Remove User',
     'remove_confirmation' => 'Are you sure you want to remove this user from your account? This action cannot be undone.',
-    
+
     // Success messages
     'created_successfully' => 'User created successfully.',
     'updated_successfully' => 'User updated successfully.',
     'removed_successfully' => 'User removed successfully.',
-    
+
     // Notification titles
     'error_deleting_user' => 'Error deleting user',
     'user_removed' => 'User removed',
@@ -37,22 +41,29 @@ return [
     'password_updated_title' => 'Password updated',
     'preferences_updated_title' => 'Preferences updated',
     'roles_updated_title' => 'Roles updated',
-    
+
     // Error messages
     'cannot_delete_own_account' => 'You cannot delete your own account.',
-    
+
     // Edit User Page
     'back_to_users' => 'Back to Users',
     'edit_user_title' => 'Edit User: :name',
+    'edit_user_description' => 'Each block below saves on its own. Nothing changes until you press its button.',
+    'create_user_description' => 'Everything on this page is saved together when you create the user.',
     'profile_information' => 'Profile Information',
+    'profile_information_description' => 'The name shown across the account and the email address this person signs in with. Changing the email changes how they log in.',
     'phone' => 'Phone',
     'account' => 'Account',
+    'account_description' => 'The account the new user is created in. Only system administrators can pick a different one.',
     'select_account' => 'Select account',
     'save_profile' => 'Save Profile',
     'update_password' => 'Update Password',
+    'update_password_description' => 'Set a new password for this person. They are not notified by email, so you will have to pass it on yourself.',
+    'initial_password_description' => 'The password the new user starts with. If the account requires it, they receive a welcome email with this password and are asked to change it the first time they sign in.',
     'new_password' => 'New Password',
     'confirm_password' => 'Confirm Password',
     'preferences' => 'Preferences',
+    'preferences_description' => 'Language, time zone and how dates and numbers are written. It only changes what this user sees, never the stored data.',
     'timezone' => 'Timezone',
     'language' => 'Language',
     'currency' => 'Currency',
@@ -74,6 +85,8 @@ return [
     'roles_management' => 'Roles Management',
     'create_role' => 'Create Role',
     'user_roles' => 'User Roles',
+    'user_roles_description' => 'Roles decide what this person can do. They apply inside this account only: the roles they hold in any other account are left untouched.',
+    'no_roles_available' => 'There are no roles you can assign here yet.',
     'update_roles' => 'Update Roles',
     'account_users' => 'Account Users',
     'account_users_description' => 'Other users in the same account',
@@ -86,7 +99,7 @@ return [
     'delete' => 'Delete',
     'delete_role' => 'Delete Role',
     'delete_role_confirmation' => 'Are you sure you want to delete this role? This action cannot be undone.',
-    
+
     // Success messages for Edit User
     'profile_updated' => 'Profile information updated successfully.',
     'password_updated' => 'Password updated successfully.',
@@ -95,7 +108,7 @@ return [
     'role_created' => 'Role created successfully.',
     'role_updated' => 'Role updated successfully.',
     'role_deleted' => 'Role deleted successfully.',
-    
+
     // Error messages for roles
     'role_in_use' => 'Cannot delete role',
     'role_in_use_description' => 'This role is currently assigned to one or more users.',
@@ -108,4 +121,13 @@ return [
     'impersonating_as' => 'You are now impersonating :name',
     'leave_impersonation' => 'Leave Impersonation',
     'impersonation_banner' => 'You are currently impersonating :name',
+    'no_account_for_roles' => 'This user has no account, so there are no account roles to assign.',
+    'unverified' => 'Email not verified',
+    'unverified_summary' => '{1} :count person has not verified their email|[2,*] :count people have not verified their email',
+
+    'status' => 'Status',
+    'joined' => 'Joined',
+    'status_active' => 'Active',
+    'status_pending' => 'Pending',
+
 ];

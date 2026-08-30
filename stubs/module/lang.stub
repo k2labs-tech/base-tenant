@@ -1,0 +1,26 @@
+<?php
+
+declare(strict_types=1);
+
+return [
+
+    'title' => '{{ title }}',
+    'description' => '{{ description }}',
+
+    'singular' => '{{ singular }}',
+    'create' => '{{ createLabel }}',
+    'edit' => '{{ editLabel }}',
+
+    'saved' => '{{ savedLabel }}',
+    'deleted' => '{{ deletedLabel }}',
+    'confirm_delete' => '{{ confirmLabel }}',
+
+    'search_placeholder' => '{{ searchLabel }}',
+
+    'empty' => '{{ emptyLabel }}',
+    'empty_hint' => '{{ emptyHintLabel }}',
+
+    'fields' => [
+{{ fields }}    ],
+
+];

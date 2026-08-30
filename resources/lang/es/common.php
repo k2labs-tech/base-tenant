@@ -56,7 +56,7 @@ return [
     'next' => 'Siguiente',
     'first' => 'Primera',
     'last' => 'Última',
-    'showing' => 'Mostrando',
+    'showing' => 'Mostrando :from–:to de :total',
     'of' => 'de',
     'entries' => 'entradas',
     'per_page' => 'por página',
@@ -80,4 +80,17 @@ return [
     'please_try_again' => 'Por favor intenta de nuevo',
     'no_results_found' => 'No se encontraron resultados',
     'no_data_available' => 'No hay datos disponibles',
+
+    // Tablas
+    'all' => 'Todos',
+    'filters' => 'Filtros',
+    'clear_filters' => 'Limpiar filtros',
+    'actions' => 'Acciones',
+    'empty_title' => 'Aún no hay nada',
+    'empty_search' => 'Ningún resultado con estos filtros',
+    'empty_search_hint' => 'Prueba con otra búsqueda o quita algún filtro.',
+    'saving' => 'Guardando...',
+    'density_comfortable' => 'Filas cómodas',
+    'density_compact' => 'Filas compactas',
+
 ];

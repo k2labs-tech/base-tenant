@@ -24,6 +24,16 @@ return [
         'project_types' => 'Tipos de Proyecto',
         'priorities' => 'Prioridades',
         'procedures' => 'Procedimientos',
+        'invitations' => 'Invitaciones',
+        'accounts' => 'Cuentas',
+        'activity' => 'Registro de actividad',
+        'navigation' => 'Navegación',
+        'features' => 'Funcionalidades',
+        'usage' => 'Consumo',
+        'files' => 'Ficheros',
+        'languages' => 'Idiomas',
+        'transfers' => 'Traspasos',
+        'connections' => 'Conexiones',
         'main_menu' => 'Menú Principal',
     ],
 
@@ -181,6 +191,14 @@ return [
     // General
     'members' => 'miembros',
 
+    // Appearance
+    'appearance' => [
+        'label' => 'Apariencia',
+        'light' => 'Claro',
+        'dark' => 'Oscuro',
+        'system' => 'Sistema',
+    ],
+
     // User & Profile
     'user' => [
         'profile' => 'Perfil',
@@ -201,14 +219,14 @@ return [
             'settings' => 'Configuración',
             'logout' => 'Cerrar Sesión',
             'billing' => 'Facturación',
-        ]
+        ],
     ],
 
     // Profile
     'profile' => [
         'title' => 'Perfil',
-        'profile_information' => 'Información del Perfil',
-        'update_profile_information' => 'Actualiza la información del perfil y la dirección de correo electrónico de tu cuenta.',
+        'information' => 'Información',
+        'update_profile_information' => 'Actualiza el nombre y la dirección de correo electrónico de tu cuenta.',
         'name' => 'Nombre',
         'email' => 'Correo Electrónico',
         'email_unverified' => 'Tu dirección de correo electrónico no está verificada.',
@@ -239,5 +257,22 @@ return [
         'time_format' => 'Formato de Hora',
         'preferences_updated' => 'Preferencias Actualizadas',
         'preferences_updated_description' => 'Tus preferencias han sido guardadas exitosamente.',
+        'subtitle' => 'Tus datos, cómo se te escribe la interfaz y cómo cerrar la cuenta.',
+        'profile_updated' => 'Perfil actualizado',
+        'password_updated' => 'Contraseña actualizada',
+        'delete_account_target' => 'Vas a eliminar a :name (:email).',
+        'regional' => 'Regional',
+        'regional_description' => 'El idioma en el que se escribe la interfaz y cómo se leen las fechas y las horas donde estás.',
+        'number_formatting' => 'Formato de Números',
+        'number_formatting_description' => 'Cómo se escriben los importes para ti. Cambia la forma de mostrar las cifras, nunca las cifras.',
+        'email_notifications' => 'Notificaciones por Correo',
+        'email_notifications_description' => 'Lo que llega a tu bandeja. Dejarlo en el valor de la cuenta significa que seguirá lo que decida la cuenta, ahora y más adelante.',
+        'daily_notification_summary' => 'Resumen Diario de Notificaciones',
+        'daily_notification_summary_description' => 'Un correo al día con las notificaciones de ayer sin leer, agrupadas por proyecto.',
+        'use_account_default' => 'Usar el valor de la cuenta (:state)',
+        'account_default_enabled' => 'activado',
+        'account_default_disabled' => 'desactivado',
+        'always_enabled' => 'Siempre activado',
+        'always_disabled' => 'Siempre desactivado',
     ],
 ];

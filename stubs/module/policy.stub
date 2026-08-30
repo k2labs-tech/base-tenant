@@ -1,0 +1,40 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Policies;
+
+use {{ namespace }}\{{ class }};
+use Illuminate\Foundation\Auth\User;
+
+/**
+ * The tenant scope already keeps another account's records out of every query,
+ * so these checks are about what this user may do, not about whose data it is.
+ */
+class {{ class }}Policy
+{
+    public function viewAny(User $user): bool
+    {
+        return $user->hasPermission('{{ permission }}.view');
+    }
+
+    public function view(User $user, {{ class }} ${{ variable }}): bool
+    {
+        return $user->hasPermission('{{ permission }}.view');
+    }
+
+    public function create(User $user): bool
+    {
+        return $user->hasPermission('{{ permission }}.create');
+    }
+
+    public function update(User $user, {{ class }} ${{ variable }}): bool
+    {
+        return $user->hasPermission('{{ permission }}.update');
+    }
+
+    public function delete(User $user, {{ class }} ${{ variable }}): bool
+    {
+        return $user->hasPermission('{{ permission }}.delete');
+    }
+}

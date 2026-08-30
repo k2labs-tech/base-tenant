@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('accounts', function (Blueprint $table) {
-            if(!Schema::hasColumn('accounts', 'onboarded_at')) {
+            if (! Schema::hasColumn('accounts', 'onboarded_at')) {
                 $table->timestamp('onboarded_at')->nullable()->after('trial_ends_at');
             }
         });
@@ -24,7 +24,7 @@ return new class extends Migration
     public function down(): void
     {
         Schema::table('accounts', function (Blueprint $table) {
-            if(Schema::hasColumn('accounts', 'onboarded_at')) {
+            if (Schema::hasColumn('accounts', 'onboarded_at')) {
                 $table->dropColumn('onboarded_at');
             }
         });

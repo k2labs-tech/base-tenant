@@ -27,6 +27,15 @@ class UserModelManager
     }
 
     /**
+     * The User class the application resolves, which the package config and
+     * `config/auth.php` both have to agree on.
+     */
+    public function applicationUserModel(): string
+    {
+        return 'App\\Models\\User';
+    }
+
+    /**
      * Get User model stub content
      */
     public function getUserModelStub(): string

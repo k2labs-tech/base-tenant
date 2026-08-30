@@ -1,21 +1,24 @@
-<div>
-    <div class="mb-4 text-sm text-gray-600 dark:text-gray-400">
+<div class="space-y-6">
+    <flux:text>
         {{ __('Thanks for signing up! Before getting started, could you verify your email address by clicking on the link we just emailed to you? If you didn\'t receive the email, we will gladly send you another.') }}
-    </div>
+    </flux:text>
 
     @if (session('status') == 'verification-link-sent')
-        <div class="mb-4 font-medium text-sm text-green-600 dark:text-green-400">
-            {{ __('A new verification link has been sent to the email address you provided during registration.') }}
-        </div>
+        <flux:callout variant="success" icon="check-circle">
+            <flux:callout.text>
+                {{ __('A new verification link has been sent to the email address you provided during registration.') }}
+            </flux:callout.text>
+        </flux:callout>
     @endif
 
-    <div class="mt-4 flex items-center justify-between">
-        <x-base-tenant::primary-button wire:click="sendVerification">
-            {{ __('Resend Verification Email') }}
-        </x-base-tenant::primary-button>
+    <div class="flex items-center justify-between gap-4">
+        <flux:button wire:click="sendVerification" variant="primary">
+            <span wire:loading.remove wire:target="sendVerification">{{ __('Resend Verification Email') }}</span>
+            <span wire:loading wire:target="sendVerification">{{ __('base-tenant::common.processing') }}</span>
+        </flux:button>
 
-        <button wire:click="logout" type="submit" class="underline text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100 rounded-md focus:outline-hidden focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 dark:focus:ring-offset-gray-800">
+        <flux:link wire:click="logout" as="button" variant="subtle" class="text-sm">
             {{ __('Log Out') }}
-        </button>
+        </flux:link>
     </div>
 </div>

@@ -49,6 +49,14 @@ return [
     'preferences' => 'Preferencias de correo',
     'view_in_browser' => 'Ver en el navegador',
 
+    // Invitación de usuario
+    'user_invite' => [
+        'title' => '¡Te han invitado a :app!',
+        'body' => '¡Te han invitado a unirte a :app! Haz clic en el enlace de abajo para crear tu cuenta y empezar.',
+        'button' => 'Aceptar invitación',
+        'thanks_message' => '¡Gracias por usar :app!',
+    ],
+
     // Footer
     'footer' => [
         'company' => 'Tu Empresa',

@@ -1,0 +1,51 @@
+# {{ title }}
+
+**Module:** app · **Generated:** {{ date }} · **Last reviewed:** {{ date }}
+
+## When to use this
+
+Reading, creating or changing {{ lowerTitle }} records.
+
+## When NOT to use this
+
+<!-- Fill this in. A file that only says when to use something is half a
+     document: what an agent needs most is knowing which neighbouring
+     capability it should reach for instead. -->
+
+---
+
+## Model
+
+`{{ namespace }}\{{ class }}`, table `{{ table }}`.
+
+Uses `BelongsToAccount`, so every query is already filtered by the account in
+context and every new record is stamped with it. Do not add a manual
+`where('account_id', ...)`.
+
+Uses `LogsActivity`: creates, updates and deletes are recorded with the causer.
+
+| Field | Type |
+|---|---|
+{{ fieldTable }}
+
+## Screens
+
+- `{{ kebab }}.index` — the list, on the package's table pattern
+- `{{ kebab }}.create` / `{{ kebab }}.edit` — the form
+
+## Permissions
+
+`{{ permission }}.view`, `{{ permission }}.create`, `{{ permission }}.update`,
+`{{ permission }}.delete`. Declared in `config/base-tenant.php`; run
+`php artisan k2labs-base:sync-roles` after changing who holds them.
+
+## Anti-patterns
+
+```php
+// ✗ The scope already does this, and this version forgets the console and
+//   forgets queued jobs.
+{{ class }}::where('account_id', session('account_id'))->get();
+
+// ✓
+{{ class }}::all();
+```

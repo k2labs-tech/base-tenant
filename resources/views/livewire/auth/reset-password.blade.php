@@ -1,34 +1,37 @@
 <div>
-    <form wire:submit="resetPassword">
-        <!-- Email Address -->
-        <div>
-            <x-base-tenant::input-label for="email" :value="__('Email')" />
-            <x-base-tenant::text-input wire:model="email" id="email" class="block mt-1 w-full" type="email" name="email" required autofocus autocomplete="username" />
-            <x-base-tenant::input-error :messages="$errors->get('email')" class="mt-2" />
-        </div>
+    <form wire:submit="resetPassword" class="space-y-6">
+        <flux:input
+            wire:model="email"
+            type="email"
+            :label="__('Email')"
+            autocomplete="username"
+            required
+            autofocus
+        />
 
-        <!-- Password -->
-        <div class="mt-4">
-            <x-base-tenant::input-label for="password" :value="__('Password')" />
-            <x-base-tenant::text-input wire:model="password" id="password" class="block mt-1 w-full" type="password" name="password" required autocomplete="new-password" />
-            <x-base-tenant::input-error :messages="$errors->get('password')" class="mt-2" />
-        </div>
+        <flux:input
+            wire:model="password"
+            type="password"
+            :label="__('Password')"
+            autocomplete="new-password"
+            viewable
+            required
+        />
 
-        <!-- Confirm Password -->
-        <div class="mt-4">
-            <x-base-tenant::input-label for="password_confirmation" :value="__('Confirm Password')" />
+        <flux:input
+            wire:model="password_confirmation"
+            type="password"
+            :label="__('Confirm Password')"
+            autocomplete="new-password"
+            viewable
+            required
+        />
 
-            <x-base-tenant::text-input wire:model="password_confirmation" id="password_confirmation" class="block mt-1 w-full"
-                          type="password"
-                          name="password_confirmation" required autocomplete="new-password" />
-
-            <x-base-tenant::input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
-        </div>
-
-        <div class="flex items-center justify-end mt-4">
-            <x-base-tenant::primary-button>
-                {{ __('Reset Password') }}
-            </x-base-tenant::primary-button>
+        <div class="flex justify-end">
+            <flux:button type="submit" variant="primary">
+                <span wire:loading.remove wire:target="resetPassword">{{ __('Reset Password') }}</span>
+                <span wire:loading wire:target="resetPassword">{{ __('base-tenant::common.processing') }}</span>
+            </flux:button>
         </div>
     </form>
 </div>

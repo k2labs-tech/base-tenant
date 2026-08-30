@@ -1,0 +1,111 @@
+/**
+ * base-tenant color scales
+ *
+ * Flux UI consumes `zinc` (Tailwind's default palette, used for surfaces and
+ * text). It does NOT provide an accent scale: `flux.css` declares three flat
+ * tokens -- `--color-accent`, `--color-accent-content` and
+ * `--color-accent-foreground` -- and no numeric shades at all. The views use
+ * numeric shades (`bg-accent-600`, `ring-accent-500`), so this theme has to
+ * define them or every primary action renders with no color.
+ *
+ * The flat `--color-accent` is deliberately left to Flux. It is not a hue but a
+ * dark-mode-aware surface token, flipped to white under `.dark` in
+ * `@layer theme`; redeclaring it here would win in light mode, lose in dark,
+ * and produce an accent that changes color with the theme. No view uses the
+ * flat form.
+ *
+ * This theme therefore provides: the `accent` scale (violet, the default the
+ * installer used to inject into each host application) and the four state
+ * scales Flux does not cover -- success, warning, danger, and info -- used by
+ * badges, callouts, status indicators, and the impersonation banner.
+ *
+ * To use this in your application, import it after Tailwind and before your
+ * own theme definitions:
+ *
+ * @import 'tailwindcss';
+ * @import '../../vendor/base/tenant/resources/css/base-tenant.css';
+ *
+ * @theme {
+ *   --color-danger-500: var(--color-rose-500);
+ * }
+ *
+ * The host application also needs @source directives pointing at the package
+ * views so that Tailwind generates utilities for the classes those views use:
+ *
+ * @source '../../vendor/base/tenant/resources/views';
+ *
+ * Note: if you define any of these tokens in your application's @theme block,
+ * your definitions take precedence. Tailwind merges @theme blocks at build time
+ * in source order, so an override in your own @theme block will supersede this one.
+ */
+
+@theme {
+  /* accent scale - maps to violet. Primary actions, links, focus rings. */
+  --color-accent-50: var(--color-violet-50);
+  --color-accent-100: var(--color-violet-100);
+  --color-accent-200: var(--color-violet-200);
+  --color-accent-300: var(--color-violet-300);
+  --color-accent-400: var(--color-violet-400);
+  --color-accent-500: var(--color-violet-500);
+  --color-accent-600: var(--color-violet-600);
+  --color-accent-700: var(--color-violet-700);
+  --color-accent-800: var(--color-violet-800);
+  --color-accent-900: var(--color-violet-900);
+  --color-accent-950: var(--color-violet-950);
+
+  /* success scale - maps to green */
+  --color-success-50: var(--color-green-50);
+  --color-success-100: var(--color-green-100);
+  --color-success-200: var(--color-green-200);
+  --color-success-300: var(--color-green-300);
+  --color-success-400: var(--color-green-400);
+  --color-success-500: var(--color-green-500);
+  --color-success-600: var(--color-green-600);
+  --color-success-700: var(--color-green-700);
+  --color-success-800: var(--color-green-800);
+  --color-success-900: var(--color-green-900);
+  --color-success-950: var(--color-green-950);
+  --color-success: var(--color-green-500);
+
+  /* warning scale - maps to amber */
+  --color-warning-50: var(--color-amber-50);
+  --color-warning-100: var(--color-amber-100);
+  --color-warning-200: var(--color-amber-200);
+  --color-warning-300: var(--color-amber-300);
+  --color-warning-400: var(--color-amber-400);
+  --color-warning-500: var(--color-amber-500);
+  --color-warning-600: var(--color-amber-600);
+  --color-warning-700: var(--color-amber-700);
+  --color-warning-800: var(--color-amber-800);
+  --color-warning-900: var(--color-amber-900);
+  --color-warning-950: var(--color-amber-950);
+  --color-warning: var(--color-amber-500);
+
+  /* danger scale - maps to red */
+  --color-danger-50: var(--color-red-50);
+  --color-danger-100: var(--color-red-100);
+  --color-danger-200: var(--color-red-200);
+  --color-danger-300: var(--color-red-300);
+  --color-danger-400: var(--color-red-400);
+  --color-danger-500: var(--color-red-500);
+  --color-danger-600: var(--color-red-600);
+  --color-danger-700: var(--color-red-700);
+  --color-danger-800: var(--color-red-800);
+  --color-danger-900: var(--color-red-900);
+  --color-danger-950: var(--color-red-950);
+  --color-danger: var(--color-red-500);
+
+  /* info scale - maps to blue */
+  --color-info-50: var(--color-blue-50);
+  --color-info-100: var(--color-blue-100);
+  --color-info-200: var(--color-blue-200);
+  --color-info-300: var(--color-blue-300);
+  --color-info-400: var(--color-blue-400);
+  --color-info-500: var(--color-blue-500);
+  --color-info-600: var(--color-blue-600);
+  --color-info-700: var(--color-blue-700);
+  --color-info-800: var(--color-blue-800);
+  --color-info-900: var(--color-blue-900);
+  --color-info-950: var(--color-blue-950);
+  --color-info: var(--color-blue-500);
+}

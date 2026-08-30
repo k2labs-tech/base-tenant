@@ -2,6 +2,7 @@
 
 namespace Base\Tenant\Livewire\Forms;
 
+use App\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -24,7 +25,7 @@ class LoginForm extends Form
     /**
      * Attempt to authenticate the request's credentials.
      *
-     * @throws \Illuminate\Validation\ValidationException
+     * @throws ValidationException
      */
     public function authenticate(): void
     {
@@ -43,7 +44,7 @@ class LoginForm extends Form
         }
 
         // Get the user
-        $user = \App\Models\User::where('email', $this->email)->first();
+        $user = User::where('email', $this->email)->first();
 
         // Check if user has 2FA enabled
         if ($user && $user->hasTwoFactorEnabled()) {
@@ -55,6 +56,7 @@ class LoginForm extends Form
 
             // Redirect to 2FA challenge page
             redirect()->route('base-tenant.two-factor.challenge');
+
             return;
         }
 

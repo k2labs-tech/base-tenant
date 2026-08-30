@@ -1,175 +1,101 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Base\Tenant\Livewire;
 
+use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\Account;
+use Base\Tenant\Services\AccountDeletionService;
 use Flux\Flux;
+use Illuminate\Contracts\View\View;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
+use Livewire\Attributes\Url;
 use Livewire\Component;
-use Livewire\WithPagination;
 
-#[Layout('layouts.app')]
+#[Layout('base-tenant::layouts.app')]
 class AccountManager extends Component
 {
-    use WithPagination;
-
-    public $deletingAccount = null;
-
-    public $search = '';
-
-    public function mount()
-    {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
-
-        // System admins or project-admins can access
-        if (! $isSystemAdmin && ! $isProjectAdmin) {
-            abort(403, __('base-tenant::auth.unauthorized'));
-        }
+    // Alias porque `resetFilters()` se amplía aquí con la suscripción, y
+    // `parent::` no serviría: un trait se aplana dentro de la clase.
+    use InteractsWithTable {
+        resetFilters as protected resetTableFilters;
     }
 
-    public function render()
+    public ?Account $deletingAccount = null;
+
+    /** Uno de `active`, `trialing` o `none`; cualquier otra cosa no filtra. */
+    #[Url(except: '')]
+    public string $filterSubscription = '';
+
+    public function mount(): void
     {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
+        $this->authorize('viewAny', Account::class);
+    }
 
-        if ($isSystemAdmin) {
-            // System admins see all accounts
-            $accounts = Account::query()
-                ->withCount('users')
-                ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('name', 'like', '%'.$this->search.'%');
-                    });
-                })
-                ->orderBy('name')
-                ->paginate(10);
-        } else {
-            // Project admins see only the current account
-            $currentAccountId = session('current_account_id');
-
-            $accounts = Account::query()
-                ->where('id', $currentAccountId)
-                ->withCount('users')
-                ->when($this->search, function ($query) {
-                    $query->where(function ($q) {
-                        $q->where('name', 'like', '%'.$this->search.'%');
-                    });
-                })
-                ->orderBy('name')
-                ->paginate(10);
-        }
+    public function render(): View
+    {
+        $accounts = $this->accounts();
 
         return view('base-tenant::livewire.account-manager', [
             'accounts' => $accounts,
-            'isSystemAdmin' => $isSystemAdmin,
+            'isEmptyTable' => $this->isEmptyResult($accounts),
+            'isSystemAdmin' => Auth::user()->isSuperAdmin(),
+            'hasActiveFilters' => $this->hasActiveFilters(),
+            'perPageOptions' => self::PER_PAGE_OPTIONS,
+            'density' => $this->resolvedDensity(),
+            'rowPadding' => $this->densityClasses(),
+            'summary' => $this->summary(),
         ]);
     }
 
-    public function confirmDelete(Account $account)
+    /**
+     * Las cifras de la cabecera. Se cuentan sobre el alcance de la pantalla, no
+     * sobre la página: quien mira quiere saber cuántas cuentas alcanza, no
+     * cuántas está viendo ahora mismo.
+     *
+     * @return array<string, int>
+     */
+    protected function summary(): array
     {
+        $base = fn (): Builder => Account::query()->unless(
+            Auth::user()->isSuperAdmin(),
+            fn (Builder $query): Builder => $query->whereIn('id', Auth::user()->accounts()->pluck('accounts.id'))
+        );
+
+        return [
+            'total' => $base()->count(),
+            'inactive' => $base()->where('active', false)->count(),
+        ];
+    }
+
+    public function confirmDelete(Account $account): void
+    {
+        $this->authorize('delete', $account);
+
         $this->deletingAccount = $account;
         $this->modal('delete-account-modal')->show();
     }
 
-    public function deleteAccount()
+    public function deleteAccount(): void
     {
-        $user = Auth::user();
-        $isSystemAdmin = $user->is_admin || is_null($user->account_id);
-        $isProjectAdmin = $user->hasRole('project-admin');
+        $this->authorize('delete', $this->deletingAccount);
 
-        // Project-admins can only delete accounts they have access to
-        if ($isProjectAdmin && ! $isSystemAdmin) {
-            $multiTeam = config('base-tenant.multi_team', false);
-
-            if ($multiTeam) {
-                // Multi-team: check if user has access to this account via pivot
-                if (!$user->accounts->contains($this->deletingAccount->id)) {
-                    abort(403, __('base-tenant::auth.unauthorized'));
-                }
-            } else {
-                // Single-team: check if it's their primary account
-                $currentAccountId = session('current_account_id');
-                if ($this->deletingAccount->id !== $currentAccountId) {
-                    abort(403, __('base-tenant::auth.unauthorized'));
-                }
-            }
-        }
-
-        // Check if account has users
-        if ($this->deletingAccount->users()->count() > 0) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::accounts.error_deleting_account'),
-                text: __('base-tenant::accounts.cannot_delete_with_users'),
-            );
-            $this->modal('delete-account-modal')->close();
+        if (AccountDeletionService::hasUsers($this->deletingAccount)) {
+            $this->refuseDeletion(__('base-tenant::accounts.cannot_delete_with_users'));
 
             return;
         }
 
-        // Check for related projects
-        $projectsCount = \DB::table('projects')->where('account_id', $this->deletingAccount->id)->count();
-        if ($projectsCount > 0) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::accounts.error_deleting_account'),
-                text: __('base-tenant::accounts.cannot_delete_with_projects'),
-            );
-            $this->modal('delete-account-modal')->close();
+        $blocking = AccountDeletionService::blockingTables($this->deletingAccount);
 
-            return;
-        }
-
-        // Check for related translations
-        $translationsCount = \DB::table('translations')->where('account_id', $this->deletingAccount->id)->count();
-        if ($translationsCount > 0) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::accounts.error_deleting_account'),
-                text: __('base-tenant::accounts.cannot_delete_with_translations'),
-            );
-            $this->modal('delete-account-modal')->close();
-
-            return;
-        }
-
-        // Check for any other table with account_id
-        $tablesWithRelations = [];
-        $tables = \DB::select("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'");
-
-        foreach ($tables as $table) {
-            $tableName = $table->name;
-            if (in_array($tableName, ['accounts', 'users', 'projects', 'translations', 'account_user'])) {
-                continue;
-            }
-
-            $columns = \DB::select("PRAGMA table_info($tableName)");
-            $hasAccountId = false;
-            foreach ($columns as $column) {
-                if ($column->name === 'account_id') {
-                    $hasAccountId = true;
-                    break;
-                }
-            }
-
-            if ($hasAccountId) {
-                $count = \DB::table($tableName)->where('account_id', $this->deletingAccount->id)->count();
-                if ($count > 0) {
-                    $tablesWithRelations[] = $tableName;
-                }
-            }
-        }
-
-        if (count($tablesWithRelations) > 0) {
-            Flux::toast(
-                variant: 'danger',
-                heading: __('base-tenant::accounts.error_deleting_account'),
-                text: __('base-tenant::accounts.cannot_delete_with_relations', ['tables' => implode(', ', $tablesWithRelations)]),
-            );
-            $this->modal('delete-account-modal')->close();
+        if ($blocking !== []) {
+            $this->refuseDeletion(__('base-tenant::accounts.cannot_delete_with_relations', [
+                'tables' => implode(', ', $blocking),
+            ]));
 
             return;
         }
@@ -186,8 +112,84 @@ class AccountManager extends Component
         );
     }
 
-    public function updatingSearch()
+    /**
+     * @return array<int, string>
+     */
+    protected function sortableColumns(): array
+    {
+        // `users_count` entra porque el `withCount('users')` ya estaba en la
+        // consulta antes de tocarla: ordenar por él no añade ninguna subconsulta
+        // que no se estuviera pagando ya.
+        return ['name', 'email', 'created_at', 'users_count'];
+    }
+
+    public function hasActiveFilters(): bool
+    {
+        return $this->search !== '' || $this->filterSubscription !== '';
+    }
+
+    public function updatedFilterSubscription(): void
     {
         $this->resetPage();
+    }
+
+    public function resetFilters(): void
+    {
+        $this->reset('filterSubscription');
+
+        $this->resetTableFilters();
+    }
+
+    protected function accounts(): LengthAwarePaginator
+    {
+        $user = Auth::user();
+
+        $query = Account::query()
+            ->unless($user->isSuperAdmin(), function (Builder $query) use ($user): void {
+                $query->whereIn('id', $user->accounts()->pluck('accounts.id'));
+            })
+            ->withCount('users')
+            // `owner` se precarga porque ahora es una columna: sin esto la
+            // tabla dispara una consulta por fila para pintar el mismo dato.
+            ->with(['subscriptions', 'owner'])
+            ->when($this->search, function (Builder $query): void {
+                $query->where(function (Builder $query): void {
+                    $query->where('name', 'like', "%{$this->search}%")
+                        ->orWhere('email', 'like', "%{$this->search}%");
+                });
+            });
+
+        $this->applySubscriptionFilter($query);
+
+        return $this->applySort($query, 'name')->paginate($this->resolvedPerPage());
+    }
+
+    /**
+     * El orden importa: el scope `active()` de Cashier también recoge las
+     * suscripciones en prueba, así que «activa» tiene que excluirlas a mano o
+     * las dos opciones devolverían lo mismo y el filtro no separaría nada.
+     */
+    protected function applySubscriptionFilter(Builder $query): void
+    {
+        $enPrueba = fn (Builder $query) => $query->onTrial();
+
+        match ($this->filterSubscription) {
+            'trialing' => $query->whereHas('subscriptions', $enPrueba),
+            'active' => $query->whereHas('subscriptions', fn (Builder $query) => $query->active())
+                ->whereDoesntHave('subscriptions', $enPrueba),
+            'none' => $query->whereDoesntHave('subscriptions', fn (Builder $query) => $query->active()),
+            default => null,
+        };
+    }
+
+    protected function refuseDeletion(string $reason): void
+    {
+        Flux::toast(
+            variant: 'danger',
+            heading: __('base-tenant::accounts.error_deleting_account'),
+            text: $reason,
+        );
+
+        $this->modal('delete-account-modal')->close();
     }
 }

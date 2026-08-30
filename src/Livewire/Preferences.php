@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire;
 
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
 use Livewire\Attributes\Computed;
@@ -12,13 +13,22 @@ use Livewire\Component;
 class Preferences extends Component
 {
     public string $locale = '';
+
     public string $currency = '';
+
     public int $decimal_places = 2;
+
     public string $decimals_separator = '.';
+
     public string $thousands_separator = ',';
+
     public string $date_format = 'Y-m-d';
+
     public string $time_format = 'H:i:s';
+
     public string $timezone = '';
+
+    public ?string $daily_notification_summary = '';
 
     /**
      * Available locales
@@ -103,14 +113,14 @@ class Preferences extends Component
     public function dateFormats(): array
     {
         return [
-            'Y-m-d' => date('Y-m-d') . ' (Y-m-d)',
-            'd/m/Y' => date('d/m/Y') . ' (d/m/Y)',
-            'm/d/Y' => date('m/d/Y') . ' (m/d/Y)',
-            'd-m-Y' => date('d-m-Y') . ' (d-m-Y)',
-            'd.m.Y' => date('d.m.Y') . ' (d.m.Y)',
-            'M d, Y' => date('M d, Y') . ' (M d, Y)',
-            'd M Y' => date('d M Y') . ' (d M Y)',
-            'F j, Y' => date('F j, Y') . ' (F j, Y)',
+            'Y-m-d' => date('Y-m-d').' (Y-m-d)',
+            'd/m/Y' => date('d/m/Y').' (d/m/Y)',
+            'm/d/Y' => date('m/d/Y').' (m/d/Y)',
+            'd-m-Y' => date('d-m-Y').' (d-m-Y)',
+            'd.m.Y' => date('d.m.Y').' (d.m.Y)',
+            'M d, Y' => date('M d, Y').' (M d, Y)',
+            'd M Y' => date('d M Y').' (d M Y)',
+            'F j, Y' => date('F j, Y').' (F j, Y)',
         ];
     }
 
@@ -121,11 +131,11 @@ class Preferences extends Component
     public function timeFormats(): array
     {
         return [
-            'H:i:s' => date('H:i:s') . ' (24-hour with seconds)',
-            'H:i' => date('H:i') . ' (24-hour)',
-            'h:i:s A' => date('h:i:s A') . ' (12-hour with seconds)',
-            'h:i A' => date('h:i A') . ' (12-hour)',
-            'g:i A' => date('g:i A') . ' (12-hour without leading zero)',
+            'H:i:s' => date('H:i:s').' (24-hour with seconds)',
+            'H:i' => date('H:i').' (24-hour)',
+            'h:i:s A' => date('h:i:s A').' (12-hour with seconds)',
+            'h:i A' => date('h:i A').' (12-hour)',
+            'g:i A' => date('g:i A').' (12-hour without leading zero)',
         ];
     }
 
@@ -143,6 +153,9 @@ class Preferences extends Component
         $this->date_format = $user->date_format ?? 'Y-m-d';
         $this->time_format = $user->time_format ?? 'H:i:s';
         $this->timezone = $user->timezone ?? 'UTC';
+        $this->daily_notification_summary = $user->daily_notification_summary === null
+            ? ''
+            : (string) (int) $user->daily_notification_summary;
     }
 
     /**
@@ -152,20 +165,34 @@ class Preferences extends Component
     {
         $validated = $this->validate([
             'locale' => ['required', 'string', 'in:en,es'],
-            'currency' => ['required', 'string', 'in:' . implode(',', array_keys($this->currencies()))],
+            'currency' => ['required', 'string', 'in:'.implode(',', array_keys($this->currencies()))],
             'decimal_places' => ['required', 'integer', 'min:0', 'max:4'],
             'decimals_separator' => ['required', 'string', Rule::in(array_keys($this->separators()))],
             'thousands_separator' => ['required', 'string', Rule::in(array_keys($this->separators()))],
-            'date_format' => ['required', 'string', 'in:' . implode(',', array_keys($this->dateFormats()))],
-            'time_format' => ['required', 'string', 'in:' . implode(',', array_keys($this->timeFormats()))],
+            'date_format' => ['required', 'string', 'in:'.implode(',', array_keys($this->dateFormats()))],
+            'time_format' => ['required', 'string', 'in:'.implode(',', array_keys($this->timeFormats()))],
             'timezone' => ['required', 'string', 'timezone'],
+            'daily_notification_summary' => ['nullable', 'string', 'in:,0,1'],
         ]);
+
+        // Convert string to proper boolean/null
+        $dailySummary = $validated['daily_notification_summary'] === ''
+            ? null
+            : (bool) $validated['daily_notification_summary'];
+
+        $validated['daily_notification_summary'] = $dailySummary;
 
         Auth::user()->update($validated);
 
         // Update the session locale immediately
         session(['locale' => $validated['locale']]);
         app()->setLocale($validated['locale']);
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::app.profile.preferences_updated'),
+            text: __('base-tenant::app.profile.preferences_updated_description'),
+        );
 
         $this->dispatch('preferences-updated');
     }

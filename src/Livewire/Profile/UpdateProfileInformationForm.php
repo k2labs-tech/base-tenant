@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Livewire\Profile;
 
 use Base\Tenant\Models\User;
+use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\Rule;
@@ -13,6 +14,7 @@ use Livewire\Component;
 class UpdateProfileInformationForm extends Component
 {
     public string $name = '';
+
     public string $email = '';
 
     /**
@@ -43,6 +45,12 @@ class UpdateProfileInformationForm extends Component
         }
 
         $user->save();
+
+        Flux::toast(
+            variant: 'success',
+            heading: __('base-tenant::app.profile.profile_updated'),
+            text: __('base-tenant::app.profile.saved'),
+        );
 
         $this->dispatch('profile-updated', name: $user->name);
     }

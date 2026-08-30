@@ -2,6 +2,10 @@
 
 return [
     'management_title' => 'Gestión de Usuarios',
+    'management_description' => 'Invita a personas, asigna roles y gestiona el acceso a esta cuenta.',
+    'filter_role' => 'Rol',
+    'all_roles' => 'Todos los roles',
+    'empty_description' => 'Añade el primer usuario para empezar a compartir esta cuenta.',
     'add_new' => 'Agregar Nuevo Usuario',
     'search_placeholder' => 'Buscar usuarios...',
     'name' => 'Nombre',
@@ -23,12 +27,12 @@ return [
     'update_user' => 'Actualizar Usuario',
     'remove_user' => 'Eliminar Usuario',
     'remove_confirmation' => '¿Estás seguro de que deseas eliminar este usuario de tu cuenta? Esta acción no se puede deshacer.',
-    
+
     // Success messages
     'created_successfully' => 'Usuario creado exitosamente.',
     'updated_successfully' => 'Usuario actualizado exitosamente.',
     'removed_successfully' => 'Usuario eliminado exitosamente.',
-    
+
     // Notification titles
     'error_deleting_user' => 'Error al eliminar usuario',
     'user_removed' => 'Usuario eliminado',
@@ -37,22 +41,29 @@ return [
     'password_updated_title' => 'Contraseña actualizada',
     'preferences_updated_title' => 'Preferencias actualizadas',
     'roles_updated_title' => 'Roles actualizados',
-    
+
     // Error messages
     'cannot_delete_own_account' => 'No puedes eliminar tu propia cuenta.',
-    
+
     // Edit User Page
     'back_to_users' => 'Volver a Usuarios',
     'edit_user_title' => 'Editar Usuario: :name',
+    'edit_user_description' => 'Cada bloque se guarda por su cuenta. Nada cambia hasta que pulsas su botón.',
+    'create_user_description' => 'Todo lo de esta página se guarda junto al crear el usuario.',
     'profile_information' => 'Información del Perfil',
+    'profile_information_description' => 'El nombre que se ve en toda la cuenta y el correo con el que esta persona inicia sesión. Cambiar el correo cambia cómo entra.',
     'phone' => 'Teléfono',
     'account' => 'Cuenta',
+    'account_description' => 'La cuenta en la que se crea el usuario. Solo los administradores del sistema pueden elegir otra.',
     'select_account' => 'Seleccionar cuenta',
     'save_profile' => 'Guardar Perfil',
     'update_password' => 'Actualizar Contraseña',
+    'update_password_description' => 'Fija una contraseña nueva para esta persona. No se le avisa por correo, así que tendrás que dársela tú.',
+    'initial_password_description' => 'La contraseña con la que arranca el usuario. Si la cuenta lo exige, recibirá un correo de bienvenida con ella y se le pedirá cambiarla la primera vez que entre.',
     'new_password' => 'Nueva Contraseña',
     'confirm_password' => 'Confirmar Contraseña',
     'preferences' => 'Preferencias',
+    'preferences_description' => 'Idioma, zona horaria y cómo se escriben fechas y números. Solo cambia lo que ve este usuario, nunca los datos guardados.',
     'timezone' => 'Zona Horaria',
     'language' => 'Idioma',
     'currency' => 'Moneda',
@@ -74,6 +85,8 @@ return [
     'roles_management' => 'Gestión de Roles',
     'create_role' => 'Crear Rol',
     'user_roles' => 'Roles del Usuario',
+    'user_roles_description' => 'Los roles deciden qué puede hacer esta persona. Se aplican solo dentro de esta cuenta: los que tenga en cualquier otra quedan intactos.',
+    'no_roles_available' => 'Todavía no hay roles que puedas asignar aquí.',
     'update_roles' => 'Actualizar Roles',
     'account_users' => 'Usuarios de la Cuenta',
     'account_users_description' => 'Otros usuarios en la misma cuenta',
@@ -86,7 +99,7 @@ return [
     'delete' => 'Eliminar',
     'delete_role' => 'Eliminar Rol',
     'delete_role_confirmation' => '¿Estás seguro de que deseas eliminar este rol? Esta acción no se puede deshacer.',
-    
+
     // Success messages for Edit User
     'profile_updated' => 'Información del perfil actualizada exitosamente.',
     'password_updated' => 'Contraseña actualizada exitosamente.',
@@ -95,7 +108,7 @@ return [
     'role_created' => 'Rol creado exitosamente.',
     'role_updated' => 'Rol actualizado exitosamente.',
     'role_deleted' => 'Rol eliminado exitosamente.',
-    
+
     // Error messages for roles
     'role_in_use' => 'No se puede eliminar el rol',
     'role_in_use_description' => 'Este rol está actualmente asignado a uno o más usuarios.',
@@ -108,4 +121,13 @@ return [
     'impersonating_as' => 'Ahora estás suplantando a :name',
     'leave_impersonation' => 'Salir de Suplantación',
     'impersonation_banner' => 'Actualmente estás suplantando a :name',
+    'no_account_for_roles' => 'Este usuario no tiene cuenta, así que no hay roles de cuenta que asignar.',
+    'unverified' => 'Email sin verificar',
+    'unverified_summary' => '{1} :count persona no ha verificado su email|[2,*] :count personas no han verificado su email',
+
+    'status' => 'Estado',
+    'joined' => 'Alta',
+    'status_active' => 'Activo',
+    'status_pending' => 'Pendiente',
+
 ];

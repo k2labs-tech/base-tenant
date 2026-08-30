@@ -28,6 +28,20 @@ class MigrationRunner
     }
 
     /**
+     * Create the platform administrator.
+     *
+     * Delegates to the seeder so there is one implementation, whether the user
+     * arrives through the installer or through `migrate:fresh --seed`.
+     */
+    public function createAdminUser(): void
+    {
+        Artisan::call('db:seed', [
+            '--class' => 'Base\Tenant\Database\Seeders\AdminUserSeeder',
+            '--force' => true,
+        ]);
+    }
+
+    /**
      * Create test user if requested
      */
     public function createTestUser(bool $create): void
