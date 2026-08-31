@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire;
 
+use Base\Tenant\Exceptions\DomainNotAllowedException;
 use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\Role;
@@ -68,7 +69,15 @@ class InvitationManager extends Component
             return;
         }
 
-        InvitationService::send($this->email, $account->getKey(), $this->selectedRole, auth()->user());
+        try {
+            InvitationService::send($this->email, $account->getKey(), $this->selectedRole, auth()->user());
+        } catch (DomainNotAllowedException $exception) {
+            // The account restricts which domains may be invited. Saying which
+            // ones is the difference between a refusal and a dead end.
+            $this->addError('email', $exception->getMessage());
+
+            return;
+        }
 
         $this->reset(['email', 'selectedRole']);
 

@@ -9,6 +9,7 @@ return [
         'transfers' => 'Imports and exports',
         'connections' => 'Connections',
         'domains' => 'Domains',
+        'security' => 'Security',
         'users' => 'Users',
         'roles' => 'Roles',
         'accounts' => 'Accounts',
@@ -99,6 +100,11 @@ return [
         'domains' => [
             'view' => 'View domains',
             'update' => 'Manage domains',
+        ],
+
+        'security' => [
+            'view' => 'View security policy',
+            'update' => 'Manage security policy',
         ],
     ],
 

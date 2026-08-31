@@ -35,6 +35,7 @@ return [
         'transfers' => 'Transfers',
         'connections' => 'Connections',
         'domains' => 'Domains',
+        'security' => 'Security',
         'main_menu' => 'Main Menu',
     ],
 

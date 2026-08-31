@@ -175,6 +175,26 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Security policies
+    |--------------------------------------------------------------------------
+    |
+    | The rules a customer sets for their own account: a second factor for
+    | everybody, which email domains may be invited, and where the account can
+    | be reached from.
+    |
+    | The values themselves live in the typed settings store, per account. This
+    | section only carries the switch and the ceilings, because a rule that
+    | arrived switched on with an upgrade would lock people out of an account
+    | nobody asked to change.
+    |
+    */
+
+    'security' => [
+        'enabled' => env('BASE_TENANT_SECURITY_ENABLED', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Home URL
     |--------------------------------------------------------------------------
     |
@@ -410,6 +430,11 @@ return [
         'domains' => [
             'domains.view',
             'domains.update',
+        ],
+
+        'security' => [
+            'security.view',
+            'security.update',
         ],
     ],
 

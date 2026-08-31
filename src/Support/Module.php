@@ -18,6 +18,8 @@ final class Module
 {
     public const DOMAINS = 'domains';
 
+    public const SECURITY = 'security';
+
     public const METERING = 'metering';
 
     public const FILES = 'files';
@@ -51,6 +53,7 @@ final class Module
     {
         return [
             self::DOMAINS,
+            self::SECURITY,
             self::METERING,
             self::FILES,
             self::TRANSFER,

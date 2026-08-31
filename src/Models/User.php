@@ -69,6 +69,7 @@ class User extends Authenticatable
             'accessed_at' => 'datetime',
             'decimal_places' => 'integer',
             'two_factor_confirmed_at' => 'datetime',
+            'two_factor_required_from' => 'datetime',
             'two_factor_recovery_codes' => 'array',
         ];
     }

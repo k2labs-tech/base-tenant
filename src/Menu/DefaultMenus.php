@@ -100,7 +100,16 @@ class DefaultMenus
                     ->icon('globe-alt')
                     ->route('base-tenant.domains.index')
                     ->permission('domains.view')
-                    ->position(38);
+                    ->position(40);
+            }
+
+            if (Module::enabled(Module::SECURITY)) {
+                $menu->item('security')
+                    ->label('base-tenant::app.navigation.security')
+                    ->icon('lock-closed')
+                    ->route('base-tenant.security.index')
+                    ->permission('security.view')
+                    ->position(41);
             }
 
             if (Module::enabled(Module::LANGUAGES)) {

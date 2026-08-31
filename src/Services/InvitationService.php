@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Services;
 
+use Base\Tenant\Exceptions\DomainNotAllowedException;
+use Base\Tenant\Facades\Security;
 use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Models\Account;
 use Base\Tenant\Models\User;
 use Base\Tenant\Models\UserInvite;
 use Base\Tenant\Notifications\InviteUserNotification;
@@ -13,12 +16,27 @@ use Illuminate\Support\Str;
 
 class InvitationService
 {
+    /**
+     * @throws DomainNotAllowedException when the account restricts email domains
+     */
     public static function send(
         string $email,
         string $accountId,
         string $roleId,
         User $inviter,
     ): UserInvite {
+        // The domain rule is enforced here rather than in the screen, because
+        // an invitation can also be sent from a command or a job and the point
+        // of the rule is that nobody gets into the account around it.
+        $account = Account::find($accountId);
+
+        if ($account && ! Security::allowsEmail($email, $account)) {
+            throw DomainNotAllowedException::for(
+                $email,
+                Security::for($account)->allowedEmailDomains
+            );
+        }
+
         UserInvite::query()
             ->forAccount($accountId)
             ->where('email', $email)

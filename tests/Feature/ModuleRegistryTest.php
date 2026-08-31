@@ -64,6 +64,7 @@ test('cada módulo viene encendido si y solo si está construido', function () {
     // cierra el registro estándar, y eso no puede pasar por actualizar.
     $construidos = [
         Module::DOMAINS,
+        Module::SECURITY,
         Module::METERING,
         Module::FILES,
         Module::LANGUAGES,

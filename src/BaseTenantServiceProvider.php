@@ -36,6 +36,9 @@ use Base\Tenant\Files\FileStore;
 use Base\Tenant\Files\ImageVariants;
 use Base\Tenant\Gdpr\DataExportService;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
+use Base\Tenant\Http\Middleware\EnforceIpAllowlist;
+use Base\Tenant\Http\Middleware\EnforceSessionTimeout;
+use Base\Tenant\Http\Middleware\EnforceTwoFactor;
 use Base\Tenant\Http\Middleware\EnsurePasswordChanged;
 use Base\Tenant\Http\Middleware\EnsureTermsAccepted;
 use Base\Tenant\Http\Middleware\EnsureWithinUsageLimit;
@@ -84,6 +87,7 @@ use Base\Tenant\Livewire\Profile\DeleteUserForm;
 use Base\Tenant\Livewire\Profile\UpdatePasswordForm;
 use Base\Tenant\Livewire\Profile\UpdateProfileInformationForm;
 use Base\Tenant\Livewire\RoleManager;
+use Base\Tenant\Livewire\SecurityPolicyManager as SecurityPolicyManagerComponent;
 use Base\Tenant\Livewire\TransferManager as TransferManagerComponent;
 use Base\Tenant\Livewire\TwoFactorAuthentication;
 use Base\Tenant\Livewire\TwoFactorChallenge;
@@ -105,6 +109,7 @@ use Base\Tenant\Policies\RolePolicy;
 use Base\Tenant\Policies\UserInvitePolicy;
 use Base\Tenant\Policies\UserPolicy;
 use Base\Tenant\Presale\PresaleManager;
+use Base\Tenant\Security\SecurityPolicyManager;
 use Base\Tenant\Sequences\SequenceManager;
 use Base\Tenant\Settings\SettingsManager;
 use Base\Tenant\Social\SocialLoginService;
@@ -280,6 +285,9 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.feature' => HasFeature::class,
             'base-tenant.terms' => EnsureTermsAccepted::class,
             'base-tenant.metered' => EnsureWithinUsageLimit::class,
+            'base-tenant.two-factor' => EnforceTwoFactor::class,
+            'base-tenant.ip-allowlist' => EnforceIpAllowlist::class,
+            'base-tenant.session-timeout' => EnforceSessionTimeout::class,
         ];
     }
 
@@ -290,6 +298,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             TenantManager::class,
             DomainManager::class,
             DomainVerifier::class,
+            SecurityPolicyManager::class,
             FeatureManager::class,
             FileStore::class,
             LanguageManager::class,
@@ -384,6 +393,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.presale.waitlist-form' => WaitlistForm::class,
             'base-tenant.connection-manager' => ConnectionManagerComponent::class,
             'base-tenant.domain-manager' => DomainManagerComponent::class,
+            'base-tenant.security-policy-manager' => SecurityPolicyManagerComponent::class,
             'base-tenant.transfer-manager' => TransferManagerComponent::class,
             'base-tenant.language-manager' => LanguageManagerComponent::class,
             'base-tenant.files.uploader' => FilesUploader::class,

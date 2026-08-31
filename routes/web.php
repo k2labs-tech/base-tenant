@@ -13,6 +13,7 @@ use Base\Tenant\Livewire\AccountSettings;
 use Base\Tenant\Livewire\ActivityLog;
 use Base\Tenant\Livewire\ConnectionManager as ConnectionManagerComponent;
 use Base\Tenant\Livewire\DomainManager as DomainManagerComponent;
+use Base\Tenant\Livewire\SecurityPolicyManager as SecurityPolicyManagerComponent;
 use Base\Tenant\Livewire\EditAccount;
 use Base\Tenant\Livewire\EditUser;
 use Base\Tenant\Livewire\FeatureManager;
@@ -123,6 +124,12 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
         // Domains. A tenant screen: the names belong to the customer.
         if (Module::enabled(Module::DOMAINS)) {
             Route::get('/domains', DomainManagerComponent::class)->name('base-tenant.domains.index');
+        }
+
+        // Security policies. The account's own rules, set by its own
+        // administrator.
+        if (Module::enabled(Module::SECURITY)) {
+            Route::get('/security', SecurityPolicyManagerComponent::class)->name('base-tenant.security.index');
         }
 
         // Languages. A system screen: the catalogue belongs to the

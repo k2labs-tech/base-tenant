@@ -1,0 +1,115 @@
+# Security policies — the rules a customer sets for their own account
+
+**Module:** security · **Package version:** v3 · **Last reviewed:** 2026-09-01
+**Switch:** `BASE_TENANT_SECURITY_ENABLED` (on by default)
+
+## When to use this
+
+Whenever something must respect what the customer's own IT administrator
+decided: a new way of signing in, a new way of joining an account, a new
+surface that should honour the IP allowlist.
+
+## When NOT to use this
+
+- Permissions. Those are per-role and per-account — see [02](02-conventions.md).
+- Platform-wide rules. This is the *customer's* policy; installation-wide
+  settings belong in `config/base-tenant.php`.
+
+---
+
+## API
+
+```php
+use Base\Tenant\Facades\Security;
+
+Security::for($account);                       // SecurityPolicySettings
+Security::requiresTwoFactor($account);
+Security::twoFactorIsOverdue($user, $account); // past the grace period, still no 2FA
+Security::allowsEmail('ada@customer.com', $account);
+Security::allowsIp('198.51.100.7', $account);
+Security::enforcesIp($account);                // blocking, not just warning
+Security::sessionTimeoutMinutes($account);
+Security::update($account, ['requireTwoFactor' => true]);   // saves and audits
+```
+
+Values live in the typed settings store under the `security` group, described
+by `SecurityPolicySettings`. Adding a rule is a public typed property on that
+class and nothing else.
+
+---
+
+## The rules that matter
+
+**Every default is the permissive one.** A rule that arrived switched on with
+an upgrade would lock people out of an account that asked for no change.
+`SecurityPolicyTest` asserts the defaults, so relaxing this is a red suite.
+
+**An empty allowlist never blocks.** Switching `ipMode` to `enforce` with an
+empty list would refuse every member of the account, including whoever is
+editing the rule, with no way back from inside the product. `allowsIp()`
+returns true for an empty list and `enforcesIp()` returns false.
+
+**The screen refuses to lock you out.** Saving `enforce` from an address the
+list does not cover is rejected with the address named. `addCurrentIp()` exists
+so the usual path does not require an administrator to know their public IP.
+
+**The two-factor clock starts once.** `two_factor_required_from` is stamped
+when the rule is switched on, and only for users who have no stamp yet.
+Counting from `created_at` would hand a year-old user a deadline in the past;
+counting from "now" every request means the deadline never arrives; and
+re-stamping on every toggle would let anyone reset their own grace period by
+asking an administrator to switch the rule off and on.
+
+**Email domains are enforced in the service, not the screen.** An invitation
+can come from a command or a job, and the point of the rule is that nobody
+gets into the account around it. `InvitationService::send()` throws
+`DomainNotAllowedException`.
+
+---
+
+## Middleware
+
+| Alias | What it does |
+|---|---|
+| `base-tenant.two-factor` | Sends anyone past their grace period to the profile screen to set up a second factor |
+| `base-tenant.ip-allowlist` | Blocks in `enforce`, records in `warn`, does nothing in `off` |
+| `base-tenant.session-timeout` | Ends a session idle longer than the account allows |
+
+None of them is applied by default — add them to
+`base-tenant.routes.auth_middleware`, or to your own route groups. Each leaves
+an escape hatch reachable (the profile screen, logout) so a user is never in a
+loop with no way to comply and no way to leave.
+
+`warn` mode exists because going straight to `enforce` is how an account locks
+itself out on a Friday evening. It writes `security.ip_would_be_blocked` to the
+activity log so an administrator can read a day of real traffic and find the
+office VPN they forgot.
+
+---
+
+## Screens and permissions
+
+`base-tenant.security-policy-manager` at `/security`, gated by `security.view`
+and `security.update`. It shows how many members have no second factor *before*
+the rule is saved, which is the difference between a decision and a surprise.
+
+---
+
+## Extension point
+
+`SecurityPolicySettings` extends `SettingsSchema`, so a host application can
+read and write it like any other typed settings group. `IpRange` is the CIDR
+matcher — `matchesAny()`, `matches()`, `isValidEntry()` — usable anywhere an
+address has to be checked against a list.
+
+---
+
+## Do not
+
+| Do not | Do instead |
+|---|---|
+| Read `security` settings directly | `Security::for($account)` |
+| Add a second place that checks email domains | `Security::allowsEmail()` |
+| Enforce an IP rule without a `warn` step | Ship `warn` first, read the log, then enforce |
+| Default a new rule to the strict value | Default permissive; let the customer opt in |
+| Skip the audit on a policy change | `Security::update()` writes it |

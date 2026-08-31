@@ -710,13 +710,24 @@ departamento de IT aprueba". Y ningún starter kit de Laravel lo tiene.
   su cuenta personal en el espacio de la empresa.
 - **Lista blanca de IP**, con modo *aviso* antes que modo *bloqueo*, para no
   dejar fuera a la propia cuenta al configurarla.
-- **Caducidad de sesión** y política de contraseña propias.
+- **Caducidad de sesión** por inactividad, decidida por la cuenta.
 - Todo aplicado por middleware y **auditado**: quién cambió qué regla y cuándo.
 
-**Base ya existente.** `social.allowed_domains` restringe dominios a nivel global
-de la instalación. Esto lo lleva al nivel de la cuenta.
+**La prueba.** Tres middleware (`base-tenant.two-factor`,
+`base-tenant.ip-allowlist`, `base-tenant.session-timeout`) y dos guardas que
+existen porque el fallo que evitan no tiene arreglo desde dentro del producto:
+una lista blanca vacía **nunca** bloquea, y la pantalla se niega a activar el
+modo bloqueo desde una dirección que la lista no cubre. Quitar cualquiera de
+las dos pone la suite en rojo.
 
-**Estado.** `En construcción`.
+El modo *aviso* va antes que el de bloqueo a propósito: registra lo que se
+bloquearía sin bloquearlo, para que un administrador encienda la regla, mire un
+día de tráfico real y encuentre la VPN de la oficina que se le olvidó.
+
+**Lo que NO incluye.** Política de contraseñas propia por cuenta. Está fuera de
+esta entrega.
+
+**Estado.** `Disponible`.
 
 ---
 
