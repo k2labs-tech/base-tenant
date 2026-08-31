@@ -60,7 +60,7 @@ product that does not want files or webhooks does not carry their tables.
 - **Livewire 4 + Flux UI** — every screen on one table pattern: search, sort, density and page size in the URL, sticky headers, designed empty states, loading skeletons
 - **Documentation for AI agents** — `docs/agents/`, one file per capability with a capability map, publishable into the host application
 - **Multi-tenant test kit** — `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped`
-- **727 tests** covering the package itself
+- **743 tests** covering the package itself
 
 ## Getting it
 
