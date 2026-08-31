@@ -42,6 +42,7 @@ product that does not want files or webhooks does not carry their tables.
 | Module | Facade / entry point | What it gives you |
 |---|---|---|
 | **Security policies** | `Security` | Per account: enforced 2FA with a grace period, allowed email domains, an IP allowlist with a warn-first mode, and session timeout |
+| **Active sessions** | `Sessions` | Where each person is signed in, with remote revocation that works on any session driver |
 | **Domains** | `Domain` | A subdomain per customer, and domains of their own served only once a TXT record proves they control them |
 | **Usage metering** | `Meter` | Atomic counters and gauges per account, plan limits enforced under a lock, 402 with an upgrade call to action, warnings at 80% and 100%, hourly reporting to Stripe Billing Meters |
 | **Files** | `HasFiles`, `FileStore` | Direct-to-S3 uploads that never pass through PHP, collections with type and size rules, image variants, per-account quota, a media library screen |
@@ -62,7 +63,7 @@ product that does not want files or webhooks does not carry their tables.
 - **Livewire 4 + Flux UI** — every screen on one table pattern: search, sort, density and page size in the URL, sticky headers, designed empty states, loading skeletons
 - **Documentation for AI agents** — `docs/agents/`, one file per capability with a capability map, publishable into the host application
 - **Multi-tenant test kit** — `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped`
-- **832 tests** covering the package itself
+- **859 tests** covering the package itself
 
 ## Getting it
 
@@ -277,6 +278,7 @@ php artisan k2labs-base:lang-pull [locale] [--enable]
 
 # Domains
 php artisan k2labs-base:verify-domains [--domain=] [--all]   # re-check DNS      (daily)
+php artisan k2labs-base:prune-sessions [--days=]             # drop old sessions (daily)
 
 # Connections, mail and privacy
 php artisan k2labs-base:check-connections        # health-check credentials      (daily)

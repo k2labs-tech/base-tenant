@@ -47,7 +47,7 @@ test('la exportación trae un fichero por dominio y un manifiesto', function () 
         ->and($actividad[0]['description'])->toBe('hizo algo')
         // «Vacío» y «no se preguntó» son respuestas distintas a una petición
         // legal, y el manifiesto es lo que las separa.
-        ->and(collect($manifiesto['domains'])->pluck('name')->all())->toBe(['profile', 'activity']);
+        ->and(collect($manifiesto['domains'])->pluck('name')->all())->toBe(['profile', 'activity', 'sessions']);
 });
 
 /**

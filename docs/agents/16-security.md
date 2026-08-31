@@ -87,6 +87,68 @@ office VPN they forgot.
 
 ---
 
+## Active sessions
+
+Same module, same switch, second config key:
+`base-tenant.security.sessions`.
+
+```php
+use Base\Tenant\Facades\Sessions;
+
+Sessions::forUser($user);                  // open sessions, most recent first
+Sessions::revoke($session);
+Sessions::revokeOthers($user);             // keeps the one making the request
+Sessions::revokeAll($user);                // including the current one
+Sessions::isRevoked($request);
+Sessions::touch($request, $user);          // the tracking middleware calls this
+Sessions::prune(30);
+```
+
+**`UserSession` and the `user_sessions` table, not Laravel's `sessions`.** Two
+reasons, both load-bearing. Laravel's table only exists under the database
+session driver, and this has to work whatever the host chose. And revoking by
+deleting a row only works for that driver — here revocation is a flag the
+middleware reads, which ends the session on any driver.
+
+**The cost, stated plainly:** a revoked session ends on its *next request*, not
+the instant the button is pressed. The confirmation dialog says so.
+
+**The session id is hashed** (`UserSession::fingerprint()`), never stored or
+displayed in the clear. It is a bearer credential: whoever holds it *is* the
+session, so a leaked backup of this table would otherwise be a set of live
+logins. `SessionExporter` omits it from GDPR exports for the same reason,
+while including the address and device, which *are* personal data and must
+appear in a disclosure.
+
+**`revokeOthers()` keeps the current session** — signing somebody out of the
+screen they are using to secure their account is how they stop halfway
+through. An administrator acting on somebody else has no "current" to keep, so
+the screen calls `revokeAll()` instead.
+
+**A revoked row is never refreshed.** `touch()` returns early, so a closed
+session cannot keep writing a fresh `last_active_at` and look active in raw
+data.
+
+`DeviceParser` turns a user agent into a readable name. Deliberately
+approximate: the screen's job is to let somebody recognise "that is not my
+phone", not to fingerprint devices. Order matters in it — Edge and Opera both
+claim to be Chrome, and Chrome claims to be Safari.
+
+| Alias | What it does |
+|---|---|
+| `base-tenant.track-session` | Records the session and signs out one that was revoked |
+
+| Command | |
+|---|---|
+| `k2labs-base:prune-sessions` | Drops rows past the retention window. Scheduled daily |
+
+The screen is `base-tenant.profile.active-sessions`, embedded in the profile.
+Passing `:user` shows somebody else's and requires `users.update`; the
+permission is re-checked on every action, not only on mount, because a
+Livewire component's public state travels with the request.
+
+---
+
 ## Screens and permissions
 
 `base-tenant.security-policy-manager` at `/security`, gated by `security.view`
@@ -113,3 +175,5 @@ address has to be checked against a list.
 | Enforce an IP rule without a `warn` step | Ship `warn` first, read the log, then enforce |
 | Default a new rule to the strict value | Default permissive; let the customer opt in |
 | Skip the audit on a policy change | `Security::update()` writes it |
+| Read or store a raw session id | `UserSession::fingerprint()`; it is a credential |
+| Revoke by deleting the session row | `Sessions::revoke()`, so it works on any driver |

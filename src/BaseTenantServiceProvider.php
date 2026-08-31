@@ -17,6 +17,7 @@ use Base\Tenant\Console\Commands\LangStatusCommand;
 use Base\Tenant\Console\Commands\MakeModuleCommand;
 use Base\Tenant\Console\Commands\PresaleOpenCommand;
 use Base\Tenant\Console\Commands\PruneActivityLogCommand;
+use Base\Tenant\Console\Commands\PruneSessionsCommand;
 use Base\Tenant\Console\Commands\PublishAgentDocsCommand;
 use Base\Tenant\Console\Commands\PurgeDeletedCommand;
 use Base\Tenant\Console\Commands\ReconcileStorageCommand;
@@ -46,6 +47,7 @@ use Base\Tenant\Http\Middleware\HasFeature;
 use Base\Tenant\Http\Middleware\HasSubscription;
 use Base\Tenant\Http\Middleware\SetAccountContext;
 use Base\Tenant\Http\Middleware\SetLocale;
+use Base\Tenant\Http\Middleware\TrackUserSession;
 use Base\Tenant\Languages\LangFileWriter;
 use Base\Tenant\Languages\LangSyncerClient;
 use Base\Tenant\Languages\LanguageManager;
@@ -82,6 +84,7 @@ use Base\Tenant\Livewire\Onboarding\Checklist as OnboardingChecklist;
 use Base\Tenant\Livewire\Preferences;
 use Base\Tenant\Livewire\Presale\PricingTable;
 use Base\Tenant\Livewire\Presale\WaitlistForm;
+use Base\Tenant\Livewire\Profile\ActiveSessions;
 use Base\Tenant\Livewire\Profile\ConnectedAccounts;
 use Base\Tenant\Livewire\Profile\DeleteUserForm;
 use Base\Tenant\Livewire\Profile\UpdatePasswordForm;
@@ -111,6 +114,7 @@ use Base\Tenant\Policies\UserPolicy;
 use Base\Tenant\Presale\PresaleManager;
 use Base\Tenant\Security\SecurityPolicyManager;
 use Base\Tenant\Sequences\SequenceManager;
+use Base\Tenant\Sessions\SessionManager as UserSessionManager;
 use Base\Tenant\Settings\SettingsManager;
 use Base\Tenant\Social\SocialLoginService;
 use Base\Tenant\Support\Module;
@@ -288,6 +292,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.two-factor' => EnforceTwoFactor::class,
             'base-tenant.ip-allowlist' => EnforceIpAllowlist::class,
             'base-tenant.session-timeout' => EnforceSessionTimeout::class,
+            'base-tenant.track-session' => TrackUserSession::class,
         ];
     }
 
@@ -299,6 +304,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             DomainManager::class,
             DomainVerifier::class,
             SecurityPolicyManager::class,
+            UserSessionManager::class,
             FeatureManager::class,
             FileStore::class,
             LanguageManager::class,
@@ -394,6 +400,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.connection-manager' => ConnectionManagerComponent::class,
             'base-tenant.domain-manager' => DomainManagerComponent::class,
             'base-tenant.security-policy-manager' => SecurityPolicyManagerComponent::class,
+            'base-tenant.profile.active-sessions' => ActiveSessions::class,
             'base-tenant.transfer-manager' => TransferManagerComponent::class,
             'base-tenant.language-manager' => LanguageManagerComponent::class,
             'base-tenant.files.uploader' => FilesUploader::class,
@@ -496,6 +503,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             PurgeDeletedCommand::class,
             ReconcileStorageCommand::class,
             VerifyDomainsCommand::class,
+            PruneSessionsCommand::class,
         ]);
     }
 
@@ -534,6 +542,10 @@ class BaseTenantServiceProvider extends ServiceProvider
             // stop being treated as proof.
             if (Module::enabled(Module::DOMAINS)) {
                 $schedule->command(VerifyDomainsCommand::class)->daily()->withoutOverlapping();
+            }
+
+            if (Module::enabled(Module::SECURITY) && config('base-tenant.security.sessions.enabled', true)) {
+                $schedule->command(PruneSessionsCommand::class)->daily()->withoutOverlapping();
             }
         });
     }

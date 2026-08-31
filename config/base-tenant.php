@@ -2,6 +2,7 @@
 
 use Base\Tenant\Gdpr\Exporters\ActivityExporter;
 use Base\Tenant\Gdpr\Exporters\ProfileExporter;
+use Base\Tenant\Gdpr\Exporters\SessionExporter;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\Permission;
 use Base\Tenant\Models\Role;
@@ -191,6 +192,21 @@ return [
 
     'security' => [
         'enabled' => env('BASE_TENANT_SECURITY_ENABLED', true),
+
+        /*
+        | Active sessions and remote revocation. Kept inside this module
+        | rather than given a switch of its own: it is the same concern, and
+        | a customer who wants security policies wants this too.
+        */
+        'sessions' => [
+            'enabled' => env('BASE_TENANT_SESSIONS_ENABLED', true),
+
+            /*
+            | Session rows hold an address and a device, which is personal
+            | data. Keeping them past their usefulness is a liability.
+            */
+            'retention_days' => (int) env('BASE_TENANT_SESSIONS_RETENTION_DAYS', 30),
+        ],
     ],
 
     /*
@@ -980,6 +996,7 @@ return [
         'exporters' => [
             ProfileExporter::class,
             ActivityExporter::class,
+            SessionExporter::class,
         ],
     ],
 

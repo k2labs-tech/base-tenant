@@ -27,6 +27,10 @@
 
         <flux:separator />
 
+        <livewire:base-tenant.profile.active-sessions />
+
+        <flux:separator />
+
         <livewire:base-tenant.profile.delete-user-form />
     </div>
 </x-base-tenant::app-layout>

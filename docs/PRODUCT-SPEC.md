@@ -687,12 +687,27 @@ fuera al perder el dispositivo.
 si el producto no lista sesiones. Es, además, una casilla fija en todos los
 cuestionarios de seguridad de compra.
 
-**Alcance.** Listado por usuario con dispositivo, navegador, IP, ubicación
-aproximada y última actividad; cerrar una sesión concreta o todas menos la
-actual; y que el administrador del tenant pueda forzar el cierre de las de un
-miembro.
+**La prueba.** Tabla propia, no la de Laravel: la suya sólo existe con el
+driver de base de datos, y revocar borrando su fila sólo funciona con ese
+driver. Aquí la revocación es una marca que lee el middleware, así que funciona
+con cualquiera.
 
-**Estado.** `En construcción`.
+**El coste, dicho en voz alta:** una sesión revocada se cierra en su
+*siguiente petición*, no en el instante en que se pulsa el botón. El diálogo de
+confirmación lo dice.
+
+El identificador de sesión se guarda **hasheado** y nunca se muestra: quien lo
+tiene *es* la sesión, así que una copia de seguridad filtrada de esa tabla
+sería un juego de sesiones vivas. La exportación GDPR incluye dirección y
+dispositivo —que sí son dato personal— y omite el identificador.
+
+«Cerrar las demás» conserva la actual: sacar a alguien de la pantalla que está
+usando para asegurar su cuenta es como se queda a medias.
+
+**Lo que NO incluye.** Ubicación aproximada por IP. Requiere una base de datos
+de geolocalización que no queremos como dependencia.
+
+**Estado.** `Disponible`.
 
 ---
 
@@ -927,7 +942,7 @@ Esto es lo que va en la sección "pruebas" de la landing, y todo es verificable:
 
 | | |
 |---|---|
-| Tests del paquete | **743 pasando**, 3.697 aserciones, suite completa en 70 s |
+| Tests del paquete | **859 pasando**, 4.036 aserciones, suite completa en 79 s |
 | Las guardas se verificaron quitándolas | Una guarda necesita un test que se ponga rojo al retirarla. Un test que pasa igual con y sin ella se lee como cobertura y no lo es |
 | Kit de aserciones para tu propio código | `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped` |
 | Documentación por capacidad | 20 ficheros en `docs/agents/`, más el manual completo |
