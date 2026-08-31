@@ -592,7 +592,7 @@ formulario de lista de espera.
 
 ## 6. Lo nuevo — v3
 
-Diez piezas en construcción. Cada una tiene aquí la especificación funcional que
+Diez piezas. Cada una tiene aquí la especificación funcional que
 la landing puede usar **en cuanto esté disponible**, y ni un día antes.
 
 ### 6.1 Subdominio por cliente
@@ -609,11 +609,13 @@ disponibilidad en vivo al escribirlo, cambio auditado con redirección desde el
 anterior durante un periodo, y comportamiento definido de sesión y cookies entre
 el dominio central y el del cliente.
 
-**Base ya existente.** La columna `accounts.subdomain` y el `DomainTenantResolver`
-—que ya resuelve por subdominio contra los `central_domains` configurados— están
-construidos. Falta toda la gestión encima.
+**La prueba.** `Domain::claimSubdomain($account, 'acme')` y
+`Domain::urlFor($account)`. La lista de reservados cubre los nombres que
+colisionan con la propia instalación (`www`, `api`, `mail`, `admin`…), y el
+índice único de la base de datos es la guarda real contra dos cuentas
+reclamando el mismo nombre en el mismo instante.
 
-**Estado.** `En construcción`.
+**Estado.** `Disponible`.
 
 ---
 
@@ -631,10 +633,17 @@ servirlo, o cualquiera puede apuntar un dominio al tuyo.
 estados (`pendiente`, `verificado`, `fallido`), re-verificación programada,
 instrucciones de CNAME y certificado, y desactivación cuando deja de resolver.
 
-**Base ya existente.** La columna `accounts.domain` y su resolución por
-coincidencia exacta.
+**La prueba.** El registro TXT en `_base-tenant-verify.<dominio>`, y el filtro
+`verified()` en el resolutor. Esa es la guarda de toda la capacidad: quitarla
+pone la suite en rojo, porque sin ella cualquiera que pueda apuntar un DNS a
+esta instalación sería servido como la cuenta que escribió el nombre en el
+formulario.
 
-**Estado.** `En construcción`.
+Un dominio ya verificado **no** se degrada por un fallo puntual de DNS: sacar
+de servicio el hostname de producción de un cliente por un parpadeo sería peor
+que el problema que resuelve.
+
+**Estado.** `Disponible`.
 
 ---
 

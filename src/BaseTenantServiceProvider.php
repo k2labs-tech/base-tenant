@@ -24,6 +24,11 @@ use Base\Tenant\Console\Commands\ReportUsageCommand;
 use Base\Tenant\Console\Commands\ScaffoldCommand;
 use Base\Tenant\Console\Commands\SyncMenusCommand;
 use Base\Tenant\Console\Commands\SyncRolesCommand;
+use Base\Tenant\Console\Commands\VerifyDomainsCommand;
+use Base\Tenant\Domains\Contracts\DnsLookup;
+use Base\Tenant\Domains\DomainManager;
+use Base\Tenant\Domains\DomainVerifier;
+use Base\Tenant\Domains\SystemDnsLookup;
 use Base\Tenant\Facades\Feature as FeatureFacade;
 use Base\Tenant\Facades\Meter as MeterFacade;
 use Base\Tenant\Features\FeatureManager;
@@ -55,6 +60,7 @@ use Base\Tenant\Livewire\Auth\Login;
 use Base\Tenant\Livewire\Auth\Register;
 use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\ConnectionManager as ConnectionManagerComponent;
+use Base\Tenant\Livewire\DomainManager as DomainManagerComponent;
 use Base\Tenant\Livewire\EditAccount;
 use Base\Tenant\Livewire\EditUser;
 use Base\Tenant\Livewire\FeatureManager as FeatureManagerComponent;
@@ -143,6 +149,10 @@ class BaseTenantServiceProvider extends ServiceProvider
 
         // Takes a path, so it cannot be autowired from the class name alone.
         $this->app->singleton(LangFileWriter::class, fn (): LangFileWriter => LangFileWriter::forApplication());
+
+        // An interface, so it cannot be autowired: a test binds a fake and an
+        // installation behind a split-horizon resolver binds its own.
+        $this->app->bind(DnsLookup::class, SystemDnsLookup::class);
     }
 
     public function boot(): void
@@ -278,6 +288,8 @@ class BaseTenantServiceProvider extends ServiceProvider
     {
         return [
             TenantManager::class,
+            DomainManager::class,
+            DomainVerifier::class,
             FeatureManager::class,
             FileStore::class,
             LanguageManager::class,
@@ -371,6 +383,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.presale.pricing-table' => PricingTable::class,
             'base-tenant.presale.waitlist-form' => WaitlistForm::class,
             'base-tenant.connection-manager' => ConnectionManagerComponent::class,
+            'base-tenant.domain-manager' => DomainManagerComponent::class,
             'base-tenant.transfer-manager' => TransferManagerComponent::class,
             'base-tenant.language-manager' => LanguageManagerComponent::class,
             'base-tenant.files.uploader' => FilesUploader::class,
@@ -472,6 +485,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             PresaleOpenCommand::class,
             PurgeDeletedCommand::class,
             ReconcileStorageCommand::class,
+            VerifyDomainsCommand::class,
         ]);
     }
 
@@ -503,6 +517,13 @@ class BaseTenantServiceProvider extends ServiceProvider
 
             if (Module::enabled(Module::GDPR)) {
                 $schedule->command(PurgeDeletedCommand::class)->daily()->withoutOverlapping();
+            }
+
+            // A domain verified once is not verified forever: zones get
+            // edited, and a hostname that stopped proving ownership should
+            // stop being treated as proof.
+            if (Module::enabled(Module::DOMAINS)) {
+                $schedule->command(VerifyDomainsCommand::class)->daily()->withoutOverlapping();
             }
         });
     }

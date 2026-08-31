@@ -8,6 +8,7 @@ return [
         'languages' => 'Languages',
         'transfers' => 'Imports and exports',
         'connections' => 'Connections',
+        'domains' => 'Domains',
         'users' => 'Users',
         'roles' => 'Roles',
         'accounts' => 'Accounts',
@@ -93,6 +94,11 @@ return [
 
         'webhooks' => [
             'manage' => 'Manage webhooks',
+        ],
+
+        'domains' => [
+            'view' => 'View domains',
+            'update' => 'Manage domains',
         ],
     ],
 

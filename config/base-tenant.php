@@ -112,6 +112,69 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Domains
+    |--------------------------------------------------------------------------
+    |
+    | Where a customer's product lives. `subdomains` hands each account a name
+    | under the first central domain; `custom` lets them point a domain of
+    | their own, once they have proved they control it.
+    |
+    | The proof is a TXT record, and it is not optional: without it, anyone who
+    | can edit a DNS zone could point a hostname here and be served as the
+    | account that claimed it.
+    |
+    */
+
+    'domains' => [
+
+        'enabled' => env('BASE_TENANT_DOMAINS_ENABLED', true),
+
+        'scheme' => env('BASE_TENANT_DOMAINS_SCHEME', 'https'),
+
+        'subdomains' => [
+            'enabled' => env('BASE_TENANT_SUBDOMAINS_ENABLED', true),
+            'min_length' => 3,
+            'max_length' => 63,
+
+            /*
+            | Names a customer may not take. Some collide with records the
+            | installation publishes, some with routes the product serves, and
+            | the rest are the ones somebody picks when they want a link to
+            | look like it came from you.
+            */
+            'reserved' => [
+                'www', 'api', 'admin', 'app', 'mail', 'smtp', 'imap', 'pop',
+                'ftp', 'ns', 'ns1', 'ns2', 'dns', 'mx', 'cdn', 'static',
+                'assets', 'files', 'media', 'img', 'images', 'js', 'css',
+                'blog', 'docs', 'help', 'support', 'status', 'billing',
+                'account', 'accounts', 'login', 'signup', 'register', 'auth',
+                'sso', 'oauth', 'dashboard', 'portal', 'secure', 'security',
+                'test', 'dev', 'staging', 'demo', 'sandbox', 'internal',
+                'root', 'system', 'webmail', 'email', 'no-reply', 'noreply',
+            ],
+        ],
+
+        'custom' => [
+            'enabled' => env('BASE_TENANT_CUSTOM_DOMAINS_ENABLED', true),
+
+            /* 0 means no ceiling. */
+            'max_per_account' => (int) env('BASE_TENANT_CUSTOM_DOMAINS_MAX', 3),
+
+            /*
+            | The CNAME target shown to the customer in the setup
+            | instructions. Left null, the screen shows the central domain.
+            */
+            'target' => env('BASE_TENANT_CUSTOM_DOMAIN_TARGET'),
+
+            'verification' => [
+                'txt_prefix' => env('BASE_TENANT_DOMAIN_TXT_PREFIX', '_base-tenant-verify'),
+                'recheck_after_hours' => (int) env('BASE_TENANT_DOMAIN_RECHECK_HOURS', 24),
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Home URL
     |--------------------------------------------------------------------------
     |
@@ -338,6 +401,15 @@ return [
         'connections' => [
             'connections.manage',
             'webhooks.manage',
+        ],
+
+        /*
+        | The names belong to the customer, so an administrator of the account
+        | is the person who changes them -- not platform staff.
+        */
+        'domains' => [
+            'domains.view',
+            'domains.update',
         ],
     ],
 

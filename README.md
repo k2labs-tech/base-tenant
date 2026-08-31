@@ -2,8 +2,8 @@
 
 A multi-tenant SaaS foundation for Laravel 13. Tenancy that survives queued
 jobs, permissions that are per account, plan limits that are actually enforced,
-and twelve capability modules on top — files, metering, imports, connections,
-webhooks, languages, social login and more.
+and thirteen capability modules on top — domains, files, metering, imports,
+connections, webhooks, languages, social login and more.
 
 Built for B2B products where every customer is an account and nothing may ever
 leak between them.
@@ -41,6 +41,7 @@ product that does not want files or webhooks does not carry their tables.
 
 | Module | Facade / entry point | What it gives you |
 |---|---|---|
+| **Domains** | `Domain` | A subdomain per customer, and domains of their own served only once a TXT record proves they control them |
 | **Usage metering** | `Meter` | Atomic counters and gauges per account, plan limits enforced under a lock, 402 with an upgrade call to action, warnings at 80% and 100%, hourly reporting to Stripe Billing Meters |
 | **Files** | `HasFiles`, `FileStore` | Direct-to-S3 uploads that never pass through PHP, collections with type and size rules, image variants, per-account quota, a media library screen |
 | **Imports and exports** | `Transfer` | CSV in and out, automatic column mapping, chunked queued jobs, rejected rows returned as a file to correct and re-upload |
@@ -240,6 +241,7 @@ The package registers the following routes:
 - `/roles` - Role and permission editor
 - `/navigation` - Per-account menu editor
 - `/features` - Feature flag editor, plan baseline and per-account overrides
+- `/domains` - Subdomain and custom domains
 - `/settings` - Typed settings editor
 - `/activity` - Audit trail
 - `/checkout` - Subscription checkout
@@ -271,6 +273,9 @@ php artisan k2labs-base:lang-status [--missing] [--fail-under=90]
 php artisan k2labs-base:lang-push                # source keys to LangSyncer
 php artisan k2labs-base:lang-pull [locale] [--enable]
 
+# Domains
+php artisan k2labs-base:verify-domains [--domain=] [--all]   # re-check DNS      (daily)
+
 # Connections, mail and privacy
 php artisan k2labs-base:check-connections        # health-check credentials      (daily)
 php artisan k2labs-base:import-suppressions bounces.csv
@@ -290,12 +295,13 @@ Each capability is a module. Off means no routes, no menu entries, no scheduled
 work, and a facade that throws rather than querying tables you never migrated.
 
 ```
-BASE_TENANT_METERING_ENABLED       BASE_TENANT_FILES_ENABLED
-BASE_TENANT_TRANSFER_ENABLED       BASE_TENANT_CONNECTIONS_ENABLED
-BASE_TENANT_WEBHOOKS_ENABLED       BASE_TENANT_LANGUAGES_ENABLED
-BASE_TENANT_SOCIAL_ENABLED         BASE_TENANT_SEQUENCES_ENABLED
-BASE_TENANT_ONBOARDING_ENABLED     BASE_TENANT_SUPPRESSIONS_ENABLED
-BASE_TENANT_GDPR_ENABLED           BASE_TENANT_PRESALE
+BASE_TENANT_DOMAINS_ENABLED        BASE_TENANT_METERING_ENABLED
+BASE_TENANT_FILES_ENABLED          BASE_TENANT_TRANSFER_ENABLED
+BASE_TENANT_CONNECTIONS_ENABLED    BASE_TENANT_WEBHOOKS_ENABLED
+BASE_TENANT_LANGUAGES_ENABLED      BASE_TENANT_SOCIAL_ENABLED
+BASE_TENANT_SEQUENCES_ENABLED      BASE_TENANT_ONBOARDING_ENABLED
+BASE_TENANT_SUPPRESSIONS_ENABLED   BASE_TENANT_GDPR_ENABLED
+BASE_TENANT_PRESALE
 ```
 
 All default to on except `BASE_TENANT_PRESALE`, which closes standard

@@ -94,6 +94,15 @@ class DefaultMenus
                     ->position(37);
             }
 
+            if (Module::enabled(Module::DOMAINS)) {
+                $menu->item('domains')
+                    ->label('base-tenant::app.navigation.domains')
+                    ->icon('globe-alt')
+                    ->route('base-tenant.domains.index')
+                    ->permission('domains.view')
+                    ->position(38);
+            }
+
             if (Module::enabled(Module::LANGUAGES)) {
                 $menu->item('languages')
                     ->label('base-tenant::app.navigation.languages')

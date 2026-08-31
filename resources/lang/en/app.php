@@ -34,6 +34,7 @@ return [
         'languages' => 'Languages',
         'transfers' => 'Transfers',
         'connections' => 'Connections',
+        'domains' => 'Domains',
         'main_menu' => 'Main Menu',
     ],
 

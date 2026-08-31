@@ -34,6 +34,7 @@ return [
         'languages' => 'Idiomas',
         'transfers' => 'Traspasos',
         'connections' => 'Conexiones',
+        'domains' => 'Dominios',
         'main_menu' => 'Menú Principal',
     ],
 

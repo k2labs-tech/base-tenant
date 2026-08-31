@@ -16,6 +16,8 @@ use Base\Tenant\Exceptions\ModuleDisabledException;
  */
 final class Module
 {
+    public const DOMAINS = 'domains';
+
     public const METERING = 'metering';
 
     public const FILES = 'files';
@@ -48,6 +50,7 @@ final class Module
     public static function all(): array
     {
         return [
+            self::DOMAINS,
             self::METERING,
             self::FILES,
             self::TRANSFER,
