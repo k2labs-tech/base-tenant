@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Base\Tenant\Http\Controllers\Auth\MagicLinkController;
 use Base\Tenant\Http\Controllers\Auth\SocialLoginController;
 use Base\Tenant\Http\Controllers\Auth\VerifyEmailController;
 use Base\Tenant\Http\Controllers\InvitationAcceptController;
@@ -10,6 +11,7 @@ use Base\Tenant\Livewire\Auth\ForcePasswordChange;
 use Base\Tenant\Livewire\Auth\ForgotPassword;
 use Base\Tenant\Livewire\Auth\Login;
 use Base\Tenant\Livewire\Auth\Register;
+use Base\Tenant\Livewire\Auth\RequestMagicLink;
 use Base\Tenant\Livewire\Auth\ResetPassword;
 use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\TwoFactorChallenge;
@@ -40,6 +42,18 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
 
         Route::get('two-factor-challenge', TwoFactorChallenge::class)
             ->name('base-tenant.two-factor.challenge');
+
+        if (Module::enabled(Module::PASSWORDLESS)) {
+            Route::get('magic-link', RequestMagicLink::class)
+                ->name('base-tenant.magic-link.request');
+
+            // Throttled at the route as well as in the manager: the manager's
+            // limit is per address, this one is the blunt ceiling on anybody
+            // hammering the endpoint with tokens.
+            Route::get('magic-link/{token}', MagicLinkController::class)
+                ->middleware('throttle:10,1')
+                ->name('base-tenant.magic-link.consume');
+        }
     });
 
     // Authenticated routes

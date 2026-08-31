@@ -65,6 +65,7 @@ test('cada módulo viene encendido si y solo si está construido', function () {
     $construidos = [
         Module::DOMAINS,
         Module::SECURITY,
+        Module::PASSWORDLESS,
         Module::METERING,
         Module::FILES,
         Module::LANGUAGES,

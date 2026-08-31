@@ -654,12 +654,24 @@ que el problema que resuelve.
 **El dolor.** La contraseña es la primera fricción del registro y la primera
 causa de tickets de soporte. Larafast y JetShip lo llevan; nosotros no.
 
-**Alcance.** Solicitud con límite de frecuencia, caducidad corta, invalidación al
-usarlo, y —esto es lo que suele hacerse mal— **respeto del segundo factor y de
-las políticas de seguridad del tenant**: un magic link no puede ser una puerta
-trasera que salte el 2FA obligatorio.
+**La prueba.** Tres reglas, cada una con un test que se pone rojo si se quita:
 
-**Estado.** `En construcción`.
+1. **No salta el segundo factor.** Un enlace demuestra que tienes el buzón, que
+   es justo lo que el 2FA existe para cubrir. Entrar directo convertiría toda
+   cuenta con 2FA en una cuenta cuyo 2FA se salta desde el correo.
+2. **Sirve una vez.** La fila se reclama con un `update` condicional dentro de
+   una transacción: dos peticiones con el mismo token en el mismo instante no
+   pueden ganar las dos. Leer y luego escribir dejaría pasar a ambas.
+3. **Caduca.** 15 minutos por defecto, y corto es el punto: un enlace en un
+   buzón es una llave.
+
+Además, el formulario **responde igual exista o no la dirección**. Lo contrario
+lo convierte en una forma de preguntarle al producto «¿es esta persona cliente
+vuestro?». Y el límite de frecuencia es por dirección *y* por IP: sólo por IP
+deja que alguien tras un NAT grande bloquee a una oficina entera; sólo por
+dirección deja que una máquina recorra una lista.
+
+**Estado.** `Disponible`.
 
 ---
 
@@ -673,7 +685,9 @@ puede entregarse a un sitio que no sea el tuyo.
 
 **Alcance.** Alta de credencial, listado, renombrado y borrado, uso como segundo
 factor y como login sin contraseña, y respaldo con TOTP para no dejar a nadie
-fuera al perder el dispositivo.
+fuera al perder el dispositivo. Irá en el mismo módulo `passwordless` y bajo el
+mismo interruptor, con la misma primera regla: respetar lo que exija la política
+de seguridad de la cuenta.
 
 **Estado.** `En construcción`.
 
@@ -942,7 +956,7 @@ Esto es lo que va en la sección "pruebas" de la landing, y todo es verificable:
 
 | | |
 |---|---|
-| Tests del paquete | **859 pasando**, 4.036 aserciones, suite completa en 79 s |
+| Tests del paquete | **876 pasando**, 4.122 aserciones, suite completa en 82 s |
 | Las guardas se verificaron quitándolas | Una guarda necesita un test que se ponga rojo al retirarla. Un test que pasa igual con y sin ella se lee como cobertura y no lo es |
 | Kit de aserciones para tu propio código | `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped` |
 | Documentación por capacidad | 20 ficheros en `docs/agents/`, más el manual completo |

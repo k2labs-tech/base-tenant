@@ -2,7 +2,7 @@
 
 namespace Base\Tenant\Livewire\Forms;
 
-use App\Models\User;
+use Base\Tenant\Models\User;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\RateLimiter;
@@ -44,7 +44,7 @@ class LoginForm extends Form
         }
 
         // Get the user
-        $user = User::where('email', $this->email)->first();
+        $user = tenant_user_model()::where('email', $this->email)->first();
 
         // Check if user has 2FA enabled
         if ($user && $user->hasTwoFactorEnabled()) {

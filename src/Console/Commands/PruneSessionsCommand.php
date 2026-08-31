@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Console\Commands;
 
 use Base\Tenant\Console\Concerns\HasDeprecatedAlias;
+use Base\Tenant\Facades\MagicLink;
 use Base\Tenant\Facades\Sessions;
 use Base\Tenant\Support\Module;
 use Illuminate\Console\Command;
@@ -35,6 +36,18 @@ class PruneSessionsCommand extends Command
             'count' => $deleted,
             'days' => $days,
         ]));
+
+        // Sign-in links are the same kind of record -- who asked to get in and
+        // when -- so they are pruned on the same pass rather than needing a
+        // second command and a second schedule entry.
+        if (MagicLink::enabled()) {
+            $linkDays = (int) config('base-tenant.passwordless.magic_links.retention_days', 7);
+
+            $this->components->info(__('base-tenant::passwordless.console.pruned', [
+                'count' => MagicLink::prune($linkDays),
+                'days' => $linkDays,
+            ]));
+        }
 
         return self::SUCCESS;
     }

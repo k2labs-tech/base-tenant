@@ -2,7 +2,7 @@
 
 namespace Base\Tenant\Livewire;
 
-use App\Models\User;
+use Base\Tenant\Models\User;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
@@ -68,7 +68,7 @@ class TwoFactorChallenge extends Component
             'code' => 'required|string|size:6',
         ]);
 
-        $user = User::find($this->userId);
+        $user = tenant_user_model()::find($this->userId);
 
         if (! $user) {
             throw ValidationException::withMessages([
@@ -98,7 +98,7 @@ class TwoFactorChallenge extends Component
             'recoveryCode' => 'required|string',
         ]);
 
-        $user = User::find($this->userId);
+        $user = tenant_user_model()::find($this->userId);
 
         if (! $user) {
             throw ValidationException::withMessages([

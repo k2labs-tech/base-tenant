@@ -2,8 +2,8 @@
 
 A multi-tenant SaaS foundation for Laravel 13. Tenancy that survives queued
 jobs, permissions that are per account, plan limits that are actually enforced,
-and fourteen capability modules on top — domains, per-tenant security policies,
-files, metering, imports, connections, webhooks, languages and more.
+and fifteen capability modules on top — domains, per-tenant security policies,
+passwordless sign-in, files, metering, imports, webhooks, languages and more.
 
 Built for B2B products where every customer is an account and nothing may ever
 leak between them.
@@ -42,6 +42,7 @@ product that does not want files or webhooks does not carry their tables.
 | Module | Facade / entry point | What it gives you |
 |---|---|---|
 | **Security policies** | `Security` | Per account: enforced 2FA with a grace period, allowed email domains, an IP allowlist with a warn-first mode, and session timeout |
+| **Magic links** | `MagicLink` | Single-use, short-lived sign-in links that never skip the second factor |
 | **Active sessions** | `Sessions` | Where each person is signed in, with remote revocation that works on any session driver |
 | **Domains** | `Domain` | A subdomain per customer, and domains of their own served only once a TXT record proves they control them |
 | **Usage metering** | `Meter` | Atomic counters and gauges per account, plan limits enforced under a lock, 402 with an upgrade call to action, warnings at 80% and 100%, hourly reporting to Stripe Billing Meters |
@@ -63,7 +64,7 @@ product that does not want files or webhooks does not carry their tables.
 - **Livewire 4 + Flux UI** — every screen on one table pattern: search, sort, density and page size in the URL, sticky headers, designed empty states, loading skeletons
 - **Documentation for AI agents** — `docs/agents/`, one file per capability with a capability map, publishable into the host application
 - **Multi-tenant test kit** — `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped`
-- **859 tests** covering the package itself
+- **876 tests** covering the package itself
 
 ## Getting it
 
@@ -245,6 +246,7 @@ The package registers the following routes:
 - `/features` - Feature flag editor, plan baseline and per-account overrides
 - `/domains` - Subdomain and custom domains
 - `/security` - Per-tenant security policy
+- `/magic-link` - Passwordless sign-in request
 - `/settings` - Typed settings editor
 - `/activity` - Audit trail
 - `/checkout` - Subscription checkout
@@ -300,6 +302,7 @@ work, and a facade that throws rather than querying tables you never migrated.
 
 ```
 BASE_TENANT_DOMAINS_ENABLED        BASE_TENANT_SECURITY_ENABLED
+BASE_TENANT_PASSWORDLESS_ENABLED
 BASE_TENANT_METERING_ENABLED       BASE_TENANT_FILES_ENABLED
 BASE_TENANT_TRANSFER_ENABLED       BASE_TENANT_CONNECTIONS_ENABLED
 BASE_TENANT_WEBHOOKS_ENABLED       BASE_TENANT_LANGUAGES_ENABLED

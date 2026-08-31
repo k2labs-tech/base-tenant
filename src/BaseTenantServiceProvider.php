@@ -63,6 +63,7 @@ use Base\Tenant\Livewire\Auth\ForcePasswordChange;
 use Base\Tenant\Livewire\Auth\ForgotPassword;
 use Base\Tenant\Livewire\Auth\Login;
 use Base\Tenant\Livewire\Auth\Register;
+use Base\Tenant\Livewire\Auth\RequestMagicLink;
 use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\ConnectionManager as ConnectionManagerComponent;
 use Base\Tenant\Livewire\DomainManager as DomainManagerComponent;
@@ -107,6 +108,7 @@ use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
 use Base\Tenant\Models\UserInvite;
 use Base\Tenant\Onboarding\OnboardingManager;
+use Base\Tenant\Passwordless\MagicLinkManager;
 use Base\Tenant\Policies\AccountPolicy;
 use Base\Tenant\Policies\RolePolicy;
 use Base\Tenant\Policies\UserInvitePolicy;
@@ -305,6 +307,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             DomainVerifier::class,
             SecurityPolicyManager::class,
             UserSessionManager::class,
+            MagicLinkManager::class,
             FeatureManager::class,
             FileStore::class,
             LanguageManager::class,
@@ -389,6 +392,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.auth.login' => Login::class,
             'base-tenant.auth.register' => Register::class,
             'base-tenant.auth.forgot-password' => ForgotPassword::class,
+            'base-tenant.auth.request-magic-link' => RequestMagicLink::class,
             'base-tenant.auth.reset-password' => \Base\Tenant\Livewire\Auth\ResetPassword::class,
             'base-tenant.auth.confirm-password' => ConfirmPassword::class,
             'base-tenant.auth.verify-email' => VerifyEmail::class,

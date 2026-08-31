@@ -27,6 +27,7 @@ function documentosDeModulo(): array
         Module::CONNECTIONS => '14-connections.md',
         Module::DOMAINS => '15-domains.md',
         Module::SECURITY => '16-security.md',
+        Module::PASSWORDLESS => '17-passwordless.md',
     ];
 }
 

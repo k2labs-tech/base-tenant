@@ -211,6 +211,39 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Passwordless sign-in
+    |--------------------------------------------------------------------------
+    |
+    | Ways of signing in that are not a password: a link mailed to the address,
+    | and a passkey held by the device.
+    |
+    | Neither of them skips the second factor. A magic link proves you hold the
+    | mailbox, which is not the thing a second factor exists to prove.
+    |
+    */
+
+    'passwordless' => [
+        'enabled' => env('BASE_TENANT_PASSWORDLESS_ENABLED', true),
+
+        'magic_links' => [
+            'enabled' => env('BASE_TENANT_MAGIC_LINKS_ENABLED', true),
+
+            /*
+            | Short on purpose. A link sitting in a mailbox is a key, and the
+            | window in which a leaked mailbox is also a live login should be
+            | measured in minutes.
+            */
+            'ttl_minutes' => (int) env('BASE_TENANT_MAGIC_LINK_TTL', 15),
+
+            /* Per address, per hour. The per-IP ceiling is four times this. */
+            'max_per_hour' => (int) env('BASE_TENANT_MAGIC_LINK_MAX_PER_HOUR', 5),
+
+            'retention_days' => (int) env('BASE_TENANT_MAGIC_LINK_RETENTION_DAYS', 7),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
     | Home URL
     |--------------------------------------------------------------------------
     |

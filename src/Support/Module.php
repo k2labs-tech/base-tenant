@@ -20,6 +20,8 @@ final class Module
 
     public const SECURITY = 'security';
 
+    public const PASSWORDLESS = 'passwordless';
+
     public const METERING = 'metering';
 
     public const FILES = 'files';
@@ -54,6 +56,7 @@ final class Module
         return [
             self::DOMAINS,
             self::SECURITY,
+            self::PASSWORDLESS,
             self::METERING,
             self::FILES,
             self::TRANSFER,
