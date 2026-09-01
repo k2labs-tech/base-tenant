@@ -75,10 +75,61 @@ can read.
 
 ## Passkeys
 
-**Not built.** `base-tenant.passwordless.passkeys` does not exist yet. When it
-does, it goes in this module, under this switch, and it obeys the same first
-rule: a passkey used as a sign-in method still respects whatever the account's
-security policy requires.
+```php
+use Base\Tenant\Facades\Passkey;
+
+Passkey::creationOptions($user);       // registration ceremony
+Passkey::requestOptions();             // sign-in ceremony, no user needed
+Passkey::register($user, $json, $options, $name, $host);
+Passkey::verify($json, $options, $host);   // returns the Passkey, or null
+Passkey::optionsToJson($options);      // never json_encode() them yourself
+```
+
+Built on `web-auth/webauthn-lib`. The library owns the cryptography; the flow
+is ours, so a passkey sign-in lands in the same place as every other one and
+obeys the same account rules.
+
+**A passkey still respects an enforced second factor.** Same rule as the magic
+link, and deliberately conservative: the account's administrator asked for a
+second factor and this flow is not where that decision gets revisited. A
+passkey with user verification arguably *is* two factors — refining that on
+`uvInitialized` is a known improvement and is **not** done.
+
+**The relying party is the application host, never a customer's domain.** A
+credential is bound to the origin it was created on, so moving the relying
+party per tenant would invalidate every key the moment somebody changed their
+domain. `relying_party_id` overrides it; nothing derives it from the request.
+
+**Options are serialised by the library, never by `json_encode()`.** The
+challenge and the user id are raw bytes; encoding them as PHP strings produces
+malformed UTF-8. And note `Illuminate\Http\JsonResponse` puts `$options`
+where Symfony puts `$json` — passing `true` in fourth position double-encodes.
+
+**The challenge lives in the session between the two halves of a ceremony.** A
+challenge the server does not remember is a challenge the attacker can choose.
+
+**Attestation is `none` only.** Verifying a chain means shipping and updating
+the FIDO metadata service, and the answer it gives — which make of
+authenticator is this — is not something this product acts on.
+
+The screen is `base-tenant.profile.passkeys`, embedded in the profile: it owns
+the list, the naming and the removal, while registration itself is a browser
+ceremony over the JSON endpoints. `Passkey` carries no global scope — it
+belongs to a person, not to an account — so the screen scopes to the signed-in
+user by hand, and there is a test that one user cannot remove another's.
+
+`excludeCredentials` carries what the user already has, so re-registering the
+same authenticator says so instead of silently creating a second credential
+the user cannot tell from the first.
+
+### Not verified against a real authenticator
+
+The ceremonies are wired against the library's API and the tests cover option
+generation, scoping, ownership, the routes and rejection of malformed input.
+**They do not cover a real attestation or assertion from a real device** — that
+needs fixtures from actual hardware. Treat passkeys as untested end to end
+until somebody has registered and used one on a real browser. This belongs in
+the product's "not verified" list, not in a feature table.
 
 ---
 
@@ -99,3 +150,6 @@ the IP allowlist applies to the session it creates like any other.
 | Store or log the raw token | `MagicLink::fingerprint()` |
 | Lengthen the TTL to "make support easier" | Let them request another link |
 | Rate limit by IP only | Both, as `tooManyRequests()` does |
+| `json_encode()` ceremony options | `Passkey::optionsToJson()` |
+| Derive the relying party from the request host | Configure it; a passkey is bound to one origin |
+| Query `Passkey` without scoping to the user | It has no global scope; scope it |

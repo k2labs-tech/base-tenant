@@ -240,6 +240,20 @@ return [
 
             'retention_days' => (int) env('BASE_TENANT_MAGIC_LINK_RETENTION_DAYS', 7),
         ],
+
+        'passkeys' => [
+            'enabled' => env('BASE_TENANT_PASSKEYS_ENABLED', true),
+
+            /*
+            | The origin a passkey is bound to. Never a customer's own domain:
+            | a credential is tied to the origin it was created on, so moving
+            | the relying party per tenant would invalidate every key the
+            | moment somebody changed their domain. Defaults to the host of
+            | `app.url`.
+            */
+            'relying_party_id' => env('BASE_TENANT_PASSKEY_RP_ID'),
+            'relying_party_name' => env('BASE_TENANT_PASSKEY_RP_NAME'),
+        ],
     ],
 
     /*

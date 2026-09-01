@@ -50,6 +50,7 @@ If the map has no row for what you need, build it. But look first.
 | Restrict who can be invited into an account | `Security::allowsEmail()` | [16](16-security.md) | A check in one screen only |
 | List or end somebody's open sessions | `Sessions::` | [16](16-security.md) | Delete rows from Laravel's `sessions` |
 | Sign in without a password | `MagicLink::` | [17](17-passwordless.md) | Log the user in without checking 2FA |
+| Register or verify a passkey | `Passkey::` | [17](17-passwordless.md) | `json_encode()` the ceremony options |
 | Tell an external system something happened | `Webhook::dispatch()` | [14](14-connections.md) | A loose HTTP call, unsigned and without retries |
 | Guide a new account through setup | Onboarding steps in config | [23](23-onboarding.md) | A boolean column per step |
 | Stop mailing an address that bounced | Nothing — the guard is global | [24](24-suppressions.md) | A check at one call site |
@@ -83,7 +84,7 @@ If the map has no row for what you need, build it. But look first.
 | [14-connections.md](14-connections.md) | Per-account credentials and outbound webhooks (M5) |
 | [15-domains.md](15-domains.md) | Subdomains and verified custom domains (M6) |
 | [16-security.md](16-security.md) | Per-tenant security policies and active sessions (M7) |
-| [17-passwordless.md](17-passwordless.md) | Magic links; passkeys not built (M8) |
+| [17-passwordless.md](17-passwordless.md) | Magic links and passkeys (M8) |
 | [20-languages.md](20-languages.md) | Languages enabled at runtime (Q1) |
 | [21-social-login.md](21-social-login.md) | Google, LinkedIn and Microsoft sign-in (Q2) |
 | [22-sequences.md](22-sequences.md) | Correlative numbering per account (Q3) |

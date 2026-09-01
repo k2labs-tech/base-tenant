@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use Base\Tenant\Http\Controllers\Auth\MagicLinkController;
+use Base\Tenant\Http\Controllers\Auth\PasskeyController;
 use Base\Tenant\Http\Controllers\Auth\SocialLoginController;
 use Base\Tenant\Http\Controllers\Auth\VerifyEmailController;
 use Base\Tenant\Http\Controllers\InvitationAcceptController;
@@ -53,6 +54,14 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
             Route::get('magic-link/{token}', MagicLinkController::class)
                 ->middleware('throttle:10,1')
                 ->name('base-tenant.magic-link.consume');
+
+            Route::post('passkeys/login/options', [PasskeyController::class, 'loginOptions'])
+                ->middleware('throttle:20,1')
+                ->name('base-tenant.passkeys.login-options');
+
+            Route::post('passkeys/login', [PasskeyController::class, 'login'])
+                ->middleware('throttle:20,1')
+                ->name('base-tenant.passkeys.login');
         }
     });
 
@@ -71,6 +80,14 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
         // Force password change route
         Route::get('password/change', ForcePasswordChange::class)
             ->name('base-tenant.password.change');
+
+        if (Module::enabled(Module::PASSWORDLESS)) {
+            Route::post('passkeys/options', [PasskeyController::class, 'registerOptions'])
+                ->name('base-tenant.passkeys.register-options');
+
+            Route::post('passkeys', [PasskeyController::class, 'register'])
+                ->name('base-tenant.passkeys.register');
+        }
 
         Route::post('logout', function () {
             auth()->logout();

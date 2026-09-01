@@ -88,6 +88,7 @@ use Base\Tenant\Livewire\Presale\WaitlistForm;
 use Base\Tenant\Livewire\Profile\ActiveSessions;
 use Base\Tenant\Livewire\Profile\ConnectedAccounts;
 use Base\Tenant\Livewire\Profile\DeleteUserForm;
+use Base\Tenant\Livewire\Profile\Passkeys as PasskeysComponent;
 use Base\Tenant\Livewire\Profile\UpdatePasswordForm;
 use Base\Tenant\Livewire\Profile\UpdateProfileInformationForm;
 use Base\Tenant\Livewire\RoleManager;
@@ -109,6 +110,7 @@ use Base\Tenant\Models\User;
 use Base\Tenant\Models\UserInvite;
 use Base\Tenant\Onboarding\OnboardingManager;
 use Base\Tenant\Passwordless\MagicLinkManager;
+use Base\Tenant\Passwordless\PasskeyManager;
 use Base\Tenant\Policies\AccountPolicy;
 use Base\Tenant\Policies\RolePolicy;
 use Base\Tenant\Policies\UserInvitePolicy;
@@ -308,6 +310,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             SecurityPolicyManager::class,
             UserSessionManager::class,
             MagicLinkManager::class,
+            PasskeyManager::class,
             FeatureManager::class,
             FileStore::class,
             LanguageManager::class,
@@ -405,6 +408,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.domain-manager' => DomainManagerComponent::class,
             'base-tenant.security-policy-manager' => SecurityPolicyManagerComponent::class,
             'base-tenant.profile.active-sessions' => ActiveSessions::class,
+            'base-tenant.profile.passkeys' => PasskeysComponent::class,
             'base-tenant.transfer-manager' => TransferManagerComponent::class,
             'base-tenant.language-manager' => LanguageManagerComponent::class,
             'base-tenant.files.uploader' => FilesUploader::class,

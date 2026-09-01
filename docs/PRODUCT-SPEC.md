@@ -683,13 +683,24 @@ dirección deja que una máquina recorra una lista.
 el código en una página falsa, se acabó. La passkey está atada al dominio y no
 puede entregarse a un sitio que no sea el tuyo.
 
-**Alcance.** Alta de credencial, listado, renombrado y borrado, uso como segundo
-factor y como login sin contraseña, y respaldo con TOTP para no dejar a nadie
-fuera al perder el dispositivo. Irá en el mismo módulo `passwordless` y bajo el
-mismo interruptor, con la misma primera regla: respetar lo que exija la política
-de seguridad de la cuenta.
+**La prueba.** Sobre `web-auth/webauthn-lib`: la librería pone la criptografía,
+el flujo es nuestro, así que una entrada con passkey acaba en el mismo sitio que
+cualquier otra y obedece las mismas reglas de la cuenta.
 
-**Estado.** `En construcción`.
+El *relying party* es el host de la aplicación, **nunca el dominio del cliente**:
+una credencial se ata al origen donde se creó, y mover el relying party por
+tenant invalidaría todas las llaves en cuanto alguien cambiase su dominio.
+
+Y respeta el segundo factor obligatorio, igual que el magic link.
+
+**Estado.** `Disponible`, con una salvedad que va en §11.3.
+
+**No verificado contra un autenticador real.** Los tests cubren generación de
+opciones, alcance, propiedad, las rutas y el rechazo de entradas mal formadas.
+**No cubren una attestation ni una assertion de un dispositivo de verdad**, que
+necesitan fixtures de hardware real. Hasta que alguien registre y use una
+passkey en un navegador real, esto no puede anunciarse en la landing sin la
+salvedad.
 
 ---
 
@@ -956,7 +967,7 @@ Esto es lo que va en la sección "pruebas" de la landing, y todo es verificable:
 
 | | |
 |---|---|
-| Tests del paquete | **876 pasando**, 4.122 aserciones, suite completa en 82 s |
+| Tests del paquete | **896 pasando**, 4.189 aserciones, suite completa en 83 s |
 | Las guardas se verificaron quitándolas | Una guarda necesita un test que se ponga rojo al retirarla. Un test que pasa igual con y sin ella se lee como cobertura y no lo es |
 | Kit de aserciones para tu propio código | `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped` |
 | Documentación por capacidad | 20 ficheros en `docs/agents/`, más el manual completo |
@@ -994,6 +1005,16 @@ por tests pero que no se han ejercitado contra el servicio de verdad en
 producción. **Mantener esta lista al día es obligatorio antes de cada
 publicación.** Un elemento sale de esta lista cuando alguien lo ha ejecutado
 contra el servicio real, no cuando su test pasa.
+
+- **Passkeys (WebAuthn).** Las ceremonias están cableadas contra la API de
+  `web-auth/webauthn-lib` y hay 19 tests, pero ninguno ejercita una attestation
+  o una assertion de un autenticador real. Sale de esta lista cuando alguien
+  haya registrado y usado una passkey en un navegador de verdad.
+- **Verificación de dominios por DNS.** El `SystemDnsLookup` usa
+  `dns_get_record` y los tests lo falsean. No se ha comprobado contra un DNS
+  real con propagación de por medio.
+- **Reporte de consumo a Stripe Billing Meters.** Cubierto por tests, no
+  ejercitado contra la API real.
 
 ---
 

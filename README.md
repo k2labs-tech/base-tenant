@@ -42,6 +42,7 @@ product that does not want files or webhooks does not carry their tables.
 | Module | Facade / entry point | What it gives you |
 |---|---|---|
 | **Security policies** | `Security` | Per account: enforced 2FA with a grace period, allowed email domains, an IP allowlist with a warn-first mode, and session timeout |
+| **Passkeys** | `Passkey` | WebAuthn sign-in bound to the origin, on `web-auth/webauthn-lib`. Not yet exercised against a real authenticator |
 | **Magic links** | `MagicLink` | Single-use, short-lived sign-in links that never skip the second factor |
 | **Active sessions** | `Sessions` | Where each person is signed in, with remote revocation that works on any session driver |
 | **Domains** | `Domain` | A subdomain per customer, and domains of their own served only once a TXT record proves they control them |
@@ -64,7 +65,7 @@ product that does not want files or webhooks does not carry their tables.
 - **Livewire 4 + Flux UI** — every screen on one table pattern: search, sort, density and page size in the URL, sticky headers, designed empty states, loading skeletons
 - **Documentation for AI agents** — `docs/agents/`, one file per capability with a capability map, publishable into the host application
 - **Multi-tenant test kit** — `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped`
-- **876 tests** covering the package itself
+- **896 tests** covering the package itself
 
 ## Getting it
 
