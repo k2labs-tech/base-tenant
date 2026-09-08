@@ -1,5 +1,14 @@
 <?php
 
+use Base\Tenant\Gdpr\Erasers\ActivityEraser;
+use Base\Tenant\Gdpr\Erasers\FileEraser;
+use Base\Tenant\Gdpr\Erasers\InvitationEraser;
+use Base\Tenant\Gdpr\Erasers\MembershipEraser;
+use Base\Tenant\Gdpr\Erasers\NotificationEraser;
+use Base\Tenant\Gdpr\Erasers\PasswordlessEraser;
+use Base\Tenant\Gdpr\Erasers\SessionEraser;
+use Base\Tenant\Gdpr\Erasers\SocialAccountEraser;
+use Base\Tenant\Gdpr\Erasers\TransferEraser;
 use Base\Tenant\Gdpr\Exporters\ActivityExporter;
 use Base\Tenant\Gdpr\Exporters\ProfileExporter;
 use Base\Tenant\Gdpr\Exporters\SessionExporter;
@@ -1044,6 +1053,23 @@ return [
             ProfileExporter::class,
             ActivityExporter::class,
             SessionExporter::class,
+        ],
+
+        /*
+        | The counterpart for erasure: run before a user row is destroyed for
+        | good, whichever path destroys it. A domain listed above and not here
+        | is data the product discloses and then fails to delete.
+        */
+        'erasers' => [
+            ActivityEraser::class,
+            SessionEraser::class,
+            PasswordlessEraser::class,
+            SocialAccountEraser::class,
+            NotificationEraser::class,
+            InvitationEraser::class,
+            FileEraser::class,
+            TransferEraser::class,
+            MembershipEraser::class,
         ],
     ],
 

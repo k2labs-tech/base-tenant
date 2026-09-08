@@ -5,8 +5,6 @@ declare(strict_types=1);
 namespace Base\Tenant\Console\Commands;
 
 use Base\Tenant\Console\Concerns\HasDeprecatedAlias;
-use Base\Tenant\Files\FileStore;
-use Base\Tenant\Models\ActivityLog;
 use Base\Tenant\Models\File;
 use Base\Tenant\Models\User;
 use Base\Tenant\Support\Module;
@@ -29,7 +27,7 @@ class PurgeDeletedCommand extends Command
 
     protected $description = 'Hard-delete expired soft-deleted records and anonymise their activity';
 
-    public function handle(FileStore $files): int
+    public function handle(): int
     {
         if (! Module::enabled(Module::GDPR)) {
             $this->components->warn('The GDPR module is disabled.');
@@ -56,17 +54,10 @@ class PurgeDeletedCommand extends Command
                 continue;
             }
 
-            // The activity stays; the person is removed from it. An audit
-            // trail with the description intact is still an audit trail, and
-            // deleting it would destroy the record of what was done to other
-            // people's data.
-            ActivityLog::query()
-                ->acrossAccounts()
-                ->where('causer_id', $user->getKey())
-                ->update(['causer_id' => null, 'causer_type' => null]);
-
-            $this->purgeFilesOf($user, $files);
-
+            // Activity anonymised, files, sessions, links, passkeys, provider
+            // tokens and memberships removed: the registered GDPR erasers run
+            // on `forceDeleting`, so every path that destroys a user does the
+            // same work and this command adds nothing of its own.
             $user->forceDelete();
         }
 
@@ -90,21 +81,5 @@ class PurgeDeletedCommand extends Command
         $this->components->info($dryRun ? 'Nothing was destroyed.' : 'Purge complete.');
 
         return self::SUCCESS;
-    }
-
-    protected function purgeFilesOf(object $user, FileStore $files): void
-    {
-        if (! Module::enabled(Module::FILES)) {
-            return;
-        }
-
-        File::query()
-            ->acrossAccounts()
-            ->withTrashed()
-            ->where('uploaded_by', $user->getKey())
-            ->each(function (File $file): void {
-                $file->storage()->deleteDirectory($file->directory());
-                $file->forceDelete();
-            });
     }
 }

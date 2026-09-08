@@ -41,6 +41,29 @@ class BookingExporter implements GdprExporter
 
 Add it to `base-tenant.gdpr.exporters`. Profile and activity ship registered.
 
+Every domain that exports also **erases**. `GdprEraser` is the counterpart:
+
+```php
+use Base\Tenant\Gdpr\GdprEraser;
+
+class BookingEraser implements GdprEraser
+{
+    public function erase(Authenticatable $user): void
+    {
+        Booking::where('guest_email', $user->email)->update(['guest_email' => null]);
+    }
+}
+```
+
+Add it to `base-tenant.gdpr.erasers`. `DataErasureService` runs the list, and
+the `PurgesPersonalData` trait on `User` calls it on `forceDeleting`, so every
+path that destroys a user — the purge command, a direct `forceDelete()`, a
+host's own tooling — does the same work. A trait boot method rather than
+`booted()` on the model, because a host subclass declaring its own `booted()`
+without the parent call would silently switch the hook off. A domain listed as
+an exporter and not as an eraser is data the product discloses and then fails
+to delete.
+
 Never export a password hash or a two-factor secret. A hash is still a
 credential, and an export is a file that travels.
 
@@ -82,13 +105,24 @@ Runs daily. Destroys users and files whose soft delete is older than
 record still there a year after somebody asked for it to go is a record the
 product promised to delete and did not.
 
-Activity is **anonymised, not deleted**: the causer is cleared and the
-description kept. An audit trail without the person is still an audit trail,
-and deleting it would destroy the record of what was done to other people's
-data.
+Activity is **anonymised, not deleted** (`ActivityEraser`): the causer is
+cleared and the description kept. An audit trail without the person is still
+an audit trail. Files have their bytes removed before their row
+(`FileEraser`), because the other order leaves an object on the disk that
+nothing points at and nobody bills.
 
-Files have their bytes removed before their row, because the other order leaves
-an object on the disk that nothing points at and nobody bills.
+The per-user work is the erasers', not the command's. Shipped registered:
+activity (anonymised), the package's sessions and the framework's `sessions`
+table, magic links (by user and by address), passkeys, social accounts,
+database notifications, invitations (deleted when addressed to the person,
+`invited_by` cleared otherwise), uploaded files, `data_transfers.created_by`
+and the `account_user` memberships. None of those tables cascades from
+`users`; a purge that left them behind would report the person gone while an
+address, a fingerprint or a standing OAuth grant still answered a query. The
+erasers do not check that the package's own tables exist — the migrations load
+unconditionally, so a missing table is a deploy that stopped halfway and should
+fail loudly. The one exception is the framework's `sessions` table, which
+exists only under the database session driver.
 
 ---
 
