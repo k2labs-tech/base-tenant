@@ -8,6 +8,7 @@ use Base\Tenant\Exceptions\DomainException;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\AccountDomain;
 use Base\Tenant\Services\ActivityLogService;
+use Base\Tenant\Support\Module;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Collection;
@@ -109,6 +110,10 @@ class DomainManager
      */
     public function claimSubdomain(Account $account, string $subdomain): void
     {
+        if (! $this->subdomainsEnabled()) {
+            throw DomainException::subdomainsDisabled();
+        }
+
         $subdomain = $this->normalizeSubdomain($subdomain);
 
         if (! $this->isSubdomainWellFormed($subdomain)) {
@@ -239,6 +244,12 @@ class DomainManager
      */
     public function addDomain(Account $account, string $hostname): AccountDomain
     {
+        // Checked here and not only in the screen: the screen hides the form,
+        // but a Livewire action or a command reaches this method directly.
+        if (! $this->customDomainsEnabled()) {
+            throw DomainException::customDomainsDisabled();
+        }
+
         $hostname = $this->normalizeHostname($hostname);
 
         if (! $this->isHostnameWellFormed($hostname)) {
@@ -301,6 +312,28 @@ class DomainManager
      */
     public function verify(AccountDomain $domain): bool
     {
+        // Off means off: verifying, promoting and logging a domain the
+        // resolver refuses to serve would leave the two halves disagreeing.
+        if (! $this->customDomainsEnabled()) {
+            throw DomainException::customDomainsDisabled();
+        }
+
+        $account = $domain->account;
+
+        // A row whose account was deleted -- the ordinary churn case, since the
+        // TXT record outlives the customer -- must not take the nightly run
+        // down with a type error, and is never verified anew: the resolver
+        // already refuses to serve it. Its status is left alone so that
+        // restoring the account restores the domain exactly as it was.
+        if ($account === null) {
+            $domain->forceFill([
+                'last_checked_at' => now(),
+                'last_error' => __('base-tenant::domains.errors.account_gone'),
+            ])->save();
+
+            return false;
+        }
+
         $verified = $this->verifier->verify($domain);
 
         if ($verified) {
@@ -315,12 +348,12 @@ class DomainManager
             // account with a verified domain and no primary would still be
             // served on its subdomain, which reads as the verification not
             // having worked.
-            if (! $this->domainsFor($domain->account)->contains(fn (AccountDomain $d): bool => $d->is_primary)) {
+            if (! $this->domainsFor($account)->contains(fn (AccountDomain $d): bool => $d->is_primary)) {
                 $this->makePrimary($domain);
             }
 
             ActivityLogService::log(
-                subject: $domain->account,
+                subject: $account,
                 action: 'domain.verified',
                 newValues: ['hostname' => $domain->hostname],
             );
@@ -372,12 +405,35 @@ class DomainManager
         $hours = (int) config('base-tenant.domains.custom.verification.recheck_after_hours', 24);
 
         return AccountDomain::query()
+            ->with('account')
+            ->whereHas('account')
             ->where(fn ($query) => $query
                 ->whereNull('last_checked_at')
                 ->orWhere('last_checked_at', '<=', now()->subHours($hours)))
             ->orderByRaw('last_checked_at is null desc')
             ->orderBy('last_checked_at')
             ->get();
+    }
+
+    /**
+     * The one reading of the switch: the screen, the service and the tenant
+     * resolver all ask here, so turning custom domains off means the same
+     * thing in all three places.
+     */
+    public function customDomainsEnabled(): bool
+    {
+        return Module::enabled(Module::DOMAINS)
+            && (bool) config('base-tenant.domains.custom.enabled', true);
+    }
+
+    /**
+     * Not gated on the module: the `subdomain` column and its resolution
+     * predate it, and an installation that never enabled the domains module
+     * still routes by subdomain.
+     */
+    public function subdomainsEnabled(): bool
+    {
+        return (bool) config('base-tenant.domains.subdomains.enabled', true);
     }
 
     protected function newToken(): string

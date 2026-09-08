@@ -94,7 +94,15 @@ class InvitationManager extends Component
 
         $this->authorize('resend', $invite);
 
-        InvitationService::resend($invite);
+        try {
+            InvitationService::resend($invite);
+        } catch (DomainNotAllowedException $exception) {
+            // The rule was tightened after the invitation went out. Saying so
+            // beats a generic error, and the invite is deliberately left alone.
+            Flux::toast(variant: 'danger', text: $exception->getMessage());
+
+            return;
+        }
 
         Flux::toast(
             variant: 'success',

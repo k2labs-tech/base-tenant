@@ -5,23 +5,10 @@
         error: '',
         name: '',
 
-        /* base64url in and out: the browser speaks ArrayBuffer, the server
-           speaks the spec's base64url, and mixing the two up is the usual
-           reason a first passkey implementation silently fails. */
-        decode(value) {
-            const padded = value.replace(/-/g, '+').replace(/_/g, '/');
-            const raw = atob(padded + '='.repeat((4 - padded.length % 4) % 4));
-            return Uint8Array.from(raw, c => c.charCodeAt(0));
-        },
-        encode(buffer) {
-            return btoa(String.fromCharCode(...new Uint8Array(buffer)))
-                .replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
-        },
-
         async register() {
             this.error = '';
 
-            if (!window.PublicKeyCredential) {
+            if (!window.baseTenantPasskeys?.supported()) {
                 this.error = @js(__('base-tenant::passkeys.unsupported'));
                 return;
             }
@@ -31,58 +18,32 @@
             this.busy = true;
 
             try {
-                const optionsResponse = await fetch(@js(route('base-tenant.passkeys.register-options')), {
-                    method: 'POST',
-                    headers: { 'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content, 'Accept': 'application/json' },
-                });
-
-                const options = await optionsResponse.json();
-
-                options.challenge = this.decode(options.challenge);
-                options.user.id = this.decode(options.user.id);
-                (options.excludeCredentials || []).forEach(c => c.id = this.decode(c.id));
-
-                const credential = await navigator.credentials.create({ publicKey: options });
-
-                const payload = {
-                    id: credential.id,
-                    rawId: this.encode(credential.rawId),
-                    type: credential.type,
-                    response: {
-                        clientDataJSON: this.encode(credential.response.clientDataJSON),
-                        attestationObject: this.encode(credential.response.attestationObject),
-                    },
-                };
-
-                const saved = await fetch(@js(route('base-tenant.passkeys.register')), {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRF-TOKEN': document.querySelector('meta[name=csrf-token]')?.content,
-                        'Accept': 'application/json',
-                    },
-                    body: JSON.stringify({ credential: JSON.stringify(payload), name: this.name }),
-                });
-
-                if (!saved.ok) {
-                    this.error = (await saved.json()).message ?? @js(__('base-tenant::passkeys.register_failed'));
-                    return;
-                }
+                await window.baseTenantPasskeys.register(
+                    @js(route('base-tenant.passkeys.register-options')),
+                    @js(route('base-tenant.passkeys.register')),
+                    this.name,
+                );
 
                 this.name = '';
                 $wire.$refresh();
             } catch (e) {
                 /* A user who closes the system dialog lands here, and that is
                    not an error worth shouting about. */
-                this.error = e.name === 'NotAllowedError'
-                    ? @js(__('base-tenant::passkeys.cancelled'))
-                    : @js(__('base-tenant::passkeys.register_failed'));
+                if (e.name === 'NotAllowedError') {
+                    this.error = @js(__('base-tenant::passkeys.cancelled'));
+                } else if (e.name === 'ServerError' && e.message) {
+                    this.error = e.message;
+                } else {
+                    this.error = @js(__('base-tenant::passkeys.register_failed'));
+                }
             } finally {
                 this.busy = false;
             }
         },
     }"
 >
+    <x-base-tenant::passkeys-script />
+
     <div class="space-y-1">
         <flux:heading size="lg">{{ __('base-tenant::passkeys.title') }}</flux:heading>
         <flux:subheading>{{ __('base-tenant::passkeys.description') }}</flux:subheading>

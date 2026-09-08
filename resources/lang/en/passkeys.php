@@ -9,6 +9,7 @@ return [
     'why' => 'A passkey is tied to this site and cannot be handed to a fake one, which is what makes it stronger than a code you type.',
 
     'add' => 'Add a passkey',
+    'sign_in' => 'Sign in with a passkey',
     'name_placeholder' => 'MacBook, YubiKey, phone…',
     'name_label' => 'Name this passkey',
     'rename' => 'Rename',

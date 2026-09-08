@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Http\Middleware;
 
 use Base\Tenant\Facades\Security;
+use Base\Tenant\Http\Middleware\Concerns\DefersToPersistentMiddleware;
 use Base\Tenant\Support\Module;
 use Closure;
 use Illuminate\Http\Request;
@@ -18,12 +19,18 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnforceTwoFactor
 {
+    use DefersToPersistentMiddleware;
+
     /**
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         if (! Module::enabled(Module::SECURITY) || ! auth()->check()) {
+            return $next($request);
+        }
+
+        if ($this->isLivewireUpdateRequest($request)) {
             return $next($request);
         }
 
@@ -44,9 +51,7 @@ class EnforceTwoFactor
         }
 
         if ($request->expectsJson()) {
-            return response()->json([
-                'message' => __('base-tenant::security.two_factor_required'),
-            ], 403);
+            $this->refuseWithJson(__('base-tenant::security.two_factor_required'), 403);
         }
 
         return redirect()

@@ -9,6 +9,7 @@ return [
     'why' => 'Una passkey está atada a este sitio y no se le puede entregar a uno falso, que es lo que la hace más fuerte que un código que tecleas.',
 
     'add' => 'Añadir una passkey',
+    'sign_in' => 'Entrar con una passkey',
     'name_placeholder' => 'MacBook, YubiKey, móvil…',
     'name_label' => 'Ponle nombre a esta passkey',
     'rename' => 'Renombrar',

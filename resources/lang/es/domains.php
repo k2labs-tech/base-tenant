@@ -62,10 +62,15 @@ return [
         'hostname_is_central' => '«:hostname» pertenece a este producto y no se puede reclamar.',
         'too_many' => 'Puedes registrar hasta :max dominios.',
         'record_not_found' => 'No se ha encontrado el registro de verificación en el DNS.',
+        'account_gone' => 'La cuenta a la que pertenecía este dominio ya no existe.',
+        'custom_disabled' => 'Los dominios propios no están disponibles en esta instalación.',
+        'subdomains_disabled' => 'Los subdominios no están disponibles en esta instalación.',
     ],
 
     'console' => [
         'nothing_due' => 'No hay dominios pendientes de verificar.',
+        'check_failed' => 'No se pudo comprobar :hostname: :error',
+        'custom_disabled' => 'Los dominios propios están apagados; no hay nada que verificar.',
         'now_verified' => ':hostname ya está verificado.',
         'not_verified' => 'No se ha podido verificar :hostname.',
         'summary' => 'Verificados: :verified · Sin verificar: :failed',

@@ -120,6 +120,17 @@ class TenancyServiceProvider extends ServiceProvider
             $router->aliasMiddleware($alias, $middleware);
         }
 
+        // Every action in the screens is a POST to Livewire's update endpoint,
+        // which only re-applies the middleware in this list against the page
+        // request it rebuilds. Left out, a revoked session would keep executing
+        // every wire:click.
+        Livewire::addPersistentMiddleware([
+            \{{ namespace }}\Http\Middleware\EnforceTwoFactor::class,
+            \{{ namespace }}\Http\Middleware\EnforceIpAllowlist::class,
+            \{{ namespace }}\Http\Middleware\EnforceSessionTimeout::class,
+            \{{ namespace }}\Http\Middleware\TrackUserSession::class,
+        ]);
+
         $router->pushMiddlewareToGroup('web', \{{ namespace }}\Http\Middleware\SetAccountContext::class);
 
         if (config('base-tenant.force_password_change.enabled', false)) {

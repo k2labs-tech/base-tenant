@@ -32,7 +32,8 @@ MagicLink::prune(7);
 | Route | |
 |---|---|
 | `base-tenant.magic-link.request` | The form. `base-tenant.auth.request-magic-link` |
-| `base-tenant.magic-link.consume` | Spends the token. Throttled at 10/min |
+| `base-tenant.magic-link.show` | GET from the email. Shows a button, spends nothing. Throttled at 10/min |
+| `base-tenant.magic-link.consume` | POST behind that button. Spends the token. Throttled at 10/min |
 
 ---
 
@@ -52,6 +53,16 @@ Read-then-write would let both through.
 **3. A link expires.** The same scope filters on `expires_at`. Default is 15
 minutes, and short is the point: a link in a mailbox is a key, so the window in
 which a leaked mailbox is also a live login should be measured in minutes.
+
+**4. The GET from the email spends nothing.** Mail scanners, link previewers
+and antivirus proxies follow a link before the person clicks it. A token spent
+on that GET never works for the human — and, for a user without a second
+factor, hands the session to the scanner. So `show()` only checks
+`MagicLink::isUsable()` and renders a button; the POST to `consume` is what
+spends the token. `MagicLinkTest` asserts the GET leaves `consumed_at` null.
+A spent or expired link renders the same page with the reason and a button to
+ask for another — not a flash to the login screen, which is a Livewire
+component and would never show it.
 
 ---
 
@@ -112,6 +123,20 @@ challenge the server does not remember is a challenge the attacker can choose.
 the FIDO metadata service, and the answer it gives — which make of
 authenticator is this — is not something this product acts on.
 
+The login screen (`base-tenant.auth.login`) offers both entry points: a
+"sign in with a passkey" button that runs the assertion ceremony against
+`passkeys.login-options` and `passkeys.login`, and a link to the magic-link
+form. Each appears only when its switch is on and its routes exist.
+
+Both ceremonies live in one place: `<x-base-tenant::passkeys-script />`
+pushes `window.baseTenantPasskeys` (`supported()`, `register()`, `login()`)
+into the `scripts` stack once per page. The Alpine components on the login
+and profile screens only hold state and translate errors; the base64url
+plumbing, the CSRF header and the payload shape are not repeated, because two
+copies of that drifting apart is the usual reason a passkey flow silently
+fails. A server refusal arrives as an error named `ServerError` carrying the
+translated message; `NotAllowedError` is the person closing the dialog.
+
 The screen is `base-tenant.profile.passkeys`, embedded in the profile: it owns
 the list, the naming and the removal, while registration itself is a browser
 ceremony over the JSON endpoints. `Passkey` carries no global scope — it
@@ -146,6 +171,7 @@ the IP allowlist applies to the session it creates like any other.
 | Do not | Do instead |
 |---|---|
 | Sign a user in straight from `consume()` | Check `hasTwoFactorEnabled()` first |
+| Spend the token on the GET from the email | Show a button; spend it on the POST |
 | Tell the caller whether the address exists | Return the same answer either way |
 | Store or log the raw token | `MagicLink::fingerprint()` |
 | Lengthen the TTL to "make support easier" | Let them request another link |

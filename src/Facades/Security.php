@@ -13,11 +13,13 @@ use Illuminate\Support\Facades\Facade;
 
 /**
  * @method static SecurityPolicySettings for(Account|null $account = null)
+ * @method static void forget(Account|null $account = null)
  * @method static bool enabled()
  * @method static bool requiresTwoFactor(Account|null $account = null)
  * @method static CarbonInterface twoFactorDeadlineFor(User $user, Account|null $account = null)
  * @method static bool twoFactorIsOverdue(User $user, Account|null $account = null)
  * @method static void startTwoFactorClock(Account $account)
+ * @method static void startTwoFactorClockFor(User $user, Account $account)
  * @method static array<int, string> normalizeDomains(array<int, string> $domains)
  * @method static bool allowsEmail(string $email, Account|null $account = null)
  * @method static bool allowsIp(string $ip, Account|null $account = null)

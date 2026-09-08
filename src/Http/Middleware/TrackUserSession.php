@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Http\Middleware;
 
 use Base\Tenant\Facades\Sessions;
+use Base\Tenant\Http\Middleware\Concerns\DefersToPersistentMiddleware;
 use Base\Tenant\Support\Module;
 use Closure;
 use Illuminate\Http\Request;
@@ -20,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class TrackUserSession
 {
+    use DefersToPersistentMiddleware;
+
     /**
      * @param  Closure(Request): Response  $next
      */
@@ -31,7 +34,15 @@ class TrackUserSession
             return $next($request);
         }
 
-        if (Sessions::isRevoked($request)) {
+        if ($this->isLivewireUpdateRequest($request)) {
+            return $next($request);
+        }
+
+        // One lookup serves both the revocation check and the touch: the
+        // row comes back untouched when it has been revoked.
+        $session = Sessions::touch($request, auth()->user());
+
+        if ($session?->isRevoked()) {
             auth()->logout();
 
             if ($request->hasSession()) {
@@ -40,17 +51,13 @@ class TrackUserSession
             }
 
             if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => __('base-tenant::sessions.revoked_notice'),
-                ], 401);
+                $this->refuseWithJson(__('base-tenant::sessions.revoked_notice'), 401);
             }
 
             return redirect()
                 ->route('base-tenant.login')
                 ->with('status', __('base-tenant::sessions.revoked_notice'));
         }
-
-        Sessions::touch($request, auth()->user());
 
         return $next($request);
     }

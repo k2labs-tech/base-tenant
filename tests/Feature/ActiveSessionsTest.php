@@ -8,6 +8,7 @@ use Base\Tenant\Livewire\Profile\ActiveSessions;
 use Base\Tenant\Models\UserSession;
 use Base\Tenant\Sessions\DeviceParser;
 use Illuminate\Http\Request;
+use Livewire\Features\SupportLockedProperties\CannotUpdateLockedPropertyException;
 use Livewire\Livewire;
 
 /**
@@ -256,10 +257,12 @@ test('un administrador de la cuenta puede cerrar las sesiones de un miembro', fu
 });
 
 /**
- * El estado público de un componente Livewire viaja con la petición: un
- * permiso demostrado en el `mount` no es un permiso demostrado ahora.
+ * El estado público de un componente Livewire viaja con la petición. El
+ * identificador del usuario mirado está bloqueado: si el navegador pudiera
+ * reescribirlo, cualquiera apuntaría esta pantalla a cualquier usuario de la
+ * instalación.
  */
-test('el permiso se vuelve a comprobar en la acción, no sólo al montar', function () {
+test('el usuario mirado no se puede reescribir desde el navegador', function () {
     $this->syncPermissions();
 
     $cuenta = $this->createAccount();
@@ -271,10 +274,33 @@ test('el permiso se vuelve a comprobar en la acción, no sólo al montar', funct
 
     $this->actingAsTenant($curioso, $cuenta);
 
-    Livewire::test(ActiveSessions::class)
+    expect(fn () => Livewire::test(ActiveSessions::class)
         ->set('userId', $victima->getKey())
-        ->call('revoke', $sesion->id)
-        ->assertForbidden();
+        ->call('revoke', $sesion->id))
+        ->toThrow(CannotUpdateLockedPropertyException::class);
+
+    expect($sesion->fresh()->revoked_at)->toBeNull();
+});
+
+/**
+ * El permiso `users.update` vale dentro de la cuenta en contexto y de ninguna
+ * otra. Sin esta comprobación, un administrador de una cuenta podría ver y
+ * cerrar las sesiones de los usuarios de todas las demás.
+ */
+test('un administrador no ve ni cierra las sesiones de usuarios de otra cuenta', function () {
+    $this->syncPermissions();
+
+    $suya = $this->createAccount();
+    $this->createRole($suya, 'jefe', ['users.view', 'users.update']);
+    $jefe = $this->createUser($suya, 'jefe');
+
+    $ajena = $this->createAccount();
+    $forastero = $this->createUser($ajena);
+    $sesion = UserSession::factory()->create(['user_id' => $forastero->getKey()]);
+
+    $this->actingAsTenant($jefe, $suya);
+
+    Livewire::test(ActiveSessions::class, ['user' => $forastero])->assertForbidden();
 
     expect($sesion->fresh()->revoked_at)->toBeNull();
 });

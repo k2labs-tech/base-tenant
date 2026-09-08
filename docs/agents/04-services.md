@@ -172,12 +172,7 @@ InvitationService::getPendingForAccount(string $accountId)
 ```
 
 ```php
-$invite = InvitationService::send(
-    $this->email,
-    $account->getKey(),
-    $this->selectedRole,
-    auth()->user(),
-);
+$invite = InvitationService::send($this->email, $account->getKey(), $this->selectedRole, auth()->user());
 ```
 
 `send()` deletes any unaccepted invite for the same address in the same account
@@ -190,6 +185,11 @@ the mail is sent on demand — the invitee is not a user yet.
 `Tenant::runFor()`** — roles are per account, so assigning one outside the
 account's context binds it to the wrong tenant or to none. `revoke()` deletes
 the row; there is no revoked state to query for.
+`accept()` also refuses another address (`InvitationException`) or one the
+security policy bars (`DomainNotAllowedException`, as does `resend()`); a link
+is kept by `remember()`, read back by `remembered()` (the register screen uses it
+to join the account instead of founding one) and finished on login by
+`AcceptPendingInvitationListener` through `acceptPending()`, silent on refusal.
 
 ---
 

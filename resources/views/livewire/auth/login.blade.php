@@ -52,4 +52,67 @@
             </flux:button>
         </div>
     </form>
+
+    @if($passkeysEnabled || $magicLinksEnabled)
+        <flux:separator :text="__('base-tenant::passwordless.or')" />
+
+        <div class="space-y-3">
+            @if($passkeysEnabled)
+                {{-- La ceremonia de aserción WebAuthn. El navegador ofrece lo
+                     que guarda para este origen: no hay usuario que pedir ni
+                     dirección que revelar. --}}
+                <div
+                    x-data="{
+                        busy: false,
+                        error: '',
+
+                        async signIn() {
+                            this.error = '';
+
+                            if (!window.baseTenantPasskeys?.supported()) {
+                                this.error = @js(__('base-tenant::passkeys.unsupported'));
+                                return;
+                            }
+
+                            this.busy = true;
+
+                            try {
+                                const data = await window.baseTenantPasskeys.login(
+                                    @js(route('base-tenant.passkeys.login-options')),
+                                    @js(route('base-tenant.passkeys.login')),
+                                );
+
+                                window.location.href = data.redirect;
+                            } catch (e) {
+                                if (e.name === 'NotAllowedError') {
+                                    this.error = @js(__('base-tenant::passkeys.cancelled'));
+                                } else if (e.name === 'ServerError' && e.message) {
+                                    this.error = e.message;
+                                } else {
+                                    this.error = @js(__('base-tenant::passkeys.login_failed'));
+                                }
+                            } finally {
+                                this.busy = false;
+                            }
+                        },
+                    }"
+                    class="space-y-2"
+                >
+                    <x-base-tenant::passkeys-script />
+
+                    <flux:button variant="outline" class="w-full" icon="finger-print" x-on:click="signIn()" x-bind:disabled="busy">
+                        {{ __('base-tenant::passkeys.sign_in') }}
+                    </flux:button>
+
+                    <p x-show="error" x-text="error" x-cloak class="text-center text-sm text-danger-600 dark:text-danger-400"></p>
+                </div>
+            @endif
+
+            @if($magicLinksEnabled)
+                <flux:button variant="ghost" class="w-full" icon="envelope" :href="route('base-tenant.magic-link.request')" wire:navigate>
+                    {{ __('base-tenant::passwordless.link_option') }}
+                </flux:button>
+            @endif
+        </div>
+    @endif
 </div>

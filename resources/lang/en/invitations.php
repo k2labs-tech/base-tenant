@@ -44,6 +44,8 @@ return [
     'accepted' => 'Welcome aboard.',
     'login_to_accept' => 'Sign in to accept the invitation.',
     'register_to_accept' => 'Create your account to accept the invitation.',
+    'for_another_address' => 'That invitation was sent to a different email address. Sign out, sign in with the address it was sent to and open the link again.',
+    'register_invited' => 'You have been invited to join :account. Create your account to accept.',
 
     'email_subject' => 'You have been invited to join :account',
     'email_greeting' => 'Hello',

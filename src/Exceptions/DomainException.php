@@ -54,4 +54,14 @@ class DomainException extends RuntimeException
     {
         return new self(__('base-tenant::domains.errors.too_many', ['max' => $max]));
     }
+
+    public static function customDomainsDisabled(): self
+    {
+        return new self(__('base-tenant::domains.errors.custom_disabled'));
+    }
+
+    public static function subdomainsDisabled(): self
+    {
+        return new self(__('base-tenant::domains.errors.subdomains_disabled'));
+    }
 }

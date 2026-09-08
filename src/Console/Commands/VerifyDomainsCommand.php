@@ -10,6 +10,7 @@ use Base\Tenant\Models\AccountDomain;
 use Base\Tenant\Support\Module;
 use Illuminate\Console\Command;
 use Illuminate\Support\Collection;
+use Throwable;
 
 /**
  * Re-check the domains customers have pointed here.
@@ -32,6 +33,12 @@ class VerifyDomainsCommand extends Command
     {
         Module::ensure(Module::DOMAINS);
 
+        if (! Domain::customDomainsEnabled()) {
+            $this->components->warn(__('base-tenant::domains.console.custom_disabled'));
+
+            return self::SUCCESS;
+        }
+
         $domains = $this->targets();
 
         if ($domains->isEmpty()) {
@@ -46,7 +53,24 @@ class VerifyDomainsCommand extends Command
         foreach ($domains as $domain) {
             $before = $domain->status;
 
-            if (Domain::verify($domain)) {
+            try {
+                $passed = Domain::verify($domain);
+            } catch (Throwable $exception) {
+                // One row must not take the rest of the run down with it: the
+                // domains after it would otherwise stay unchecked every night.
+                $failed++;
+
+                $this->components->error(__('base-tenant::domains.console.check_failed', [
+                    'hostname' => $domain->hostname,
+                    'error' => $exception->getMessage(),
+                ]));
+
+                report($exception);
+
+                continue;
+            }
+
+            if ($passed) {
                 $verified++;
 
                 if ($before !== AccountDomain::STATUS_VERIFIED) {
@@ -80,12 +104,13 @@ class VerifyDomainsCommand extends Command
     {
         if ($hostname = $this->option('domain')) {
             return AccountDomain::query()
+                ->with('account')
                 ->where('hostname', Domain::normalizeHostname($hostname))
                 ->get();
         }
 
         if ($this->option('all')) {
-            return AccountDomain::query()->orderBy('hostname')->get();
+            return AccountDomain::query()->with('account')->orderBy('hostname')->get();
         }
 
         return Domain::dueForVerification();

@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static void recordRequest(string $email, Request|null $request = null)
  * @method static int secondsUntilRetry(string $email)
  * @method static User|null consume(string $token)
+ * @method static bool isUsable(string $token)
  * @method static int prune(int $days = 7)
  *
  * @see MagicLinkManager

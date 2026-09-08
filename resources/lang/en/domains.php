@@ -62,10 +62,15 @@ return [
         'hostname_is_central' => '":hostname" belongs to this product and cannot be claimed.',
         'too_many' => 'You can register up to :max domains.',
         'record_not_found' => 'The verification record was not found in DNS.',
+        'account_gone' => 'The account this domain belonged to no longer exists.',
+        'custom_disabled' => 'Custom domains are not available on this installation.',
+        'subdomains_disabled' => 'Subdomains are not available on this installation.',
     ],
 
     'console' => [
         'nothing_due' => 'No domains due for verification.',
+        'check_failed' => 'Could not check :hostname: :error',
+        'custom_disabled' => 'Custom domains are switched off; nothing to verify.',
         'now_verified' => ':hostname is now verified.',
         'not_verified' => ':hostname could not be verified.',
         'summary' => 'Verified: :verified · Not verified: :failed',

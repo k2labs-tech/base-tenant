@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Http\Middleware;
 
 use Base\Tenant\Facades\Security;
+use Base\Tenant\Http\Middleware\Concerns\DefersToPersistentMiddleware;
 use Base\Tenant\Support\Module;
 use Closure;
 use Illuminate\Http\Request;
@@ -20,6 +21,8 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnforceSessionTimeout
 {
+    use DefersToPersistentMiddleware;
+
     protected const KEY = 'base-tenant.last_activity';
 
     /**
@@ -28,6 +31,10 @@ class EnforceSessionTimeout
     public function handle(Request $request, Closure $next): Response
     {
         if (! Module::enabled(Module::SECURITY) || ! auth()->check() || ! $request->hasSession()) {
+            return $next($request);
+        }
+
+        if ($this->isLivewireUpdateRequest($request)) {
             return $next($request);
         }
 
@@ -45,9 +52,7 @@ class EnforceSessionTimeout
             $request->session()->regenerateToken();
 
             if ($request->expectsJson()) {
-                return response()->json([
-                    'message' => __('base-tenant::security.session_expired'),
-                ], 401);
+                $this->refuseWithJson(__('base-tenant::security.session_expired'), 401);
             }
 
             return redirect()
@@ -55,7 +60,11 @@ class EnforceSessionTimeout
                 ->with('status', __('base-tenant::security.session_expired'));
         }
 
-        $request->session()->put(self::KEY, time());
+        // A `wire:poll` tick is the browser asking, not the person acting.
+        // Counting it would keep a tab left open signed in for ever.
+        if (! $this->isLivewirePoll($request)) {
+            $request->session()->put(self::KEY, time());
+        }
 
         return $next($request);
     }

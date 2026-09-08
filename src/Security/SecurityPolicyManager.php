@@ -11,6 +11,7 @@ use Base\Tenant\Services\ActivityLogService;
 use Base\Tenant\Support\IpRange;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Carbon;
+use Throwable;
 
 /**
  * Reads and applies the security rules of an account.
@@ -21,6 +22,20 @@ use Illuminate\Support\Carbon;
  */
 class SecurityPolicyManager
 {
+    /**
+     * Policies already read this request, by account. Three middleware and a
+     * screen ask for the same policy on every request; without this each ask
+     * is a query against `settings`, and Livewire updates pay it several
+     * times over.
+     *
+     * The manager is a singleton, so under Octane or a queue worker this
+     * would outlive the request: the provider clears it when a request or a
+     * job starts (`registerSecurityPolicyLifecycle()`).
+     *
+     * @var array<string, SecurityPolicySettings>
+     */
+    protected array $resolved = [];
+
     public function for(?Account $account = null): SecurityPolicySettings
     {
         $account ??= Tenant::current();
@@ -32,7 +47,24 @@ class SecurityPolicyManager
             return new SecurityPolicySettings;
         }
 
-        return SecurityPolicySettings::for($account);
+        return $this->resolved[(string) $account->getKey()]
+            ??= SecurityPolicySettings::for($account);
+    }
+
+    /**
+     * Drop what was read, for the next caller to read afresh. `update()` does
+     * this itself; a host writing the `security` settings group directly has
+     * to.
+     */
+    public function forget(?Account $account = null): void
+    {
+        if ($account === null) {
+            $this->resolved = [];
+
+            return;
+        }
+
+        unset($this->resolved[(string) $account->getKey()]);
     }
 
     public function enabled(): bool
@@ -81,6 +113,28 @@ class SecurityPolicyManager
                 ->where('account_id', $account->getKey())
                 ->orWhereHas('accounts', fn ($accounts) => $accounts->whereKey($account->getKey())))
             ->update(['two_factor_required_from' => now()]);
+    }
+
+    /**
+     * Start the clock for one user joining an account that already has the
+     * rule on.
+     *
+     * Without this, somebody invited on Friday into an account that switched
+     * the rule on Monday would fall back to `created_at` and be overdue on
+     * their first request, with no grace period at all. Never re-stamps: a
+     * user who already has a deadline keeps it.
+     */
+    public function startTwoFactorClockFor(User $user, Account $account): void
+    {
+        if (! $this->requiresTwoFactor($account)) {
+            return;
+        }
+
+        if ($user->two_factor_required_from !== null) {
+            return;
+        }
+
+        $user->forceFill(['two_factor_required_from' => now()])->save();
     }
 
     public function twoFactorIsOverdue(User $user, ?Account $account = null): bool
@@ -205,7 +259,17 @@ class SecurityPolicyManager
         $policy = $this->for($account);
         $before = $policy->toArray();
 
-        $policy->fill($values)->save();
+        try {
+            $policy->fill($values)->save();
+        } catch (Throwable $exception) {
+            // The memoised instance now carries values that never reached the
+            // store. Drop it rather than serve them for the rest of the request.
+            $this->forget($account);
+
+            throw $exception;
+        }
+
+        $this->resolved[(string) $account->getKey()] = $policy;
 
         if ($policy->requireTwoFactor && ! ($before['requireTwoFactor'] ?? false)) {
             $this->startTwoFactorClock($account);

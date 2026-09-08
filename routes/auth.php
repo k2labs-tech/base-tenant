@@ -51,7 +51,15 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
             // Throttled at the route as well as in the manager: the manager's
             // limit is per address, this one is the blunt ceiling on anybody
             // hammering the endpoint with tokens.
-            Route::get('magic-link/{token}', MagicLinkController::class)
+            //
+            // Two routes because the GET from the email is followed by mail
+            // scanners before the person clicks; it only shows a button, and
+            // the POST behind it is what spends the token.
+            Route::get('magic-link/{token}', [MagicLinkController::class, 'show'])
+                ->middleware('throttle:10,1')
+                ->name('base-tenant.magic-link.show');
+
+            Route::post('magic-link/{token}', [MagicLinkController::class, 'store'])
                 ->middleware('throttle:10,1')
                 ->name('base-tenant.magic-link.consume');
 

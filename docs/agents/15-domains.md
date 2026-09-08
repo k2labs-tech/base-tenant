@@ -61,6 +61,22 @@ local development easier" — add the hostname to `central_domains` instead.
 
 ---
 
+**The switches are enforced where they cannot be bypassed.**
+`domains.custom.enabled` and `domains.subdomains.enabled` are checked in
+`addDomain()` and `claimSubdomain()`, not only in the screen that hides the
+form, and `DomainTenantResolver` stops serving custom domains when either the
+module or `custom.enabled` is off. A flag that only hid a form would leave a
+Livewire action able to add domains and every previously verified hostname
+resolving forever.
+
+**A deleted account's domain is never verified and never breaks the run.**
+`Account` soft-deletes and the TXT record outlives the customer, so
+`verify()` marks an orphan row `failed` instead of dereferencing a null
+account, `dueForVerification()` skips them, and the command catches per-domain
+failures so one bad row cannot leave the rest unchecked until morning.
+
+---
+
 ## Models
 
 `AccountDomain` — `account_domains`. Columns: `hostname` (unique across the

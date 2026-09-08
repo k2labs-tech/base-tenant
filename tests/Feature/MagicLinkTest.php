@@ -134,7 +134,7 @@ test('un enlace NO salta el doble factor', function () {
 
     $token = enlaceParaUsuario($usuario->fresh());
 
-    $this->get(route('base-tenant.magic-link.consume', ['token' => $token]))
+    $this->post(route('base-tenant.magic-link.consume', ['token' => $token]))
         ->assertRedirect(route('base-tenant.two-factor.challenge'));
 
     expect(auth()->check())->toBeFalse();
@@ -145,16 +145,60 @@ test('sin doble factor el enlace entra directo', function () {
     $usuario = $this->createUser();
     $token = enlaceParaUsuario($usuario);
 
-    $this->get(route('base-tenant.magic-link.consume', ['token' => $token]))
+    $this->post(route('base-tenant.magic-link.consume', ['token' => $token]))
         ->assertRedirect(route('base-tenant.dashboard'));
 
     expect(auth()->id())->toBe($usuario->getKey());
 });
 
-test('un enlace inválido devuelve al login con el motivo', function () {
-    $this->get(route('base-tenant.magic-link.consume', ['token' => Str::random(48)]))
-        ->assertRedirect(route('base-tenant.login'))
-        ->assertSessionHasErrors('email');
+/**
+ * El GET del correo lo siguen los escáneres de enlaces (SafeLinks, Mimecast,
+ * la previsualización de Gmail) antes de que la persona pulse nada. Si ese
+ * GET gastara el enlace, a la persona nunca le funcionaría, y a quien no
+ * tiene doble factor le regalaría la sesión al escáner. Por eso el GET sólo
+ * muestra un botón y es el POST el que gasta el token.
+ */
+test('abrir el enlace muestra un botón y no lo gasta', function () {
+    $this->withoutVite();
+
+    $usuario = $this->createUser();
+    $token = enlaceParaUsuario($usuario);
+
+    $this->get(route('base-tenant.magic-link.show', ['token' => $token]))
+        ->assertOk()
+        ->assertSee(route('base-tenant.magic-link.consume', ['token' => $token]), false)
+        ->assertSee(__('base-tenant::passwordless.confirm_action'));
+
+    expect(auth()->check())->toBeFalse()
+        ->and(MagicLink::query()->whereNull('consumed_at')->count())->toBe(1);
+});
+
+test('el correo enlaza a la pantalla de confirmación, no al POST', function () {
+    $usuario = $this->createUser();
+
+    $correo = (new MagicLinkNotification('token-en-claro', $usuario->email, 15))->toMail($usuario);
+
+    expect($correo->actionUrl)->toBe(route('base-tenant.magic-link.show', ['token' => 'token-en-claro']));
+});
+
+/**
+ * El login es un componente Livewire y no pinta un error flasheado, así que el
+ * motivo se enseña en la propia página del enlace, con el camino para pedir
+ * otro. Un POST que llega tarde vuelve a esa misma página.
+ */
+test('un enlace inválido explica el motivo y ofrece pedir otro', function () {
+    $this->withoutVite();
+
+    $token = Str::random(48);
+
+    $this->get(route('base-tenant.magic-link.show', ['token' => $token]))
+        ->assertOk()
+        ->assertSee(__('base-tenant::passwordless.link_invalid'))
+        ->assertSee(route('base-tenant.magic-link.request'), false)
+        ->assertDontSee(route('base-tenant.magic-link.consume', ['token' => $token]), false);
+
+    $this->post(route('base-tenant.magic-link.consume', ['token' => $token]))
+        ->assertRedirect(route('base-tenant.magic-link.show', ['token' => $token]));
 
     expect(auth()->check())->toBeFalse();
 });
@@ -241,7 +285,7 @@ test('con los magic links apagados la ruta no existe', function () {
     $usuario = $this->createUser();
     $token = enlaceParaUsuario($usuario);
 
-    $this->get(route('base-tenant.magic-link.consume', ['token' => $token]))
+    $this->get(route('base-tenant.magic-link.show', ['token' => $token]))
         ->assertNotFound();
 });
 

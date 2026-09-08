@@ -28,6 +28,8 @@ use Illuminate\Support\Facades\Facade;
  * @method static bool verify(AccountDomain $domain)
  * @method static void makePrimary(AccountDomain $domain)
  * @method static Collection<int, AccountDomain> dueForVerification()
+ * @method static bool customDomainsEnabled()
+ * @method static bool subdomainsEnabled()
  *
  * @see DomainManager
  */

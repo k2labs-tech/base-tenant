@@ -59,3 +59,20 @@ test('el selector de tema ofrece los tres modos', function () {
         ->assertSee(__('base-tenant::app.appearance.dark'))
         ->assertSee(__('base-tenant::app.appearance.system'));
 });
+
+/**
+ * Los redirects del paquete dejan su aviso en `status` o `error`. Sin el bloque
+ * del layout la persona aterrizaba sin saber si lo que hizo funcionó.
+ */
+test('el armazón pinta los avisos flasheados', function () {
+    $cuenta = $this->createAccount();
+    $usuario = $this->createUser($cuenta, 'customer-admin');
+
+    $this->actingAsTenant($usuario, $cuenta);
+
+    $this->withSession(['status' => 'Todo en orden', 'error' => 'Algo se torció'])
+        ->get(route('base-tenant.dashboard'))
+        ->assertOk()
+        ->assertSee('Todo en orden')
+        ->assertSee('Algo se torció');
+});

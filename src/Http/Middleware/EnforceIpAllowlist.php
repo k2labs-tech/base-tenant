@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Http\Middleware;
 
 use Base\Tenant\Facades\Security;
+use Base\Tenant\Http\Middleware\Concerns\DefersToPersistentMiddleware;
 use Base\Tenant\Services\ActivityLogService;
 use Base\Tenant\Support\Module;
 use Closure;
@@ -21,12 +22,20 @@ use Symfony\Component\HttpFoundation\Response;
  */
 class EnforceIpAllowlist
 {
+    use DefersToPersistentMiddleware;
+
+    protected const WARNED_KEY = 'base-tenant.ip_warned';
+
     /**
      * @param  Closure(Request): Response  $next
      */
     public function handle(Request $request, Closure $next): Response
     {
         if (! Module::enabled(Module::SECURITY) || ! auth()->check()) {
+            return $next($request);
+        }
+
+        if ($this->isLivewireUpdateRequest($request)) {
             return $next($request);
         }
 
@@ -37,11 +46,7 @@ class EnforceIpAllowlist
         }
 
         if (Security::warnsOnIp()) {
-            ActivityLogService::log(
-                action: 'security.ip_would_be_blocked',
-                newValues: ['ip' => $ip],
-                description: __('base-tenant::security.ip_warn_logged', ['ip' => $ip]),
-            );
+            $this->warnOnce($request, $ip);
 
             return $next($request);
         }
@@ -62,11 +67,32 @@ class EnforceIpAllowlist
         );
 
         if ($request->expectsJson()) {
-            return response()->json([
-                'message' => __('base-tenant::security.ip_blocked', ['ip' => $ip]),
-            ], 403);
+            $this->refuseWithJson(__('base-tenant::security.ip_blocked', ['ip' => $ip]), 403);
         }
 
         abort(403, __('base-tenant::security.ip_blocked', ['ip' => $ip]));
+    }
+
+    /**
+     * One entry per session and address, not one per request. The log is what
+     * an administrator reads before switching to `enforce`; a row for every
+     * `wire:poll` tick of every open tab would bury the address they are
+     * looking for under thousands of copies of it.
+     */
+    protected function warnOnce(Request $request, string $ip): void
+    {
+        $session = $request->hasSession() ? $request->session() : null;
+
+        if ($session?->get(self::WARNED_KEY) === $ip) {
+            return;
+        }
+
+        ActivityLogService::log(
+            action: 'security.ip_would_be_blocked',
+            newValues: ['ip' => $ip],
+            description: __('base-tenant::security.ip_warn_logged', ['ip' => $ip]),
+        );
+
+        $session?->put(self::WARNED_KEY, $ip);
     }
 }

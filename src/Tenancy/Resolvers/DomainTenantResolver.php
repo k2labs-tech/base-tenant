@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Tenancy\Resolvers;
 
+use Base\Tenant\Facades\Domain;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\AccountDomain;
 use Base\Tenant\Tenancy\Contracts\TenantResolver;
@@ -36,6 +37,10 @@ class DomainTenantResolver implements TenantResolver
             }
         }
 
+        if (! Domain::subdomainsEnabled()) {
+            return null;
+        }
+
         $subdomain = $this->subdomain($host);
 
         if (! $subdomain || ! Schema::hasColumn('accounts', 'subdomain')) {
@@ -55,6 +60,13 @@ class DomainTenantResolver implements TenantResolver
      */
     protected function fromCustomDomain(string $host): ?Account
     {
+        // The switch is honoured here as well as in the screen. Turning custom
+        // domains off must stop serving them, or the flag hides the form and
+        // changes nothing else.
+        if (! Domain::customDomainsEnabled()) {
+            return null;
+        }
+
         if (! Schema::hasTable('account_domains')) {
             return null;
         }

@@ -32,9 +32,11 @@ use Base\Tenant\Domains\DomainVerifier;
 use Base\Tenant\Domains\SystemDnsLookup;
 use Base\Tenant\Facades\Feature as FeatureFacade;
 use Base\Tenant\Facades\Meter as MeterFacade;
+use Base\Tenant\Facades\Security as SecurityFacade;
 use Base\Tenant\Features\FeatureManager;
 use Base\Tenant\Files\FileStore;
 use Base\Tenant\Files\ImageVariants;
+use Base\Tenant\Gdpr\DataErasureService;
 use Base\Tenant\Gdpr\DataExportService;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
 use Base\Tenant\Http\Middleware\EnforceIpAllowlist;
@@ -52,6 +54,7 @@ use Base\Tenant\Languages\LangFileWriter;
 use Base\Tenant\Languages\LangSyncerClient;
 use Base\Tenant\Languages\LanguageManager;
 use Base\Tenant\Languages\TranslationCoverage;
+use Base\Tenant\Listeners\AcceptPendingInvitationListener;
 use Base\Tenant\Livewire\AcceptTerms;
 use Base\Tenant\Livewire\AccountManager;
 use Base\Tenant\Livewire\AccountSettings;
@@ -130,17 +133,20 @@ use Base\Tenant\Tenancy\TenantTeamResolver;
 use Base\Tenant\Transfer\TransferManager;
 use Base\Tenant\View\Components\AppLayout;
 use Base\Tenant\View\Components\GuestLayout;
+use Illuminate\Auth\Events\Login as LoginEvent;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail as VerifyEmailNotification;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Octane\Events\RequestReceived as OctaneRequestReceived;
 use Livewire\Livewire;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Microsoft\MicrosoftExtendSocialite;
@@ -198,6 +204,8 @@ class BaseTenantServiceProvider extends ServiceProvider
         $this->configureEmailVerification();
         $this->registerSocialProviders();
         $this->registerSuppressionGuard();
+        $this->registerInvitationAcceptance();
+        $this->registerSecurityPolicyLifecycle();
     }
 
     /**
@@ -300,6 +308,22 @@ class BaseTenantServiceProvider extends ServiceProvider
         ];
     }
 
+    /**
+     * Middleware Livewire must re-run on component updates, against the page
+     * request it rebuilds from the snapshot.
+     *
+     * @return list<class-string>
+     */
+    public static function persistentMiddleware(): array
+    {
+        return [
+            EnforceTwoFactor::class,
+            EnforceIpAllowlist::class,
+            EnforceSessionTimeout::class,
+            TrackUserSession::class,
+        ];
+    }
+
     /** @return array<string, class-string> */
     public static function singletons(): array
     {
@@ -325,6 +349,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             MeterManager::class,
             OnboardingManager::class,
             DataExportService::class,
+            DataErasureService::class,
             PresaleManager::class,
             SuppressionManager::class,
             MetricRegistry::class,
@@ -374,6 +399,12 @@ class BaseTenantServiceProvider extends ServiceProvider
         foreach (static::middlewareAliases() as $alias => $middleware) {
             $router->aliasMiddleware($alias, $middleware);
         }
+
+        // Every action in the package's screens is a POST to Livewire's update
+        // endpoint, which only re-applies the middleware in this list. Left
+        // out, a revoked session would keep executing every wire:click and an
+        // overdue second factor would only be enforced on page loads.
+        Livewire::addPersistentMiddleware(static::persistentMiddleware());
 
         $router->pushMiddlewareToGroup('web', SetAccountContext::class);
 
@@ -592,6 +623,31 @@ class BaseTenantServiceProvider extends ServiceProvider
         }
 
         Event::listen(MessageSending::class, [BlockSuppressedRecipients::class, 'handle']);
+    }
+
+    /**
+     * Finish an invitation opened before sign-in, whichever way the person
+     * then signed in: password, magic link, passkey, social or the second
+     * factor challenge all fire the same event.
+     */
+    protected function registerInvitationAcceptance(): void
+    {
+        Event::listen(LoginEvent::class, AcceptPendingInvitationListener::class);
+    }
+
+    /**
+     * The security policy memo lives on a singleton. In a process that serves
+     * one request and exits that is the request's lifetime; under Octane or
+     * `queue:work` it would be the worker's, and a policy tightened on another
+     * worker would go unenforced here until this one recycled.
+     */
+    protected function registerSecurityPolicyLifecycle(): void
+    {
+        Event::listen(JobProcessing::class, static fn (): mixed => SecurityFacade::forget());
+
+        if (class_exists(OctaneRequestReceived::class)) {
+            Event::listen(OctaneRequestReceived::class, static fn (): mixed => SecurityFacade::forget());
+        }
     }
 
     protected function configurePasswordReset(): void

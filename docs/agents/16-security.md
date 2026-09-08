@@ -30,6 +30,7 @@ Security::allowsIp('198.51.100.7', $account);
 Security::enforcesIp($account);                // blocking, not just warning
 Security::sessionTimeoutMinutes($account);
 Security::update($account, ['requireTwoFactor' => true]);   // saves and audits
+Security::startTwoFactorClockFor($user, $account); // when somebody joins an account with the rule on
 ```
 
 Values live in the typed settings store under the `security` group, described
@@ -58,12 +59,20 @@ when the rule is switched on, and only for users who have no stamp yet.
 Counting from `created_at` would hand a year-old user a deadline in the past;
 counting from "now" every request means the deadline never arrives; and
 re-stamping on every toggle would let anyone reset their own grace period by
-asking an administrator to switch the rule off and on.
+asking an administrator to switch the rule off and on. Somebody joining an
+account that *already* has the rule on gets their stamp the moment they join
+(`Security::startTwoFactorClockFor()`, called from `InvitationService::accept()`
+and the user editor), so a two-year-old user invited today is not overdue on
+their first request.
 
 **Email domains are enforced in the service, not the screen.** An invitation
 can come from a command or a job, and the point of the rule is that nobody
-gets into the account around it. `InvitationService::send()` throws
-`DomainNotAllowedException`.
+gets into the account around it. `InvitationService::send()`, `resend()` and
+`accept()` all throw `DomainNotAllowedException`, so a pending invitation to
+an address the rule no longer allows can neither be re-mailed nor accepted.
+`accept()` also refuses a signed-in user whose address is not the one the
+invitation was mailed to (`InvitationException`) — otherwise anybody holding
+the link would join under an address the administrator never approved.
 
 ---
 
@@ -79,6 +88,38 @@ None of them is applied by default — add them to
 `base-tenant.routes.auth_middleware`, or to your own route groups. Each leaves
 an escape hatch reachable (the profile screen, logout) so a user is never in a
 loop with no way to comply and no way to leave.
+
+**They run on Livewire updates too, and that is not free.** Every action in
+the package's screens is a POST to Livewire's update endpoint, which only
+re-applies the middleware in its *persistent* list. The provider registers all
+four (`BaseTenantServiceProvider::persistentMiddleware()`, including
+`base-tenant.track-session`), so on an update Livewire rebuilds the original
+page request — same session, the page's own route — and runs them against it.
+The update request itself is skipped (`DefersToPersistentMiddleware`) — but
+only when the class reached it through a route group, because that is the
+only case the replay covers: Livewire gathers the page route's middleware and
+its groups, never the kernel's global stack. Attached globally, the middleware
+still run on the update request as before, and their `routeIs()` escape
+hatches will not match there. Put them on your page routes or in `web`, not
+in the kernel, and never only on the Livewire endpoint.
+
+Inside the replay Livewire keeps a redirect and discards any other response,
+so the JSON refusals are thrown with `abort()`, never returned — a returned
+403 would let the action run for anyone who adds `Accept: application/json`.
+
+`Security::for()` memoises the policy per account for the request, because
+the three middleware and the screen ask for it several times per Livewire
+update. `update()` refreshes the cache, and the provider clears it when a
+queue job or an Octane request starts, so a long-lived worker never serves a
+policy another worker has since tightened. A host writing the `security`
+settings group directly must call `Security::forget()`.
+
+Two things a `wire:poll` tick must not be. It is not activity:
+`EnforceSessionTimeout` recognises a poll (no property updates, `$refresh`
+the only call) and does not re-stamp `last_activity`, or a tab left open
+would keep its owner signed in for ever. And it is not a new warning:
+`EnforceIpAllowlist` in `warn` mode logs one `ip_would_be_blocked` row per
+session and address, not one per request.
 
 `warn` mode exists because going straight to `enforce` is how an account locks
 itself out on a Friday evening. It writes `security.ip_would_be_blocked` to the
@@ -127,7 +168,11 @@ the screen calls `revokeAll()` instead.
 
 **A revoked row is never refreshed.** `touch()` returns early, so a closed
 session cannot keep writing a fresh `last_active_at` and look active in raw
-data.
+data. It also returns the row, so the tracking middleware reads it once for
+both the revocation check and the touch, and it skips the write when the same
+browser touched the same row from the same address within
+`SessionManager::TOUCH_INTERVAL_SECONDS` — a `wire:poll` tick is not new
+information.
 
 `DeviceParser` turns a user agent into a readable name. Deliberately
 approximate: the screen's job is to let somebody recognise "that is not my

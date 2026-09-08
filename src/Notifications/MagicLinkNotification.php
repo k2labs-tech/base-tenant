@@ -34,7 +34,7 @@ class MagicLinkNotification extends Notification
 
     public function toMail(object $notifiable): MailMessage
     {
-        $url = route('base-tenant.magic-link.consume', ['token' => $this->token]);
+        $url = route('base-tenant.magic-link.show', ['token' => $this->token]);
 
         return (new MailMessage)
             ->subject(__('base-tenant::passwordless.mail.subject', ['app' => config('app.name')]))

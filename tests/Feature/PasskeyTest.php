@@ -256,3 +256,32 @@ test('con las passkeys apagadas los endpoints no existen', function () {
 
     $this->postJson(route('base-tenant.passkeys.login-options'))->assertNotFound();
 });
+
+/**
+ * Las dos ceremonias comparten una sola implementación. Dos copias del mismo
+ * empaquetado base64url que se separan con el tiempo es la razón habitual de
+ * que un flujo de passkeys falle en silencio.
+ */
+test('el login y el perfil cargan la misma ceremonia compartida una sola vez', function () {
+    $this->withoutVite();
+
+    $login = $this->get(route('base-tenant.login'))->assertOk()->getContent();
+
+    // Una sola copia del empaquetado base64url en toda la página.
+    expect(substr_count($login, 'window.baseTenantPasskeys ='))->toBe(1)
+        ->and(substr_count($login, 'atob('))->toBe(1)
+        ->and($login)->toContain('baseTenantPasskeys.login(');
+
+    $this->syncPermissions();
+
+    $cuenta = $this->createAccount();
+    $usuario = $this->createUser($cuenta, 'customer-admin');
+
+    $this->actingAsTenant($usuario, $cuenta);
+
+    $perfil = $this->get(route('base-tenant.profile'))->assertOk()->getContent();
+
+    expect(substr_count($perfil, 'window.baseTenantPasskeys ='))->toBe(1)
+        ->and(substr_count($perfil, 'atob('))->toBe(1)
+        ->and($perfil)->toContain('baseTenantPasskeys.register(');
+});

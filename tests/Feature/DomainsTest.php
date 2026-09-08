@@ -404,6 +404,142 @@ test('una cuenta no puede tocar el dominio de otra desde la pantalla', function 
 });
 
 // ---------------------------------------------------------------------
+// Los interruptores
+// ---------------------------------------------------------------------
+
+/**
+ * La pantalla esconde el formulario, pero una acción de Livewire o un comando
+ * llegan al servicio directamente. El interruptor se aplica donde no se puede
+ * rodear.
+ */
+test('con los dominios propios apagados no se puede añadir ninguno', function () {
+    config(['base-tenant.domains.custom.enabled' => false]);
+
+    $cuenta = $this->createAccount();
+
+    expect(fn () => Domain::addDomain($cuenta, 'app.micliente.com'))
+        ->toThrow(DomainException::class);
+
+    expect(AccountDomain::query()->count())->toBe(0);
+});
+
+test('con los subdominios apagados no se puede reclamar ninguno', function () {
+    config(['base-tenant.domains.subdomains.enabled' => false]);
+
+    $cuenta = $this->createAccount();
+
+    expect(fn () => Domain::claimSubdomain($cuenta, 'mi-empresa'))
+        ->toThrow(DomainException::class);
+
+    expect($cuenta->fresh()->subdomain)->toBeNull();
+});
+
+/**
+ * Apagar los dominios propios tiene que dejar de servirlos. Si el interruptor
+ * sólo escondiera el formulario, un dominio verificado antes seguiría
+ * resolviendo la cuenta para siempre mientras el comando que lo re-comprueba
+ * se niega a correr.
+ */
+test('un dominio verificado deja de resolver la cuenta si el módulo o los dominios propios se apagan', function (array $config) {
+    $cuenta = $this->createAccount();
+
+    AccountDomain::factory()->verified()->create([
+        'account_id' => $cuenta->getKey(),
+        'hostname' => 'app.micliente.com',
+    ]);
+
+    config($config);
+
+    expect((new DomainTenantResolver)->resolve(
+        Request::create('https://app.micliente.com/dashboard')
+    ))->toBeNull();
+})->with([
+    'módulo apagado' => [['base-tenant.domains.enabled' => false]],
+    'dominios propios apagados' => [['base-tenant.domains.custom.enabled' => false]],
+]);
+
+test('con los subdominios apagados un subdominio deja de resolver la cuenta', function () {
+    $cuenta = $this->createAccount();
+    Domain::claimSubdomain($cuenta, 'acme');
+
+    config(['base-tenant.domains.subdomains.enabled' => false]);
+
+    expect((new DomainTenantResolver)->resolve(
+        Request::create('https://acme.tuapp.test/dashboard')
+    ))->toBeNull();
+});
+
+// ---------------------------------------------------------------------
+// Cuentas que ya no están
+// ---------------------------------------------------------------------
+
+/**
+ * El caso corriente de una baja: la cuenta se borra en blando y el registro
+ * TXT sigue publicado. Verificar esa fila reventaba con un TypeError dentro
+ * del comando nocturno y dejaba sin comprobar todos los dominios siguientes.
+ */
+test('el dominio de una cuenta borrada no se verifica ni revienta', function () {
+    $cuenta = $this->createAccount();
+    $dominio = Domain::addDomain($cuenta, 'app.micliente.com');
+
+    dnsFalso(['_base-tenant-verify.app.micliente.com' => [$dominio->verification_token]]);
+
+    $cuenta->delete();
+
+    expect(Domain::verify($dominio->fresh()))->toBeFalse();
+
+    // El estado se deja como estaba: restaurar la cuenta devuelve el dominio
+    // exactamente igual que antes.
+    expect($dominio->fresh())
+        ->status->toBe(AccountDomain::STATUS_PENDING)
+        ->last_error->not->toBeNull()
+        ->last_checked_at->not->toBeNull();
+});
+
+test('los dominios de cuentas borradas no entran en la ronda nocturna', function () {
+    $viva = $this->createAccount();
+    $muerta = $this->createAccount();
+
+    Domain::addDomain($viva, 'app.viva.com');
+    Domain::addDomain($muerta, 'app.muerta.com');
+
+    $muerta->delete();
+
+    expect(Domain::dueForVerification()->pluck('hostname')->all())->toBe(['app.viva.com']);
+});
+
+test('el comando termina la ronda aunque un dominio reviente', function () {
+    $cuenta = $this->createAccount();
+    $roto = Domain::addDomain($cuenta, 'roto.micliente.com');
+    $sano = Domain::addDomain($cuenta, 'sano.micliente.com');
+
+    dnsFalso(['_base-tenant-verify.sano.micliente.com' => [$sano->verification_token]]);
+
+    // Un DNS que lanza para un host y responde para el otro.
+    app()->bind(DnsLookup::class, fn (): DnsLookup => new class($sano->verification_token) implements DnsLookup
+    {
+        public function __construct(private string $token) {}
+
+        public function txt(string $host): array
+        {
+            if (str_contains($host, 'roto')) {
+                throw new RuntimeException('DNS caído');
+            }
+
+            return [$this->token];
+        }
+    });
+    app()->forgetInstance(DomainVerifier::class);
+    app()->forgetInstance(DomainManager::class);
+    Domain::clearResolvedInstances();
+
+    $this->artisan('k2labs-base:verify-domains', ['--all' => true])->assertSuccessful();
+
+    expect($sano->fresh()->status)->toBe(AccountDomain::STATUS_VERIFIED)
+        ->and($roto->fresh()->status)->toBe(AccountDomain::STATUS_PENDING);
+});
+
+// ---------------------------------------------------------------------
 // El comando
 // ---------------------------------------------------------------------
 

@@ -95,6 +95,19 @@ class MagicLinkManager
     }
 
     /**
+     * Could this token still be spent? Reads without writing, so the page the
+     * email lands on can say "this link is gone" without being the thing
+     * that spends it.
+     */
+    public function isUsable(string $token): bool
+    {
+        return MagicLink::query()
+            ->usable()
+            ->where('token', MagicLink::fingerprint($token))
+            ->exists();
+    }
+
+    /**
      * Spend a token and return whose it was, or null.
      *
      * The update is conditional on the row still being unspent, so two

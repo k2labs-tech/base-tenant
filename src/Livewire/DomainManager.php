@@ -48,8 +48,8 @@ class DomainManager extends Component
         return view('base-tenant::livewire.domain-manager', [
             'account' => $account,
             'domains' => $this->domains(),
-            'subdomainsEnabled' => (bool) config('base-tenant.domains.subdomains.enabled', true),
-            'customEnabled' => (bool) config('base-tenant.domains.custom.enabled', true),
+            'subdomainsEnabled' => Domain::subdomainsEnabled(),
+            'customEnabled' => Domain::customDomainsEnabled(),
             'centralDomain' => config('base-tenant.tenancy.central_domains', [])[0] ?? null,
             'cnameTarget' => config('base-tenant.domains.custom.target')
                 ?: (config('base-tenant.tenancy.central_domains', [])[0] ?? null),

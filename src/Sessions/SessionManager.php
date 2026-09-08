@@ -8,6 +8,7 @@ use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Models\User;
 use Base\Tenant\Models\UserSession;
 use Base\Tenant\Services\ActivityLogService;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 
@@ -21,8 +22,17 @@ use Illuminate\Support\Collection;
 class SessionManager
 {
     /**
+     * How long a row is left alone after a touch, when nothing about the
+     * request has changed. "Last active" to the minute is all anybody reads;
+     * a write per `wire:poll` tick across every open tab is a lot of writes
+     * for the same information.
+     */
+    public const TOUCH_INTERVAL_SECONDS = 60;
+
+    /**
      * Record this request against the user's session, creating the row the
-     * first time it is seen.
+     * first time it is seen. Returns the row -- revoked or not -- so the
+     * caller can act on a revocation without a second query.
      */
     public function touch(Request $request, User $user): ?UserSession
     {
@@ -32,7 +42,6 @@ class SessionManager
 
         $fingerprint = UserSession::fingerprint($request->session()->getId());
         $agent = $request->userAgent();
-        $parsed = DeviceParser::parse($agent);
 
         $session = UserSession::query()->firstOrNew(['session_id' => $fingerprint]);
 
@@ -43,6 +52,12 @@ class SessionManager
             return $session;
         }
 
+        if ($session->exists && $this->isFresh($session, $request, $user)) {
+            return $session;
+        }
+
+        $parsed = DeviceParser::parse($agent);
+
         $session->fill([
             'user_id' => $user->getKey(),
             'account_id' => Tenant::currentId(),
@@ -52,9 +67,37 @@ class SessionManager
             'browser' => $parsed['browser'],
             'platform' => $parsed['platform'],
             'last_active_at' => now(),
-        ])->save();
+        ]);
+
+        try {
+            $session->save();
+        } catch (UniqueConstraintViolationException) {
+            // Two first requests of the same session raced and the other one
+            // won. Its row is the session's row now.
+            return UserSession::query()->where('session_id', $fingerprint)->first();
+        }
 
         return $session;
+    }
+
+    /**
+     * Touched a moment ago, from the same place, by the same browser, in the
+     * same account: nothing to write.
+     */
+    protected function isFresh(UserSession $session, Request $request, User $user): bool
+    {
+        if ($session->last_active_at === null) {
+            return false;
+        }
+
+        if ($session->last_active_at->lt(now()->subSeconds(self::TOUCH_INTERVAL_SECONDS))) {
+            return false;
+        }
+
+        return $session->user_id === $user->getKey()
+            && $session->account_id === Tenant::currentId()
+            && $session->ip_address === $request->ip()
+            && $session->user_agent === $request->userAgent();
     }
 
     /**
