@@ -27,8 +27,8 @@ test('añade el import del tema y las rutas de escaneo', function () use ($appCs
     $resultado = (new StylesheetManager)->apply($appCss());
 
     expect($resultado)
-        ->toContain("@import '../../vendor/base/tenant/resources/css/base-tenant.css';")
-        ->toContain("@source '../../vendor/base/tenant/resources/views/**/*.blade.php';")
+        ->toContain("@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';")
+        ->toContain("@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';")
         // El paquete puede estar enlazado durante el desarrollo o instalado en
         // `vendor/`: se declaran las dos rutas.
         ->toContain("@source '../../base-tenant/resources/views/**/*.blade.php';");
@@ -70,19 +70,19 @@ test('completa un app.css configurado a medias', function () use ($appCss) {
 
     $soloRutas = $gestor->apply($appCss());
     $soloRutas = str_replace(
-        "@import '../../vendor/base/tenant/resources/css/base-tenant.css';\n",
+        "@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';\n",
         '',
         $soloRutas
     );
 
     expect($gestor->apply($soloRutas))
-        ->toContain("@import '../../vendor/base/tenant/resources/css/base-tenant.css';")
+        ->toContain("@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';")
         ->and(substr_count($gestor->apply($soloRutas), '/resources/views/**/*.blade.php'))->toBe(2);
 
-    $soloImport = $appCss()."\n@import '../../vendor/base/tenant/resources/css/base-tenant.css';\n";
+    $soloImport = $appCss()."\n@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';\n";
 
     expect($gestor->apply($soloImport))
-        ->toContain("@source '../../vendor/base/tenant/resources/views/**/*.blade.php';")
+        ->toContain("@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';")
         ->and(substr_count($gestor->apply($soloImport), 'base-tenant.css'))->toBe(1);
 });
 
@@ -98,7 +98,7 @@ test('reapunta el import a la copia local de la aplicación', function () use ($
 
     expect($resultado)
         ->toContain("@import './base-tenant.css';")
-        ->not->toContain('vendor/base/tenant/resources/css/base-tenant.css');
+        ->not->toContain('vendor/k2labs/base-tenant/resources/css/base-tenant.css');
 });
 
 /**
@@ -137,7 +137,7 @@ test('un app.css que el instalador nunca tocó se queda igual', function () use 
  * en silencio, que es justo el fallo que el tema viene a evitar.
  */
 test('añade el import local si la instalación solo tenía las rutas de escaneo', function () use ($appCss) {
-    $antigua = $appCss()."\n@source '../../vendor/base/tenant/resources/views/**/*.blade.php';\n";
+    $antigua = $appCss()."\n@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';\n";
 
     $resultado = (new StylesheetManager)->detach($antigua);
 
@@ -203,12 +203,12 @@ test('una mención suelta al fichero de tema no impide poner el import', functio
 
     $resultado = (new StylesheetManager)->apply($css);
 
-    expect($resultado)->toContain("@import '../../vendor/base/tenant/resources/css/base-tenant.css';");
+    expect($resultado)->toContain("@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';");
 });
 
 test('retira las rutas de escaneo entrecomilladas con dobles y sangradas', function () {
     $css = "@import 'tailwindcss';\n"
-        ."@source \"../../vendor/base/tenant/resources/views/**/*.blade.php\";\n"
+        ."@source \"../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php\";\n"
         ."    @source '../../base-tenant/resources/views/**/*.blade.php';\n";
 
     $resultado = (new StylesheetManager)->detach($css);
@@ -269,4 +269,39 @@ test('declara la variante dark por clase', function () use ($appCss) {
     $resultado = (new StylesheetManager)->apply($appCss());
 
     expect($resultado)->toContain('@custom-variant dark (&:where(.dark, .dark *));');
+});
+
+/**
+ * Hasta la 3.0 el paquete se llamaba `base/tenant`. Una aplicación instalada
+ * entonces tiene en su `app.css` rutas a `vendor/base/tenant/`, que tras el
+ * cambio de nombre ya no existe: volver a instalar las lleva a las nuevas.
+ */
+test('migra las rutas del nombre anterior del paquete', function () use ($appCss) {
+    $antigua = str_replace(
+        '@source',
+        "@import '../../vendor/base/tenant/resources/css/base-tenant.css';\n\n@source",
+        $appCss()
+    )."\n@source '../../base-tenant/resources/views/**/*.blade.php';"
+        ."\n@source '../../vendor/base/tenant/resources/views/**/*.blade.php';\n";
+
+    $resultado = (new StylesheetManager)->apply($antigua);
+
+    expect($resultado)
+        ->not->toContain('vendor/base/tenant/')
+        ->toContain("@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';")
+        ->toContain("@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';")
+        ->and(substr_count($resultado, 'base-tenant.css'))->toBe(1)
+        ->and(substr_count($resultado, '/resources/views/**/*.blade.php'))->toBe(2);
+});
+
+test('separa también una instalación con las rutas del nombre anterior', function () use ($appCss) {
+    $antigua = $appCss()
+        ."\n@import '../../vendor/base/tenant/resources/css/base-tenant.css';"
+        ."\n@source '../../vendor/base/tenant/resources/views/**/*.blade.php';\n";
+
+    $resultado = (new StylesheetManager)->detach($antigua);
+
+    expect($resultado)
+        ->toContain("@import './base-tenant.css';")
+        ->not->toContain('vendor/base/tenant/');
 });

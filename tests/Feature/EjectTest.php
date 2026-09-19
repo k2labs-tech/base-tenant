@@ -30,11 +30,11 @@ beforeEach(function () {
 
     File::put($this->workspace.'/resources/css/app.css', <<<'CSS'
         @import 'tailwindcss';
-        @import '../../vendor/base/tenant/resources/css/base-tenant.css';
+        @import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';
 
         @source '../**/*.blade.php';
         @source '../../base-tenant/resources/views/**/*.blade.php';
-        @source '../../vendor/base/tenant/resources/views/**/*.blade.php';
+        @source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';
         CSS);
 
     config()->set('base-tenant.installation_state', 'scaffolded');
@@ -61,7 +61,7 @@ test('eject copies the theme and repoints the stylesheet at it', function () {
 
     expect($css)
         ->toContain("@import './base-tenant.css';")
-        ->not->toContain('vendor/base/tenant/resources/css')
+        ->not->toContain('vendor/k2labs/base-tenant/resources/css')
         // Both spellings of the package view paths: `base-tenant/` when linked,
         // `base/tenant/` under vendor.
         ->not->toContain('base-tenant/resources/views')

@@ -843,9 +843,9 @@ class InstallCommand extends Command
 
         ## Useful Links
 
-        - [Installation Guide](vendor/base/tenant/docs/INSTALLATION.md)
-        - [Usage Guide](vendor/base/tenant/docs/USAGE.md)
-        - [Frontend Guide](vendor/base/tenant/docs/FRONTEND.md)
+        - [Installation Guide](vendor/k2labs/base-tenant/docs/INSTALLATION.md)
+        - [Usage Guide](vendor/k2labs/base-tenant/docs/USAGE.md)
+        - [Frontend Guide](vendor/k2labs/base-tenant/docs/FRONTEND.md)
         - [Stripe Dashboard](https://dashboard.stripe.com)
         - [Stripe CLI Docs](https://docs.stripe.com/stripe-cli)
         - [Laravel Cashier Docs](https://laravel.com/docs/billing)

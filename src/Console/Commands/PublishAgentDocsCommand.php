@@ -136,9 +136,9 @@ class PublishAgentDocsCommand extends Command
     protected function section(): string
     {
         return <<<'MARKDOWN'
-        ## base/tenant
+        ## k2labs/base-tenant
 
-        This application is built on the `base/tenant` package. Its capabilities are
+        This application is built on the `k2labs/base-tenant` package. Its capabilities are
         documented in `docs/agents/base/`.
 
         **Before implementing anything, read `docs/agents/base/00-index.md` and check

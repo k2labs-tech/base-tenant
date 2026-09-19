@@ -1,19 +1,23 @@
 {
     "name": "k2labs/base-tenant",
-    "description": "Multi-tenant SaaS base package with subscriptions, RBAC, and team collaboration for Laravel 13",
+    "description": "Multi-tenant SaaS foundation for Laravel 13: account isolation that survives queued jobs, per-account permissions, enforced plan limits and fifteen capability modules.",
     "type": "library",
-    "homepage": [
-        "https://k2labs.tech/products",
-        "https://github.com/k2labs-tech/base-tenant"
-    ],
+    "homepage": "https://k2labs.tech/products",
     "keywords": [
         "laravel",
         "multi-tenant",
+        "multitenancy",
         "saas",
-        "subscriptions",
+        "tenancy",
         "rbac",
+        "permissions",
         "livewire",
-        "cashier"
+        "flux",
+        "cashier",
+        "stripe",
+        "passkeys",
+        "webauthn",
+        "gdpr"
     ],
     "license": "proprietary",
     "authors": [
@@ -30,6 +34,11 @@
             "email": "enric@ideasandbusiness.com"
         }
     ],
+    "support": {
+        "issues": "https://github.com/k2labs-tech/base-tenant/issues",
+        "source": "https://github.com/k2labs-tech/base-tenant",
+        "docs": "https://github.com/k2labs-tech/base-tenant/tree/main/docs"
+    },
     "require": {
         "php": "^8.4",
         "bacon/bacon-qr-code": "^3.0",
@@ -61,6 +70,9 @@
         },
         "files": [
             "src/helpers.php"
+        ],
+        "classmap": [
+            "tests/TenancyAssertions.php"
         ]
     },
     "autoload-dev": {
@@ -77,6 +89,10 @@
             "providers": [
                 "Base\\Tenant\\BaseTenantServiceProvider"
             ]
+        },
+        "branch-alias": {
+            "dev-main": "3.x-dev",
+            "dev-dev": "3.x-dev"
         }
     },
     "config": {
