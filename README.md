@@ -101,7 +101,7 @@ product that does not want files or webhooks does not carry their tables.
 - **Spanish and English** — every string goes through the translator, in both locales
 - **Documentation for AI agents** — `docs/agents/`, one file per capability with a capability map, publishable into the host application
 - **Multi-tenant test kit** — `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped`
-- **Around 900 tests** covering the package itself, failing on deprecations, notices and warnings
+- **948 tests** covering the package itself, failing on deprecations, notices and warnings
 
 ## Getting it
 
@@ -617,7 +617,7 @@ Full details in [docs/SCAFFOLD-EJECT.md](docs/SCAFFOLD-EJECT.md).
 Run the package tests:
 
 ```bash
-composer test
+vendor/bin/pest
 ```
 
 The suite runs on Orchestra Testbench against an in-memory SQLite database, and
