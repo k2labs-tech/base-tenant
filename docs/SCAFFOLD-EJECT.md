@@ -157,7 +157,7 @@ Then it:
    already have, and adds the Flux Pro repository if you need it
 2. adds `app/helpers.php` to your autoloaded files
 3. sets `installation_state` to `ejected`
-4. runs `composer remove base/tenant`
+4. runs `composer remove k2labs/base-tenant`
 
 `composer.json` is backed up first and restored if anything throws.
 

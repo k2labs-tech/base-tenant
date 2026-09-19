@@ -9,10 +9,10 @@ El instalador las añade automáticamente:
 
 ```css
 @import 'tailwindcss';
-@import '../../vendor/base/tenant/resources/css/base-tenant.css';
+@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';
 
 @source '../../base-tenant/resources/views/**/*.blade.php';
-@source '../../vendor/base/tenant/resources/views/**/*.blade.php';
+@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';
 ```
 
 El `@import` trae el tema. Los `@source` le dicen a Tailwind que mire dentro de

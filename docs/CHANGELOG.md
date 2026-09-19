@@ -7,7 +7,35 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned
+- Outbox with deduplication, retries and a visible dead-letter queue
+- API routes with per-account keys, scopes and rate limits
+- Trace id propagation and structured JSON logging
+
+## [3.0.0] - 2026-09-19
+
+First release published on Packagist, as `k2labs/base-tenant`. Upgrading from
+2.x is covered in [`UPGRADE.md`](UPGRADE.md#from-2x-to-30).
+
 ### Added
+
+- **Capability modules, each behind its own switch:** usage metering, files,
+  imports and exports, the module generator, connections, signed outbound
+  webhooks, runtime languages, social login, sequences, onboarding, email
+  suppressions, GDPR and pre-sale. A module that is off registers no routes, no
+  menu entries and no scheduled work.
+- **Domains:** a subdomain per customer, and custom domains served only once a
+  TXT record proves the customer controls them, re-verified daily.
+- **Per-tenant security policies:** enforced two-factor with a grace period,
+  allowed email domains for invitations, an IP allowlist with a warn-first mode
+  and an idle session timeout, with four opt-in middleware.
+- **Active sessions** with remote revocation that works on any session driver.
+- **Passwordless sign-in:** single-use magic links and WebAuthn passkeys on
+  `web-auth/webauthn-lib`.
+- **GDPR erasure:** `GdprEraser` implementations, listed in `gdpr.erasers`, run
+  whenever a user is force-deleted, whichever path deletes it.
+- `TenancyAssertions` is now autoloaded with the package, so host applications
+  can use it without touching their `composer.json`.
 
 - **Sistema visual completo en las pantallas de gestión.** Cabecera de página con
   recuento, migas derivadas del propio menú, barra de herramientas con tres zonas
@@ -53,6 +81,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- **The package is now `k2labs/base-tenant`,** installed from Packagist. It was
+  `base/tenant`, consumed from a path or VCS repository. The PHP namespace,
+  config keys, commands and view names are unchanged; the directory under
+  `vendor/` moves to `vendor/k2labs/base-tenant/`, and the installer migrates
+  the paths it wrote into `resources/css/app.css`. **Breaking.**
+- **Licence:** source-available. Use and modification inside your own
+  applications, commercial ones included, is permitted; redistribution is not.
+  See `LICENSE.md`, now at the repository root.
+- The package depends on `laravel/framework` instead of three loose
+  `illuminate/*` components, which the framework replaces.
+- Every command lives under `k2labs-base:`; the `base-tenant:*` names remain as
+  deprecated aliases until 4.0.
 - **Laravel 13 is now required.** The package previously declared `^12.0|^13.0`,
   but that had stopped being true: `pestphp/pest-plugin-laravel ^5.0` requires
   `laravel/framework ^13.23`, so the test suite could not even be installed on
@@ -64,13 +104,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`failOnDeprecation`, `failOnNotice`, `failOnWarning`). It passes clean on
   Laravel 13.23 — previously a green run proved nothing about deprecations,
   because PHPUnit was not configured to escalate them.
-
-### Planned
-- Credential vault with encryption, rotation and health checks
-- Outbox with deduplication, retries and a visible dead-letter queue
-- API routes with per-account keys, scopes and rate limits
-- Outgoing signed webhooks
-- Trace id propagation and structured JSON logging
 
 ## [2.5.0] - 2026-08-01
 

@@ -1,4 +1,8 @@
-# base/tenant
+# k2labs/base-tenant
+
+[![Latest Version on Packagist](https://img.shields.io/packagist/v/k2labs/base-tenant.svg)](https://packagist.org/packages/k2labs/base-tenant)
+[![PHP](https://img.shields.io/packagist/dependency-v/k2labs/base-tenant/php.svg)](https://packagist.org/packages/k2labs/base-tenant)
+[![Licence](https://img.shields.io/badge/licence-proprietary-lightgrey.svg)](LICENSE.md)
 
 A multi-tenant SaaS foundation for Laravel 13. Tenancy that survives queued
 jobs, permissions that are per account, plan limits that are actually enforced,
@@ -8,8 +12,9 @@ passwordless sign-in, files, metering, imports, webhooks, languages and more.
 Built for B2B products where every customer is an account and nothing may ever
 leak between them.
 
-> **Proprietary.** See [`docs/LICENSE.md`](docs/LICENSE.md). The distribution
-> channel is not settled yet — see [Getting it](#getting-it).
+> **Source-available, not open source.** Free to install and use in your own
+> commercial applications; not to be redistributed or republished. See
+> [`LICENSE.md`](LICENSE.md).
 
 ## Contents
 
@@ -31,6 +36,7 @@ leak between them.
 - [Starter kit, dependency, or your own code](#starter-kit-dependency-or-your-own-code)
 - [Testing](#testing)
 - [Documentation](#documentation)
+- [Releasing](#releasing)
 - [Licence](#licence)
 
 ## Requirements
@@ -101,23 +107,12 @@ product that does not want files or webhooks does not carry their tables.
 - **Spanish and English** — every string goes through the translator, in both locales
 - **Documentation for AI agents** — `docs/agents/`, one file per capability with a capability map, publishable into the host application
 - **Multi-tenant test kit** — `assertTenantIsolated`, `assertJobCarriesTenant`, `assertPermissionIsAccountScoped`
-- **948 tests** covering the package itself, failing on deprecations, notices and warnings
+- **950 tests** covering the package itself, failing on deprecations, notices and warnings
 
 ## Getting it
 
-**The distribution channel is not decided yet.** Until it is, the package is
-consumed either from a private VCS repository or from a local path checkout:
-
-```json
-"repositories": {
-    "base/tenant": { "type": "path", "url": "../base-tenant" }
-}
-```
-
-Then:
-
 ```bash
-composer require base/tenant:*
+composer require k2labs/base-tenant
 php artisan k2labs-base:install
 ```
 
@@ -138,8 +133,13 @@ Manual setup, and what the installer actually changes, are in
 [`docs/INSTALLATION.md`](docs/INSTALLATION.md).
 
 The fastest way to see it working is not to install it into an existing
-application but to start a new project from the starter kit, which arrives with
+application but to start a new project from the
+[starter kit](https://github.com/k2labs-tech/starter-kit), which arrives with
 this already installed and configured.
+
+To work on the package itself from an application, point Composer at a local
+checkout instead — see
+[Development Setup](docs/INSTALLATION.md#development-setup-local-editing-with-symlinks).
 
 ## First run
 
@@ -512,7 +512,7 @@ requests.
 ## Artisan commands
 
 Every command lives under `k2labs-base:`. The v1 `base-tenant:*` names still
-resolve, as deprecated aliases, and are removed in v3.
+resolve, as deprecated aliases, and are removed in 4.0.
 
 ```bash
 # Core
@@ -625,7 +625,9 @@ fails on deprecations, notices and warnings — a green run means a clean one.
 
 ### Testing your own tenancy
 
-The package ships assertions your application can run against its own models:
+The package ships assertions your application can run against its own models.
+They are autoloaded with the package, so nothing needs to be added to your
+`composer.json`:
 
 ```php
 use Base\Tenant\Tests\TenancyAssertions;
@@ -666,6 +668,7 @@ class InvoiceTenancyTest extends TestCase
 | [`docs/SCAFFOLD-EJECT.md`](docs/SCAFFOLD-EJECT.md) | Taking ownership of the code |
 | [`docs/UPGRADE.md`](docs/UPGRADE.md) | Moving between versions |
 | [`docs/CHANGELOG.md`](docs/CHANGELOG.md) | What changed and when |
+| [`docs/PUBLISHING.md`](docs/PUBLISHING.md) | Releasing a version to Packagist |
 | [`docs/PRODUCT-SPEC.md`](docs/PRODUCT-SPEC.md) | Product specification |
 
 ### For AI agents
@@ -683,9 +686,18 @@ Copies it into the application and maintains a section of `CLAUDE.md` /
 `AGENTS.md` between markers, so it can be re-run after every `composer update`
 without touching what the project wrote around it.
 
+## Releasing
+
+Versions are published on Packagist from Git tags; `main` is `3.x-dev`. The
+release checklist, the Packagist setup and what the distributed archive leaves
+out are in [`docs/PUBLISHING.md`](docs/PUBLISHING.md).
+
 ## Licence
 
-Proprietary. See [`docs/LICENSE.md`](docs/LICENSE.md).
+Copyright (c) Ideas and Business Management. K2labs is a brand of Ideas and
+Business Management.
 
-> Before this repository is published: the licence file and `composer.json`
-> still carry placeholder holder and author details, and `homepage` is unset.
+Installing and using the package in your own applications, commercial ones
+included, is permitted, as is modifying it inside those applications — which is
+what `scaffold` and `eject` do. Redistributing it, publishing modified versions
+or selling it is not. The full terms are in [`LICENSE.md`](LICENSE.md).

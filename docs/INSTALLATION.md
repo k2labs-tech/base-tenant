@@ -2,30 +2,37 @@
 
 ## Quick Start (Recommended)
 
-For the easiest installation experience, use the automated install command:
-
 ```bash
-php artisan base-tenant:install
+composer require k2labs/base-tenant
+php artisan k2labs-base:install
 ```
 
-The interactive installer will guide you through:
+The package is published on [Packagist](https://packagist.org/packages/k2labs/base-tenant),
+so no repository needs to be declared. The interactive installer:
 
-1. **Multi-Team Mode** - Enable users belonging to multiple accounts
-2. **Stripe Subscriptions** - If enabled, prompts for:
+1. **Database** - asks for the driver (sqlite, mysql, mariadb or pgsql) and only
+   what that driver needs, and **tests the connection before writing anything**
+2. **Multi-Team Mode** - whether users can belong to several accounts
+3. **Stripe Subscriptions** - if enabled, prompts for:
    - Stripe Publishable Key (`pk_...`)
    - Stripe Secret Key (`sk_...`)
    - Default Product ID (`prod_...`)
    - Default Price ID (`price_...`)
-3. **Test User** - Creates a test customer account
-4. **Third-party Services** (optional):
+4. **Test User** - creates a test customer account
+5. **Third-party Services** (optional):
    - Flare API Key for error tracking
    - Flux UI Pro license credentials
 
 After installation, the command:
 - Configures `.env` with all provided keys
-- Creates an admin user (`admin@example.com` / `secret123`)
+- Migrates, syncs permissions, roles and menus, and creates the administrator
+  (`admin@example.com` / `secret123` unless `BASE_TENANT_ADMIN_*` say otherwise)
+- Wires Flux and the package theme into `resources/css/app.css`
 - Generates a setup report at `docs/SETUP.md`
 - Shows next steps including Stripe CLI setup
+
+`--no-interaction` takes the defaults for CI, and `--database` asks the database
+question again on a project whose connection already works.
 
 For manual installation or understanding the process, continue reading below.
 
@@ -37,22 +44,32 @@ For manual installation or understanding the process, continue reading below.
 
 - PHP 8.4+
 - Laravel 13.x
-- MySQL/PostgreSQL
+- MySQL, MariaDB or PostgreSQL (SQLite for development and tests)
 - Composer
 - Node.js 18+ & NPM
-- **Livewire Flux Pro license** (required for UI components)
+- Livewire Flux UI 2.4 — the **free tier is enough**; Flux Pro is optional
 
-## Step 1: Configure Flux Pro Access
+## Step 1: Require the Package
 
-This package requires **Livewire Flux Pro**. You must configure Composer authentication before installation.
+```bash
+composer require k2labs/base-tenant
+```
 
-Choose **ONE** of the following methods:
+To follow the development branch instead of tagged releases:
 
-### Method A: Add to composer.json (Recommended for Development)
+```bash
+composer require k2labs/base-tenant:3.x-dev
+```
 
-**IMPORTANT:** Use object notation for `repositories` (not array). This is required when combining multiple repository types (Flux Pro + path/VCS repositories).
+The package is licensed, not open source: read [`LICENSE.md`](../LICENSE.md)
+before using it.
 
-Add Flux Pro repository and authentication to your project's `composer.json`:
+## Step 2: Flux Pro (Optional)
+
+The package uses only free Flux components. Flux Pro is only worth adding if you
+want its components — charts, date pickers, editors — for your own screens.
+
+Add the repository to your project's `composer.json`:
 
 ```json
 {
@@ -61,124 +78,24 @@ Add Flux Pro repository and authentication to your project's `composer.json`:
             "type": "composer",
             "url": "https://composer.fluxui.dev"
         }
-    },
-    "config": {
-        "http-basic": {
-            "composer.fluxui.dev": {
-                "username": "your-email@example.com",
-                "password": "your-flux-license-key"
-            }
-        }
     }
 }
 ```
 
-### Method B: Use auth.json (Recommended for Production)
-
-Create or edit `auth.json` in your project root:
-
-```json
-{
-    "http-basic": {
-        "composer.fluxui.dev": {
-            "username": "your-email@example.com",
-            "password": "your-flux-license-key"
-        }
-    }
-}
-```
-
-**Important:** Add `auth.json` to `.gitignore` to keep credentials private.
-
-### Method C: Global Configuration
-
-For all projects on your machine:
+Then store the credentials outside version control:
 
 ```bash
-composer config --global --auth http-basic.composer.fluxui.dev your-email@example.com your-flux-license-key
+composer config --auth http-basic.composer.fluxui.dev your-email@example.com your-flux-license-key
+composer require livewire/flux-pro
 ```
 
-### Get Your Flux Pro License
+`composer config --auth` writes `auth.json`; make sure it is in `.gitignore`.
 
-1. Purchase Flux Pro at [https://fluxui.dev](https://fluxui.dev)
-2. Find your license key in your account dashboard
-3. Use your account email and license key for authentication
+## Step 3: Local Development Instead of Packagist (Optional)
 
-## Step 2: Add Package Repository
-
-**CRITICAL:** Add the base-tenant repository to your `composer.json` **in the same `repositories` object** you created in Step 1.
-
-Choose ONE of the following methods based on your setup:
-
-### Method A: Path Repository (Local Development - Recommended)
-
-```json
-{
-    "repositories": {
-        "base/tenant": {
-            "type": "path",
-            "url": "../base-tenant"
-        },
-        "livewire/flux-pro": {
-            "type": "composer",
-            "url": "https://composer.fluxui.dev"
-        }
-    }
-}
-```
-
-See the [Development Setup](#development-setup-local-editing-with-symlinks) section below for detailed instructions on local development.
-
-### Method B: Private Git Repository (Production)
-
-```json
-{
-    "repositories": {
-        "base/tenant": {
-            "type": "vcs",
-            "url": "https://github.com/your-org/base-tenant.git"
-        },
-        "livewire/flux-pro": {
-            "type": "composer",
-            "url": "https://composer.fluxui.dev"
-        }
-    }
-}
-```
-
-**Important Notes:**
-- Both repositories must be defined as **object properties** (not array elements)
-- Composer will fail if you mix object and array notation
-- The order doesn't matter, but both must be in the same `repositories` object
-
-## Step 3: Install Package
-
-For path-based repositories (local development):
-
-```bash
-composer require base/tenant:@dev
-```
-
-Or add minimum-stability to your project's `composer.json`:
-
-```json
-{
-    "minimum-stability": "dev",
-    "prefer-stable": true
-}
-```
-
-Then run:
-
-```bash
-composer require base/tenant
-```
-
-For production with version tags:
-
-```bash
-composer require base/tenant:^1.0
-```
+To work on the package itself while using it from an application, point
+Composer at a local checkout instead of Packagist. See
+[Development Setup](#development-setup-local-editing-with-symlinks) below.
 
 ## Step 4: Publish Configuration (Optional)
 
@@ -204,7 +121,7 @@ Edit `resources/css/app.css` and add the base-tenant CSS import after the Flux i
 ```css
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
-@import '../../vendor/base/tenant/resources/css/base-tenant.css';  /* ADD THIS LINE */
+@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';  /* ADD THIS LINE */
 ```
 
 ### 5.2: Add base-tenant views to Tailwind scanning
@@ -217,7 +134,7 @@ In the same file, add the `@source` directive to scan base-tenant views for Tail
 @source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
 @source '../../vendor/livewire/flux/stubs/**/*.blade.php';
 @source '../../base-tenant/resources/views/**/*.blade.php';         /* ADD THIS LINE */
-@source '../../vendor/base/tenant/resources/views/**/*.blade.php';  /* ADD THIS LINE */
+@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';  /* ADD THIS LINE */
 ```
 
 Both paths are declared because the package may be symlinked during development
@@ -228,14 +145,14 @@ or installed under `vendor/`; the one that does not resolve is simply ignored.
 ```css
 @import 'tailwindcss';
 @import '../../vendor/livewire/flux/dist/flux.css';
-@import '../../vendor/base/tenant/resources/css/base-tenant.css';
+@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';
 
 @source '../views';
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../vendor/livewire/flux-pro/stubs/**/*.blade.php';
 @source '../../vendor/livewire/flux/stubs/**/*.blade.php';
 @source '../../base-tenant/resources/views/**/*.blade.php';
-@source '../../vendor/base/tenant/resources/views/**/*.blade.php';
+@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';
 
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -289,7 +206,7 @@ export default defineConfig({
 });
 ```
 
-**Note:** The `base-tenant:install` command handles this automatically.
+**Note:** The `k2labs-base:install` command handles this automatically.
 
 ## Step 6: Configure Environment Variables
 
@@ -429,7 +346,7 @@ class FortifyServiceProvider extends ServiceProvider
 }
 ```
 
-**Note:** The `base-tenant:install` command handles this automatically using a stub file.
+**Note:** The `k2labs-base:install` command handles this automatically using a stub file.
 
 ## Step 8: Remove Conflicting Files
 
@@ -471,7 +388,7 @@ Base-tenant provides its own layouts (`base-tenant::layouts.app` and `base-tenan
 cp routes/web.php routes/web.php.backup
 
 # Copy the base-tenant stub
-cp vendor/base/tenant/stubs/web.php.stub routes/web.php
+cp vendor/k2labs/base-tenant/stubs/web.php.stub routes/web.php
 ```
 
 The stub file provides a clean starting point with NO routes defined. **This is intentional** - the base-tenant package handles all core routes:
@@ -484,7 +401,7 @@ The stub file provides a clean starting point with NO routes defined. **This is 
 
 You can add your custom application routes to this file without conflicts.
 
-**Note:** The `base-tenant:install` command handles this automatically. Consider using it instead of manual installation.
+**Note:** The `k2labs-base:install` command handles this automatically. Consider using it instead of manual installation.
 
 ## Step 9: Run Migrations
 
@@ -567,7 +484,7 @@ First, clone the base-tenant package repository to your local machine, **outside
 cd ~/Sites  # or wherever you keep your projects
 
 # Clone the repository
-git clone https://github.com/your-org/base-tenant.git
+git clone git@github.com:k2labs-tech/base-tenant.git
 ```
 
 **Result:** You should now have:
@@ -584,7 +501,7 @@ Edit your application's `composer.json` to use the local path instead of the rem
 ```json
 {
     "repositories": {
-        "base/tenant": {
+        "k2labs/base-tenant": {
             "type": "path",
             "url": "../base-tenant",
             "options": {
@@ -610,23 +527,23 @@ Remove the existing package (if installed from Git) and reinstall from the local
 
 ```bash
 # Remove the package
-composer remove base/tenant
+composer remove k2labs/base-tenant
 
 # Clear Composer cache
 composer clear-cache
 
 # Install from local path with @dev version
-composer require base/tenant:@dev
+composer require k2labs/base-tenant:@dev
 ```
 
 **What happens:**
-- Composer creates a symlink from `vendor/base/tenant` → `../base-tenant`
+- Composer creates a symlink from `vendor/k2labs/base-tenant` → `../base-tenant`
 - The package is now "live" - any changes you make are immediately available
 
 **Verify the symlink:**
 ```bash
-ls -la vendor/base/tenant
-# Should show: vendor/base/tenant -> ../../base-tenant
+ls -la vendor/k2labs/base-tenant
+# Should show: vendor/k2labs/base-tenant -> ../../base-tenant
 ```
 
 #### 4. Making Changes to the Package
@@ -727,29 +644,19 @@ When you're done developing and want to use the stable version:
 # Navigate to your application directory
 cd ~/Sites/localization-hub
 
-# Edit composer.json and change back to VCS repository:
-```
-
-```json
-{
-    "repositories": {
-        "base/tenant": {
-            "type": "vcs",
-            "url": "https://github.com/your-org/base-tenant.git"
-        }
-    }
-}
+# Edit composer.json and delete the "k2labs/base-tenant" entry from
+# "repositories": without it, Composer resolves the package from Packagist.
 ```
 
 ```bash
 # Remove the dev version
-composer remove base/tenant
+composer remove k2labs/base-tenant
 
 # Clear cache
 composer clear-cache
 
 # Install the production version
-composer require base/tenant:^1.0
+composer require k2labs/base-tenant:^3.0
 ```
 
 ### Common Development Workflows
@@ -821,7 +728,7 @@ composer update
 
 # 4. Test in your app
 cd ~/Sites/localization-hub
-composer update base/tenant
+composer update k2labs/base-tenant
 php artisan test
 
 # 5. Commit the updated composer.lock
@@ -836,12 +743,12 @@ git commit -m "chore: update dependencies"
 
 ```bash
 # Check if symlink exists
-ls -la vendor/base/tenant
+ls -la vendor/k2labs/base-tenant
 
 # If not a symlink, remove and reinstall
-rm -rf vendor/base/tenant
+rm -rf vendor/k2labs/base-tenant
 composer clear-cache
-composer require base/tenant:@dev
+composer require k2labs/base-tenant:@dev
 ```
 
 #### Changes not appearing
@@ -1017,9 +924,9 @@ the theme and scans the package views — exactly what Step 5 sets up:
 ```css
 /* resources/css/app.css */
 @import 'tailwindcss';
-@import '../../vendor/base/tenant/resources/css/base-tenant.css';
+@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';
 
-@source '../../vendor/base/tenant/resources/views/**/*.blade.php';
+@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';
 ```
 
 Then load it from your layout with `@vite('resources/css/app.css')`. See
@@ -1081,7 +988,7 @@ php artisan optimize:clear
 When updating the package:
 
 ```bash
-composer update base/tenant
+composer update k2labs/base-tenant
 php artisan migrate
 php artisan optimize:clear
 npm run build

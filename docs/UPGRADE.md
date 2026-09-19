@@ -1,5 +1,70 @@
 # Upgrade Guide
 
+## From 2.x to 3.0
+
+3.0 is the first release on Packagist. Three things change for an existing
+application: the package name, the Laravel version and the licence. The PHP
+namespace (`Base\Tenant\`), config keys, commands, routes, views and
+translations do not change, and there are no new mandatory migrations beyond
+the ones `php artisan migrate` picks up for the new modules.
+
+### 1. Laravel 13
+
+3.0 requires Laravel 13 and PHP 8.4. Upgrade the application first.
+
+### 2. Swap the package
+
+`base/tenant` becomes `k2labs/base-tenant`:
+
+```bash
+composer remove base/tenant --no-update
+composer require k2labs/base-tenant:^3.0
+```
+
+Then delete the `base/tenant` entry from the `repositories` block of
+`composer.json`, if the application had one: the package now resolves from
+Packagist.
+
+### 3. Stylesheet paths
+
+The package moves from `vendor/base/tenant/` to `vendor/k2labs/base-tenant/`.
+Change the two lines the installer wrote into `resources/css/app.css`:
+
+```css
+@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';
+@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';
+```
+
+Any other reference to `vendor/base/tenant/` in the application — Vite config,
+deploy scripts, docs links — needs the same change.
+
+If you run `php artisan k2labs-base:install` again for another reason, it
+rewrites the old paths itself.
+
+### 4. Migrate and resync
+
+```bash
+php artisan migrate
+php artisan k2labs-base:sync-roles
+php artisan k2labs-base:sync-menus
+npm run build
+```
+
+Every new module is on by default. Turn off those the product does not want
+with their `BASE_TENANT_*_ENABLED` switch before migrating, if you would rather
+not have their tables.
+
+### 5. Security middleware (optional)
+
+The per-tenant security policies do nothing until their middleware is on the
+authenticated routes — see `docs/agents/16-security.md`.
+
+### 6. Licence
+
+3.0 ships under a source-available licence. Read [`LICENSE.md`](../LICENSE.md):
+use and modification inside your own applications is permitted, redistribution
+is not.
+
 ## From 1.x to 2.0
 
 Version 2.0 replaces session-backed roles with `spatie/laravel-permission` scoped
