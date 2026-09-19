@@ -1,23 +1,44 @@
 {
-    "name": "base/tenant",
-    "description": "Multi-tenant SaaS base package with subscriptions, RBAC, and team collaboration for Laravel 12",
+    "name": "k2labs/base-tenant",
+    "description": "Multi-tenant SaaS foundation for Laravel 13: account isolation that survives queued jobs, per-account permissions, enforced plan limits and fifteen capability modules.",
     "type": "library",
+    "homepage": "https://k2labs.tech/products",
     "keywords": [
         "laravel",
         "multi-tenant",
+        "multitenancy",
         "saas",
-        "subscriptions",
+        "tenancy",
         "rbac",
+        "permissions",
         "livewire",
-        "cashier"
+        "flux",
+        "cashier",
+        "stripe",
+        "passkeys",
+        "webauthn",
+        "gdpr"
     ],
     "license": "proprietary",
     "authors": [
         {
-            "name": "Your Name",
-            "email": "your-email@example.com"
+            "name": "Dani",
+            "email": "dani@ideasandbusiness.com"
+        },
+        {
+            "name": "Nico",
+            "email": "nico@ideasandbusiness.com"
+        },
+        {
+            "name": "Enric",
+            "email": "enric@ideasandbusiness.com"
         }
     ],
+    "support": {
+        "issues": "https://github.com/k2labs-tech/base-tenant/issues",
+        "source": "https://github.com/k2labs-tech/base-tenant",
+        "docs": "https://github.com/k2labs-tech/base-tenant/tree/main/docs"
+    },
     "require": {
         "php": "^8.4",
         "illuminate/support": "^12.0",
@@ -71,9 +92,14 @@
     "minimum-stability": "dev",
     "prefer-stable": true,
     "repositories": {
-      "livewire/flux-pro": {
-        "type": "composer",
-        "url": "https://composer.fluxui.dev"
-      }
+        "livewire/flux-pro": {
+            "type": "composer",
+            "url": "https://composer.fluxui.dev"
+        }
+    },
+    "suggest": {
+        "livewire/flux-pro": "Adds the Flux Pro component library. The package itself uses only free Flux components, so this is purely for your own screens.",
+        "league/flysystem-aws-s3-v3": "Required by the files module when storing on S3 or Vapor (BASE_TENANT_FILES_DRIVER=vapor).",
+        "ext-gd": "Required to derive image variants (thumbnails and previews) for uploaded files."
     }
 }
