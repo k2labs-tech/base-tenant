@@ -2,6 +2,10 @@
     "name": "k2labs/base-tenant",
     "description": "Multi-tenant SaaS base package with subscriptions, RBAC, and team collaboration for Laravel 13",
     "type": "library",
+    "homepage": [
+        "https://k2labs.tech/products",
+        "https://github.com/k2labs-tech/base-tenant"
+    ],
     "keywords": [
         "laravel",
         "multi-tenant",
@@ -29,11 +33,9 @@
     "require": {
         "php": "^8.4",
         "bacon/bacon-qr-code": "^3.0",
-        "illuminate/contracts": "^13.0",
-        "illuminate/database": "^13.0",
-        "illuminate/support": "^13.0",
         "lab404/laravel-impersonate": "^1.7",
         "laravel/cashier": "^16.0",
+        "laravel/framework": "^13.0",
         "laravel/sanctum": "^4.0",
         "laravel/socialite": "^5.29",
         "laravel/tinker": "^2.9|^3.0",
