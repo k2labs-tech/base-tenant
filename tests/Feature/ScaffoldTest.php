@@ -215,6 +215,8 @@ test('the generated service provider is valid and registers everything', functio
         ->toContain('namespace App\Providers;')
         ->toContain('TenantTeamResolver::class')
         ->toContain('QueueTenancy::register')
+        ->toContain('Livewire::addPersistentMiddleware')
+        ->toContain('Http\\Middleware\\TrackUserSession::class')
         ->toContain('Gate::before')
         ->toContain("loadRoutesFrom(base_path('routes/tenant/web.php'))")
         ->toContain("loadViewsFrom(resource_path('views/tenant'), 'tenant')")

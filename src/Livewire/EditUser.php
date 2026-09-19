@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire;
 
+use Base\Tenant\Facades\Security;
 use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\Role;
@@ -177,6 +178,7 @@ class EditUser extends Component
         if ($account) {
             $user->accounts()->syncWithoutDetaching([$account->getKey()]);
             $this->syncRolesFor($user, $account);
+            Security::startTwoFactorClockFor($user, $account);
         }
 
         if ($forcePasswordChange && config('base-tenant.force_password_change.send_welcome_email', true)) {

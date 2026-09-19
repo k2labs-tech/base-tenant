@@ -94,6 +94,24 @@ class DefaultMenus
                     ->position(37);
             }
 
+            if (Module::enabled(Module::DOMAINS)) {
+                $menu->item('domains')
+                    ->label('base-tenant::app.navigation.domains')
+                    ->icon('globe-alt')
+                    ->route('base-tenant.domains.index')
+                    ->permission('domains.view')
+                    ->position(40);
+            }
+
+            if (Module::enabled(Module::SECURITY)) {
+                $menu->item('security')
+                    ->label('base-tenant::app.navigation.security')
+                    ->icon('lock-closed')
+                    ->route('base-tenant.security.index')
+                    ->permission('security.view')
+                    ->position(41);
+            }
+
             if (Module::enabled(Module::LANGUAGES)) {
                 $menu->item('languages')
                     ->label('base-tenant::app.navigation.languages')

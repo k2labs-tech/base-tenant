@@ -4,7 +4,10 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire\Auth;
 
+use Base\Tenant\Facades\MagicLink;
+use Base\Tenant\Facades\Passkey;
 use Base\Tenant\Livewire\Forms\LoginForm;
+use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -32,6 +35,9 @@ class Login extends Component
 
     public function render()
     {
-        return view('base-tenant::livewire.auth.login');
+        return view('base-tenant::livewire.auth.login', [
+            'magicLinksEnabled' => MagicLink::enabled() && Route::has('base-tenant.magic-link.request'),
+            'passkeysEnabled' => Passkey::enabled() && Route::has('base-tenant.passkeys.login'),
+        ]);
     }
 }

@@ -2,6 +2,8 @@
 
 declare(strict_types=1);
 
+use Base\Tenant\Http\Controllers\Auth\MagicLinkController;
+use Base\Tenant\Http\Controllers\Auth\PasskeyController;
 use Base\Tenant\Http\Controllers\Auth\SocialLoginController;
 use Base\Tenant\Http\Controllers\Auth\VerifyEmailController;
 use Base\Tenant\Http\Controllers\InvitationAcceptController;
@@ -10,6 +12,7 @@ use Base\Tenant\Livewire\Auth\ForcePasswordChange;
 use Base\Tenant\Livewire\Auth\ForgotPassword;
 use Base\Tenant\Livewire\Auth\Login;
 use Base\Tenant\Livewire\Auth\Register;
+use Base\Tenant\Livewire\Auth\RequestMagicLink;
 use Base\Tenant\Livewire\Auth\ResetPassword;
 use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\TwoFactorChallenge;
@@ -40,6 +43,34 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
 
         Route::get('two-factor-challenge', TwoFactorChallenge::class)
             ->name('base-tenant.two-factor.challenge');
+
+        if (Module::enabled(Module::PASSWORDLESS)) {
+            Route::get('magic-link', RequestMagicLink::class)
+                ->name('base-tenant.magic-link.request');
+
+            // Throttled at the route as well as in the manager: the manager's
+            // limit is per address, this one is the blunt ceiling on anybody
+            // hammering the endpoint with tokens.
+            //
+            // Two routes because the GET from the email is followed by mail
+            // scanners before the person clicks; it only shows a button, and
+            // the POST behind it is what spends the token.
+            Route::get('magic-link/{token}', [MagicLinkController::class, 'show'])
+                ->middleware('throttle:10,1')
+                ->name('base-tenant.magic-link.show');
+
+            Route::post('magic-link/{token}', [MagicLinkController::class, 'store'])
+                ->middleware('throttle:10,1')
+                ->name('base-tenant.magic-link.consume');
+
+            Route::post('passkeys/login/options', [PasskeyController::class, 'loginOptions'])
+                ->middleware('throttle:20,1')
+                ->name('base-tenant.passkeys.login-options');
+
+            Route::post('passkeys/login', [PasskeyController::class, 'login'])
+                ->middleware('throttle:20,1')
+                ->name('base-tenant.passkeys.login');
+        }
     });
 
     // Authenticated routes
@@ -57,6 +88,14 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
         // Force password change route
         Route::get('password/change', ForcePasswordChange::class)
             ->name('base-tenant.password.change');
+
+        if (Module::enabled(Module::PASSWORDLESS)) {
+            Route::post('passkeys/options', [PasskeyController::class, 'registerOptions'])
+                ->name('base-tenant.passkeys.register-options');
+
+            Route::post('passkeys', [PasskeyController::class, 'register'])
+                ->name('base-tenant.passkeys.register');
+        }
 
         Route::post('logout', function () {
             auth()->logout();

@@ -24,7 +24,7 @@ Every model uses `HasUuids`, so it is left out of the traits column below.
 | Class (`Base\Tenant\Models\`) | Table | Traits | What it is |
 |---|---|---|---|
 | `Account` | `accounts` | Billable, HasFactory, HasSettings, SoftDeletes | The tenant. Also the Cashier customer. |
-| `User` | `users` | HasFactory, HasRolesAndPermissions, HasSettings, Impersonate, Notifiable, SoftDeletes | A person. Belongs to one primary account and to many. |
+| `User` | `users` | HasFactory, HasRolesAndPermissions, HasSettings, Impersonate, Notifiable, PurgesPersonalData, SoftDeletes | A person. Belongs to one primary account and to many. |
 | `Role` | `roles` | HasExtensibleRoles, HasFactory | A named set of permissions, global or owned by one account. |
 | `Permission` | `permissions` | HasFactory | One granular ability. Always global. |
 | `Feature` | `features` | — | A per-account override of a plan feature. |

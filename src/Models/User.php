@@ -9,6 +9,7 @@ use Base\Tenant\Exceptions\NoAccountException;
 use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Traits\HasRolesAndPermissions;
 use Base\Tenant\Traits\HasSettings;
+use Base\Tenant\Traits\PurgesPersonalData;
 use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -29,6 +30,7 @@ class User extends Authenticatable
     use HasUuids;
     use Impersonate;
     use Notifiable;
+    use PurgesPersonalData;
     use SoftDeletes;
 
     /**
@@ -69,6 +71,7 @@ class User extends Authenticatable
             'accessed_at' => 'datetime',
             'decimal_places' => 'integer',
             'two_factor_confirmed_at' => 'datetime',
+            'two_factor_required_from' => 'datetime',
             'two_factor_recovery_codes' => 'array',
         ];
     }

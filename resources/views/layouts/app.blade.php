@@ -89,6 +89,21 @@
             </flux:callout>
         @endImpersonating
 
+        {{-- Los redirects del paquete dejan su aviso en `status` o `error`.
+             Sin este bloque la persona aterriza sin saber si lo que hizo
+             funcionó. --}}
+        @if(session('status'))
+            <flux:callout variant="success" icon="check-circle" inline class="mb-6">
+                <flux:callout.text>{{ session('status') }}</flux:callout.text>
+            </flux:callout>
+        @endif
+
+        @if(session('error'))
+            <flux:callout variant="danger" icon="exclamation-triangle" inline class="mb-6">
+                <flux:callout.text>{{ session('error') }}</flux:callout.text>
+            </flux:callout>
+        @endif
+
         {{ $slot }}
     </flux:main>
 

@@ -1,7 +1,17 @@
 <?php
 
+use Base\Tenant\Gdpr\Erasers\ActivityEraser;
+use Base\Tenant\Gdpr\Erasers\FileEraser;
+use Base\Tenant\Gdpr\Erasers\InvitationEraser;
+use Base\Tenant\Gdpr\Erasers\MembershipEraser;
+use Base\Tenant\Gdpr\Erasers\NotificationEraser;
+use Base\Tenant\Gdpr\Erasers\PasswordlessEraser;
+use Base\Tenant\Gdpr\Erasers\SessionEraser;
+use Base\Tenant\Gdpr\Erasers\SocialAccountEraser;
+use Base\Tenant\Gdpr\Erasers\TransferEraser;
 use Base\Tenant\Gdpr\Exporters\ActivityExporter;
 use Base\Tenant\Gdpr\Exporters\ProfileExporter;
+use Base\Tenant\Gdpr\Exporters\SessionExporter;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\Permission;
 use Base\Tenant\Models\Role;
@@ -108,6 +118,151 @@ return [
         'on_missing_tenant' => env('BASE_TENANT_ON_MISSING_TENANT', 'auto'),
 
         'propagate_to_queue' => env('BASE_TENANT_PROPAGATE_TO_QUEUE', true),
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Domains
+    |--------------------------------------------------------------------------
+    |
+    | Where a customer's product lives. `subdomains` hands each account a name
+    | under the first central domain; `custom` lets them point a domain of
+    | their own, once they have proved they control it.
+    |
+    | The proof is a TXT record, and it is not optional: without it, anyone who
+    | can edit a DNS zone could point a hostname here and be served as the
+    | account that claimed it.
+    |
+    */
+
+    'domains' => [
+
+        'enabled' => env('BASE_TENANT_DOMAINS_ENABLED', true),
+
+        'scheme' => env('BASE_TENANT_DOMAINS_SCHEME', 'https'),
+
+        'subdomains' => [
+            'enabled' => env('BASE_TENANT_SUBDOMAINS_ENABLED', true),
+            'min_length' => 3,
+            'max_length' => 63,
+
+            /*
+            | Names a customer may not take. Some collide with records the
+            | installation publishes, some with routes the product serves, and
+            | the rest are the ones somebody picks when they want a link to
+            | look like it came from you.
+            */
+            'reserved' => [
+                'www', 'api', 'admin', 'app', 'mail', 'smtp', 'imap', 'pop',
+                'ftp', 'ns', 'ns1', 'ns2', 'dns', 'mx', 'cdn', 'static',
+                'assets', 'files', 'media', 'img', 'images', 'js', 'css',
+                'blog', 'docs', 'help', 'support', 'status', 'billing',
+                'account', 'accounts', 'login', 'signup', 'register', 'auth',
+                'sso', 'oauth', 'dashboard', 'portal', 'secure', 'security',
+                'test', 'dev', 'staging', 'demo', 'sandbox', 'internal',
+                'root', 'system', 'webmail', 'email', 'no-reply', 'noreply',
+            ],
+        ],
+
+        'custom' => [
+            'enabled' => env('BASE_TENANT_CUSTOM_DOMAINS_ENABLED', true),
+
+            /* 0 means no ceiling. */
+            'max_per_account' => (int) env('BASE_TENANT_CUSTOM_DOMAINS_MAX', 3),
+
+            /*
+            | The CNAME target shown to the customer in the setup
+            | instructions. Left null, the screen shows the central domain.
+            */
+            'target' => env('BASE_TENANT_CUSTOM_DOMAIN_TARGET'),
+
+            'verification' => [
+                'txt_prefix' => env('BASE_TENANT_DOMAIN_TXT_PREFIX', '_base-tenant-verify'),
+                'recheck_after_hours' => (int) env('BASE_TENANT_DOMAIN_RECHECK_HOURS', 24),
+            ],
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Security policies
+    |--------------------------------------------------------------------------
+    |
+    | The rules a customer sets for their own account: a second factor for
+    | everybody, which email domains may be invited, and where the account can
+    | be reached from.
+    |
+    | The values themselves live in the typed settings store, per account. This
+    | section only carries the switch and the ceilings, because a rule that
+    | arrived switched on with an upgrade would lock people out of an account
+    | nobody asked to change.
+    |
+    */
+
+    'security' => [
+        'enabled' => env('BASE_TENANT_SECURITY_ENABLED', true),
+
+        /*
+        | Active sessions and remote revocation. Kept inside this module
+        | rather than given a switch of its own: it is the same concern, and
+        | a customer who wants security policies wants this too.
+        */
+        'sessions' => [
+            'enabled' => env('BASE_TENANT_SESSIONS_ENABLED', true),
+
+            /*
+            | Session rows hold an address and a device, which is personal
+            | data. Keeping them past their usefulness is a liability.
+            */
+            'retention_days' => (int) env('BASE_TENANT_SESSIONS_RETENTION_DAYS', 30),
+        ],
+    ],
+
+    /*
+    |--------------------------------------------------------------------------
+    | Passwordless sign-in
+    |--------------------------------------------------------------------------
+    |
+    | Ways of signing in that are not a password: a link mailed to the address,
+    | and a passkey held by the device.
+    |
+    | Neither of them skips the second factor. A magic link proves you hold the
+    | mailbox, which is not the thing a second factor exists to prove.
+    |
+    */
+
+    'passwordless' => [
+        'enabled' => env('BASE_TENANT_PASSWORDLESS_ENABLED', true),
+
+        'magic_links' => [
+            'enabled' => env('BASE_TENANT_MAGIC_LINKS_ENABLED', true),
+
+            /*
+            | Short on purpose. A link sitting in a mailbox is a key, and the
+            | window in which a leaked mailbox is also a live login should be
+            | measured in minutes.
+            */
+            'ttl_minutes' => (int) env('BASE_TENANT_MAGIC_LINK_TTL', 15),
+
+            /* Per address, per hour. The per-IP ceiling is four times this. */
+            'max_per_hour' => (int) env('BASE_TENANT_MAGIC_LINK_MAX_PER_HOUR', 5),
+
+            'retention_days' => (int) env('BASE_TENANT_MAGIC_LINK_RETENTION_DAYS', 7),
+        ],
+
+        'passkeys' => [
+            'enabled' => env('BASE_TENANT_PASSKEYS_ENABLED', true),
+
+            /*
+            | The origin a passkey is bound to. Never a customer's own domain:
+            | a credential is tied to the origin it was created on, so moving
+            | the relying party per tenant would invalidate every key the
+            | moment somebody changed their domain. Defaults to the host of
+            | `app.url`.
+            */
+            'relying_party_id' => env('BASE_TENANT_PASSKEY_RP_ID'),
+            'relying_party_name' => env('BASE_TENANT_PASSKEY_RP_NAME'),
+        ],
     ],
 
     /*
@@ -338,6 +493,20 @@ return [
         'connections' => [
             'connections.manage',
             'webhooks.manage',
+        ],
+
+        /*
+        | The names belong to the customer, so an administrator of the account
+        | is the person who changes them -- not platform staff.
+        */
+        'domains' => [
+            'domains.view',
+            'domains.update',
+        ],
+
+        'security' => [
+            'security.view',
+            'security.update',
         ],
     ],
 
@@ -883,6 +1052,24 @@ return [
         'exporters' => [
             ProfileExporter::class,
             ActivityExporter::class,
+            SessionExporter::class,
+        ],
+
+        /*
+        | The counterpart for erasure: run before a user row is destroyed for
+        | good, whichever path destroys it. A domain listed above and not here
+        | is data the product discloses and then fails to delete.
+        */
+        'erasers' => [
+            ActivityEraser::class,
+            SessionEraser::class,
+            PasswordlessEraser::class,
+            SocialAccountEraser::class,
+            NotificationEraser::class,
+            InvitationEraser::class,
+            FileEraser::class,
+            TransferEraser::class,
+            MembershipEraser::class,
         ],
     ],
 

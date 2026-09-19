@@ -23,7 +23,15 @@
 
         <flux:separator />
 
+        <livewire:base-tenant.profile.passkeys />
+
+        <flux:separator />
+
         <livewire:base-tenant.two-factor-authentication />
+
+        <flux:separator />
+
+        <livewire:base-tenant.profile.active-sessions />
 
         <flux:separator />
 

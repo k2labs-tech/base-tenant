@@ -4,16 +4,23 @@ declare(strict_types=1);
 
 use Base\Tenant\Facades\Presale;
 use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Gdpr\DataErasureService;
 use Base\Tenant\Gdpr\DataExportService;
 use Base\Tenant\Livewire\AcceptTerms;
 use Base\Tenant\Livewire\Auth\Register;
 use Base\Tenant\Livewire\Presale\WaitlistForm;
 use Base\Tenant\Models\ActivityLog;
 use Base\Tenant\Models\File;
+use Base\Tenant\Models\MagicLink;
+use Base\Tenant\Models\Passkey;
+use Base\Tenant\Models\SocialAccount;
 use Base\Tenant\Models\User;
 use Base\Tenant\Models\UserInvite;
+use Base\Tenant\Models\UserSession;
 use Base\Tenant\Models\WaitlistSignup;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Livewire\Livewire;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 
@@ -47,7 +54,7 @@ test('la exportación trae un fichero por dominio y un manifiesto', function () 
         ->and($actividad[0]['description'])->toBe('hizo algo')
         // «Vacío» y «no se preguntó» son respuestas distintas a una petición
         // legal, y el manifiesto es lo que las separa.
-        ->and(collect($manifiesto['domains'])->pluck('name')->all())->toBe(['profile', 'activity']);
+        ->and(collect($manifiesto['domains'])->pluck('name')->all())->toBe(['profile', 'activity', 'sessions']);
 });
 
 /**
@@ -104,6 +111,88 @@ test('la purga destruye lo que lleva borrado más de la retención', function ()
 
     expect(User::withTrashed()->whereKey($vieja->getKey())->exists())->toBeFalse()
         ->and(User::withTrashed()->whereKey($reciente->getKey())->exists())->toBeTrue();
+});
+
+/**
+ * Sesiones, enlaces de acceso y passkeys son datos de la persona -- una
+ * dirección, la huella del navegador, una credencial -- y ninguna de las
+ * tablas cascada desde `users`. Sin esto la purga daba al usuario por borrado
+ * mientras sus filas seguían respondiendo a una consulta.
+ */
+test('la purga se lleva las sesiones, los enlaces de acceso y las passkeys', function () {
+    $cuenta = $this->createAccount();
+    $usuaria = $this->createUser($cuenta, null, ['email' => 'ada@ejemplo.test']);
+
+    UserSession::factory()->create(['user_id' => $usuaria->getKey()]);
+    MagicLink::factory()->create(['user_id' => $usuaria->getKey(), 'email' => 'ada@ejemplo.test']);
+    MagicLink::factory()->create(['user_id' => null, 'email' => 'ada@ejemplo.test']);
+    Passkey::create([
+        'user_id' => $usuaria->getKey(),
+        'credential_id' => 'Y3JlZGVuY2lhbA',
+        'name' => 'MacBook',
+        'record' => ['publicKeyCredentialId' => 'Y3JlZGVuY2lhbA'],
+    ]);
+    SocialAccount::create([
+        'user_id' => $usuaria->getKey(),
+        'provider' => 'google',
+        'provider_id' => '123',
+        'token' => 'secreto',
+    ]);
+    DB::table('notifications')->insert([
+        'id' => (string) Str::uuid(),
+        'type' => 'Bienvenida',
+        'notifiable_type' => $usuaria->getMorphClass(),
+        'notifiable_id' => $usuaria->getKey(),
+        'data' => json_encode(['password' => 'inicial']),
+        'created_at' => now(),
+        'updated_at' => now(),
+    ]);
+    Tenant::runFor($cuenta, fn () => UserInvite::create([
+        'email' => 'ada@ejemplo.test',
+        'account_id' => $cuenta->getKey(),
+        'token' => Str::random(64),
+        'invited_by' => $usuaria->getKey(),
+        'expires_at' => now()->addDay(),
+    ]));
+
+    $usuaria->delete();
+    User::withTrashed()->whereKey($usuaria->getKey())->update(['deleted_at' => now()->subDays(60)]);
+
+    $this->artisan('k2labs-base:purge-deleted', ['--days' => 30])->assertSuccessful();
+
+    expect(UserSession::query()->where('user_id', $usuaria->getKey())->exists())->toBeFalse()
+        ->and(MagicLink::query()->where('email', 'ada@ejemplo.test')->exists())->toBeFalse()
+        ->and(Passkey::query()->where('user_id', $usuaria->getKey())->exists())->toBeFalse()
+        ->and(SocialAccount::query()->where('user_id', $usuaria->getKey())->exists())->toBeFalse()
+        ->and(DB::table('account_user')->where('user_id', $usuaria->getKey())->exists())->toBeFalse()
+        ->and(DB::table('notifications')->where('notifiable_id', $usuaria->getKey())->exists())->toBeFalse()
+        ->and(DB::table('user_invites')->where('email', 'ada@ejemplo.test')->exists())->toBeFalse();
+});
+
+/**
+ * Un borrador que no implementa la interfaz es un error de configuración, no
+ * un dominio que se salta en silencio.
+ */
+test('un borrador que no es tal se rechaza al arrancar la purga', function () {
+    config(['base-tenant.gdpr.erasers' => [stdClass::class]]);
+
+    expect(fn () => app(DataErasureService::class)->erasers())
+        ->toThrow(RuntimeException::class);
+});
+
+/**
+ * En el modelo y no sólo en el comando: cualquier camino que destruya a un
+ * usuario tiene que limpiar tras él, no sólo el que se acordó de hacerlo.
+ */
+test('un borrado definitivo directo también se lleva los datos personales', function () {
+    $cuenta = $this->createAccount();
+    $usuaria = $this->createUser($cuenta);
+
+    UserSession::factory()->create(['user_id' => $usuaria->getKey()]);
+
+    $usuaria->forceDelete();
+
+    expect(UserSession::query()->where('user_id', $usuaria->getKey())->exists())->toBeFalse();
 });
 
 test('el ensayo de la purga no destruye nada', function () {

@@ -44,6 +44,8 @@ return [
     'accepted' => 'Bienvenido.',
     'login_to_accept' => 'Inicia sesión para aceptar la invitación.',
     'register_to_accept' => 'Crea tu cuenta para aceptar la invitación.',
+    'for_another_address' => 'Esa invitación se envió a otra dirección de correo. Cierra la sesión, entra con la dirección a la que se envió y abre el enlace de nuevo.',
+    'register_invited' => 'Te han invitado a unirte a :account. Crea tu cuenta para aceptar.',
 
     'email_subject' => 'Te han invitado a unirte a :account',
     'email_greeting' => 'Hola',

@@ -17,6 +17,7 @@ use Base\Tenant\Console\Commands\LangStatusCommand;
 use Base\Tenant\Console\Commands\MakeModuleCommand;
 use Base\Tenant\Console\Commands\PresaleOpenCommand;
 use Base\Tenant\Console\Commands\PruneActivityLogCommand;
+use Base\Tenant\Console\Commands\PruneSessionsCommand;
 use Base\Tenant\Console\Commands\PublishAgentDocsCommand;
 use Base\Tenant\Console\Commands\PurgeDeletedCommand;
 use Base\Tenant\Console\Commands\ReconcileStorageCommand;
@@ -24,13 +25,23 @@ use Base\Tenant\Console\Commands\ReportUsageCommand;
 use Base\Tenant\Console\Commands\ScaffoldCommand;
 use Base\Tenant\Console\Commands\SyncMenusCommand;
 use Base\Tenant\Console\Commands\SyncRolesCommand;
+use Base\Tenant\Console\Commands\VerifyDomainsCommand;
+use Base\Tenant\Domains\Contracts\DnsLookup;
+use Base\Tenant\Domains\DomainManager;
+use Base\Tenant\Domains\DomainVerifier;
+use Base\Tenant\Domains\SystemDnsLookup;
 use Base\Tenant\Facades\Feature as FeatureFacade;
 use Base\Tenant\Facades\Meter as MeterFacade;
+use Base\Tenant\Facades\Security as SecurityFacade;
 use Base\Tenant\Features\FeatureManager;
 use Base\Tenant\Files\FileStore;
 use Base\Tenant\Files\ImageVariants;
+use Base\Tenant\Gdpr\DataErasureService;
 use Base\Tenant\Gdpr\DataExportService;
 use Base\Tenant\Http\Middleware\DoesNotHaveSubscription;
+use Base\Tenant\Http\Middleware\EnforceIpAllowlist;
+use Base\Tenant\Http\Middleware\EnforceSessionTimeout;
+use Base\Tenant\Http\Middleware\EnforceTwoFactor;
 use Base\Tenant\Http\Middleware\EnsurePasswordChanged;
 use Base\Tenant\Http\Middleware\EnsureTermsAccepted;
 use Base\Tenant\Http\Middleware\EnsureWithinUsageLimit;
@@ -38,10 +49,12 @@ use Base\Tenant\Http\Middleware\HasFeature;
 use Base\Tenant\Http\Middleware\HasSubscription;
 use Base\Tenant\Http\Middleware\SetAccountContext;
 use Base\Tenant\Http\Middleware\SetLocale;
+use Base\Tenant\Http\Middleware\TrackUserSession;
 use Base\Tenant\Languages\LangFileWriter;
 use Base\Tenant\Languages\LangSyncerClient;
 use Base\Tenant\Languages\LanguageManager;
 use Base\Tenant\Languages\TranslationCoverage;
+use Base\Tenant\Listeners\AcceptPendingInvitationListener;
 use Base\Tenant\Livewire\AcceptTerms;
 use Base\Tenant\Livewire\AccountManager;
 use Base\Tenant\Livewire\AccountSettings;
@@ -53,8 +66,10 @@ use Base\Tenant\Livewire\Auth\ForcePasswordChange;
 use Base\Tenant\Livewire\Auth\ForgotPassword;
 use Base\Tenant\Livewire\Auth\Login;
 use Base\Tenant\Livewire\Auth\Register;
+use Base\Tenant\Livewire\Auth\RequestMagicLink;
 use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\ConnectionManager as ConnectionManagerComponent;
+use Base\Tenant\Livewire\DomainManager as DomainManagerComponent;
 use Base\Tenant\Livewire\EditAccount;
 use Base\Tenant\Livewire\EditUser;
 use Base\Tenant\Livewire\FeatureManager as FeatureManagerComponent;
@@ -73,11 +88,14 @@ use Base\Tenant\Livewire\Onboarding\Checklist as OnboardingChecklist;
 use Base\Tenant\Livewire\Preferences;
 use Base\Tenant\Livewire\Presale\PricingTable;
 use Base\Tenant\Livewire\Presale\WaitlistForm;
+use Base\Tenant\Livewire\Profile\ActiveSessions;
 use Base\Tenant\Livewire\Profile\ConnectedAccounts;
 use Base\Tenant\Livewire\Profile\DeleteUserForm;
+use Base\Tenant\Livewire\Profile\Passkeys as PasskeysComponent;
 use Base\Tenant\Livewire\Profile\UpdatePasswordForm;
 use Base\Tenant\Livewire\Profile\UpdateProfileInformationForm;
 use Base\Tenant\Livewire\RoleManager;
+use Base\Tenant\Livewire\SecurityPolicyManager as SecurityPolicyManagerComponent;
 use Base\Tenant\Livewire\TransferManager as TransferManagerComponent;
 use Base\Tenant\Livewire\TwoFactorAuthentication;
 use Base\Tenant\Livewire\TwoFactorChallenge;
@@ -94,12 +112,16 @@ use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
 use Base\Tenant\Models\UserInvite;
 use Base\Tenant\Onboarding\OnboardingManager;
+use Base\Tenant\Passwordless\MagicLinkManager;
+use Base\Tenant\Passwordless\PasskeyManager;
 use Base\Tenant\Policies\AccountPolicy;
 use Base\Tenant\Policies\RolePolicy;
 use Base\Tenant\Policies\UserInvitePolicy;
 use Base\Tenant\Policies\UserPolicy;
 use Base\Tenant\Presale\PresaleManager;
+use Base\Tenant\Security\SecurityPolicyManager;
 use Base\Tenant\Sequences\SequenceManager;
+use Base\Tenant\Sessions\SessionManager as UserSessionManager;
 use Base\Tenant\Settings\SettingsManager;
 use Base\Tenant\Social\SocialLoginService;
 use Base\Tenant\Support\Module;
@@ -111,17 +133,20 @@ use Base\Tenant\Tenancy\TenantTeamResolver;
 use Base\Tenant\Transfer\TransferManager;
 use Base\Tenant\View\Components\AppLayout;
 use Base\Tenant\View\Components\GuestLayout;
+use Illuminate\Auth\Events\Login as LoginEvent;
 use Illuminate\Auth\Notifications\ResetPassword;
 use Illuminate\Auth\Notifications\VerifyEmail as VerifyEmailNotification;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Events\Dispatcher;
 use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Octane\Events\RequestReceived as OctaneRequestReceived;
 use Livewire\Livewire;
 use SocialiteProviders\Manager\SocialiteWasCalled;
 use SocialiteProviders\Microsoft\MicrosoftExtendSocialite;
@@ -143,6 +168,10 @@ class BaseTenantServiceProvider extends ServiceProvider
 
         // Takes a path, so it cannot be autowired from the class name alone.
         $this->app->singleton(LangFileWriter::class, fn (): LangFileWriter => LangFileWriter::forApplication());
+
+        // An interface, so it cannot be autowired: a test binds a fake and an
+        // installation behind a split-horizon resolver binds its own.
+        $this->app->bind(DnsLookup::class, SystemDnsLookup::class);
     }
 
     public function boot(): void
@@ -175,6 +204,8 @@ class BaseTenantServiceProvider extends ServiceProvider
         $this->configureEmailVerification();
         $this->registerSocialProviders();
         $this->registerSuppressionGuard();
+        $this->registerInvitationAcceptance();
+        $this->registerSecurityPolicyLifecycle();
     }
 
     /**
@@ -270,6 +301,26 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.feature' => HasFeature::class,
             'base-tenant.terms' => EnsureTermsAccepted::class,
             'base-tenant.metered' => EnsureWithinUsageLimit::class,
+            'base-tenant.two-factor' => EnforceTwoFactor::class,
+            'base-tenant.ip-allowlist' => EnforceIpAllowlist::class,
+            'base-tenant.session-timeout' => EnforceSessionTimeout::class,
+            'base-tenant.track-session' => TrackUserSession::class,
+        ];
+    }
+
+    /**
+     * Middleware Livewire must re-run on component updates, against the page
+     * request it rebuilds from the snapshot.
+     *
+     * @return list<class-string>
+     */
+    public static function persistentMiddleware(): array
+    {
+        return [
+            EnforceTwoFactor::class,
+            EnforceIpAllowlist::class,
+            EnforceSessionTimeout::class,
+            TrackUserSession::class,
         ];
     }
 
@@ -278,6 +329,12 @@ class BaseTenantServiceProvider extends ServiceProvider
     {
         return [
             TenantManager::class,
+            DomainManager::class,
+            DomainVerifier::class,
+            SecurityPolicyManager::class,
+            UserSessionManager::class,
+            MagicLinkManager::class,
+            PasskeyManager::class,
             FeatureManager::class,
             FileStore::class,
             LanguageManager::class,
@@ -292,6 +349,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             MeterManager::class,
             OnboardingManager::class,
             DataExportService::class,
+            DataErasureService::class,
             PresaleManager::class,
             SuppressionManager::class,
             MetricRegistry::class,
@@ -342,6 +400,12 @@ class BaseTenantServiceProvider extends ServiceProvider
             $router->aliasMiddleware($alias, $middleware);
         }
 
+        // Every action in the package's screens is a POST to Livewire's update
+        // endpoint, which only re-applies the middleware in this list. Left
+        // out, a revoked session would keep executing every wire:click and an
+        // overdue second factor would only be enforced on page loads.
+        Livewire::addPersistentMiddleware(static::persistentMiddleware());
+
         $router->pushMiddlewareToGroup('web', SetAccountContext::class);
 
         if (config('base-tenant.force_password_change.enabled', false)) {
@@ -362,6 +426,7 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.auth.login' => Login::class,
             'base-tenant.auth.register' => Register::class,
             'base-tenant.auth.forgot-password' => ForgotPassword::class,
+            'base-tenant.auth.request-magic-link' => RequestMagicLink::class,
             'base-tenant.auth.reset-password' => \Base\Tenant\Livewire\Auth\ResetPassword::class,
             'base-tenant.auth.confirm-password' => ConfirmPassword::class,
             'base-tenant.auth.verify-email' => VerifyEmail::class,
@@ -371,6 +436,10 @@ class BaseTenantServiceProvider extends ServiceProvider
             'base-tenant.presale.pricing-table' => PricingTable::class,
             'base-tenant.presale.waitlist-form' => WaitlistForm::class,
             'base-tenant.connection-manager' => ConnectionManagerComponent::class,
+            'base-tenant.domain-manager' => DomainManagerComponent::class,
+            'base-tenant.security-policy-manager' => SecurityPolicyManagerComponent::class,
+            'base-tenant.profile.active-sessions' => ActiveSessions::class,
+            'base-tenant.profile.passkeys' => PasskeysComponent::class,
             'base-tenant.transfer-manager' => TransferManagerComponent::class,
             'base-tenant.language-manager' => LanguageManagerComponent::class,
             'base-tenant.files.uploader' => FilesUploader::class,
@@ -472,6 +541,8 @@ class BaseTenantServiceProvider extends ServiceProvider
             PresaleOpenCommand::class,
             PurgeDeletedCommand::class,
             ReconcileStorageCommand::class,
+            VerifyDomainsCommand::class,
+            PruneSessionsCommand::class,
         ]);
     }
 
@@ -503,6 +574,17 @@ class BaseTenantServiceProvider extends ServiceProvider
 
             if (Module::enabled(Module::GDPR)) {
                 $schedule->command(PurgeDeletedCommand::class)->daily()->withoutOverlapping();
+            }
+
+            // A domain verified once is not verified forever: zones get
+            // edited, and a hostname that stopped proving ownership should
+            // stop being treated as proof.
+            if (Module::enabled(Module::DOMAINS)) {
+                $schedule->command(VerifyDomainsCommand::class)->daily()->withoutOverlapping();
+            }
+
+            if (Module::enabled(Module::SECURITY) && config('base-tenant.security.sessions.enabled', true)) {
+                $schedule->command(PruneSessionsCommand::class)->daily()->withoutOverlapping();
             }
         });
     }
@@ -541,6 +623,31 @@ class BaseTenantServiceProvider extends ServiceProvider
         }
 
         Event::listen(MessageSending::class, [BlockSuppressedRecipients::class, 'handle']);
+    }
+
+    /**
+     * Finish an invitation opened before sign-in, whichever way the person
+     * then signed in: password, magic link, passkey, social or the second
+     * factor challenge all fire the same event.
+     */
+    protected function registerInvitationAcceptance(): void
+    {
+        Event::listen(LoginEvent::class, AcceptPendingInvitationListener::class);
+    }
+
+    /**
+     * The security policy memo lives on a singleton. In a process that serves
+     * one request and exits that is the request's lifetime; under Octane or
+     * `queue:work` it would be the worker's, and a policy tightened on another
+     * worker would go unenforced here until this one recycled.
+     */
+    protected function registerSecurityPolicyLifecycle(): void
+    {
+        Event::listen(JobProcessing::class, static fn (): mixed => SecurityFacade::forget());
+
+        if (class_exists(OctaneRequestReceived::class)) {
+            Event::listen(OctaneRequestReceived::class, static fn (): mixed => SecurityFacade::forget());
+        }
     }
 
     protected function configurePasswordReset(): void

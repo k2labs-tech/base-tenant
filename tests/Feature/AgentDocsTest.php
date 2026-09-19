@@ -25,6 +25,9 @@ function documentosDeModulo(): array
         Module::GDPR => '25-gdpr.md',
         Module::PRESALE => '26-presale.md',
         Module::CONNECTIONS => '14-connections.md',
+        Module::DOMAINS => '15-domains.md',
+        Module::SECURITY => '16-security.md',
+        Module::PASSWORDLESS => '17-passwordless.md',
     ];
 }
 
