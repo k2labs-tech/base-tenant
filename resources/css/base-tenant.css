@@ -23,7 +23,7 @@
  * own theme definitions:
  *
  * @import 'tailwindcss';
- * @import '../../vendor/base/tenant/resources/css/base-tenant.css';
+ * @import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';
  *
  * @theme {
  *   --color-danger-500: var(--color-rose-500);
@@ -32,7 +32,7 @@
  * The host application also needs @source directives pointing at the package
  * views so that Tailwind generates utilities for the classes those views use:
  *
- * @source '../../vendor/base/tenant/resources/views';
+ * @source '../../vendor/k2labs/base-tenant/resources/views';
  *
  * Note: if you define any of these tokens in your application's @theme block,
  * your definitions take precedence. Tailwind merges @theme blocks at build time

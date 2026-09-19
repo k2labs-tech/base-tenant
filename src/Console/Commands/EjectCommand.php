@@ -202,16 +202,16 @@ class EjectCommand extends Command
         $this->line('  - theme copied to resources/css/base-tenant.css, app.css repointed at it');
 
         if (! $this->option('keep-package')) {
-            $this->line('  - <fg=cyan>composer remove base/tenant</>');
+            $this->line('  - <fg=cyan>composer remove k2labs/base-tenant</>');
         }
     }
 
     protected function removePackage(): void
     {
         $this->newLine();
-        $this->components->info('Running composer remove base/tenant …');
+        $this->components->info('Running composer remove k2labs/base-tenant …');
 
-        $process = new Process(['composer', 'remove', 'base/tenant', '--no-interaction'], base_path());
+        $process = new Process(['composer', 'remove', 'k2labs/base-tenant', '--no-interaction'], base_path());
         $process->setTimeout(600);
 
         $process->run(function (string $type, string $buffer): void {

@@ -1,0 +1,17 @@
+* text=auto
+
+# Left out of the archives Composer downloads from Packagist.
+# tests/TenancyAssertions.php ships on purpose: host applications use it.
+/.gitattributes      export-ignore
+/.gitignore          export-ignore
+/phpunit.xml         export-ignore
+/composer.lock       export-ignore
+/tests/Feature       export-ignore
+/tests/Fixtures      export-ignore
+/tests/Unit          export-ignore
+/tests/Pest.php      export-ignore
+/tests/TestCase.php  export-ignore
+/docs/plans          export-ignore
+/docs/superpowers    export-ignore
+/docs/PRODUCT-SPEC.md export-ignore
+/docs/WEBSITE-SPEC.md export-ignore

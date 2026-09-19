@@ -1,8 +1,8 @@
-# base/tenant — Agent index
+# k2labs/base-tenant — Agent index
 
 **Module:** core · **Package version:** v2 · **Last reviewed:** 2026-08-12
 
-You are working in a Laravel application built on the `base/tenant` package.
+You are working in a Laravel application built on the `k2labs/base-tenant` package.
 This directory is the map. Read this file before writing code.
 
 ---

@@ -8,7 +8,7 @@
 
 | Key | Value |
 |-----|-------|
-| Package name | `base/tenant` |
+| Package name | `k2labs/base-tenant` |
 | Namespace | `Base\Tenant\` |
 | PHP | ^8.4 |
 | Laravel | 12.x |

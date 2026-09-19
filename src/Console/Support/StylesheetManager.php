@@ -19,7 +19,17 @@ namespace Base\Tenant\Console\Support;
  */
 class StylesheetManager
 {
-    protected const IMPORT = "@import '../../vendor/base/tenant/resources/css/base-tenant.css';";
+    protected const IMPORT = "@import '../../vendor/k2labs/base-tenant/resources/css/base-tenant.css';";
+
+    /**
+     * Hasta la 3.0 el paquete se llamaba `base/tenant` y vivía en
+     * `vendor/base/tenant/`. Una aplicación instalada entonces conserva estas
+     * rutas, que tras el cambio de nombre apuntan a un directorio que ya no
+     * existe: se reconocen para migrarlas y para poder separar el paquete.
+     */
+    protected const LEGACY_IMPORT = "@import '../../vendor/base/tenant/resources/css/base-tenant.css';";
+
+    protected const LEGACY_SOURCE_PATTERN = '~^[^\S\r\n]*@source\s+(["\'])(?:[^"\']*/)?vendor/base/tenant/resources/views[^"\']*\1;[^\S\r\n]*\R?~m';
 
     /**
      * Flux no inyecta su hoja de estilos con una directiva: la aplicación tiene
@@ -44,7 +54,7 @@ class StylesheetManager
     /** Enlazado en desarrollo y en vendor en producción: se declaran los dos. */
     protected const SOURCES = [
         "@source '../../base-tenant/resources/views/**/*.blade.php';",
-        "@source '../../vendor/base/tenant/resources/views/**/*.blade.php';",
+        "@source '../../vendor/k2labs/base-tenant/resources/views/**/*.blade.php';",
     ];
 
     /**
@@ -53,9 +63,9 @@ class StylesheetManager
      * incluidas.
      *
      * `base[\/-]tenant` no es un adorno: enlazado el directorio se llama
-     * `base-tenant` y dentro de `vendor/` es `base/tenant`. Buscar solo la
-     * primera forma deja la ruta de vendor puesta, apuntando a un directorio
-     * que ya no existe. El segmento va anclado a un `/` o a la propia comilla
+     * `base-tenant`, dentro de `vendor/` es `k2labs/base-tenant` y antes de la
+     * 3.0 era `base/tenant`. Buscar solo una forma deja otra puesta, apuntando
+     * a un directorio que ya no existe. El segmento va anclado a un `/` o a la propia comilla
      * para no llevarse por delante un `packages/mybase/tenant/`, que es de otro.
      */
     protected const SOURCE_PATTERN = '~^[^\S\r\n]*@source\s+(["\'])(?:[^"\']*/)?base[/-]tenant/resources/views[^"\']*\1;[^\S\r\n]*\R?~m';
@@ -68,6 +78,7 @@ class StylesheetManager
 
     public function apply(string $contents): string
     {
+        $contents = $this->migrateLegacyPaths($contents);
         $contents = $this->addImport($contents);
 
         // Después del tema a propósito: ambos se insertan justo detrás de
@@ -108,13 +119,28 @@ class StylesheetManager
     protected function isWired(string $contents): bool
     {
         return str_contains($contents, self::IMPORT)
+            || str_contains($contents, self::LEGACY_IMPORT)
             || preg_match(self::SOURCE_PATTERN, $contents) === 1;
+    }
+
+    /**
+     * Lleva un `app.css` escrito por una versión anterior a la 3.0 a las rutas
+     * de `vendor/k2labs/base-tenant/`. El import se reescribe en su sitio y las
+     * rutas de escaneo antiguas se retiran; `addSources()` pone las nuevas.
+     */
+    protected function migrateLegacyPaths(string $contents): string
+    {
+        $contents = str_replace(self::LEGACY_IMPORT, self::IMPORT, $contents);
+
+        return preg_replace(self::LEGACY_SOURCE_PATTERN, '', $contents) ?? $contents;
     }
 
     protected function localiseImport(string $contents): string
     {
-        if (str_contains($contents, self::IMPORT)) {
-            return str_replace(self::IMPORT, self::LOCAL_IMPORT, $contents);
+        foreach ([self::IMPORT, self::LEGACY_IMPORT] as $import) {
+            if (str_contains($contents, $import)) {
+                return str_replace($import, self::LOCAL_IMPORT, $contents);
+            }
         }
 
         if (str_contains($contents, self::LOCAL_IMPORT)) {
