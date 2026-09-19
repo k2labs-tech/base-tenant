@@ -1,5 +1,5 @@
 {
-    "name": "base/tenant",
+    "name": "k2labs/base-tenant",
     "description": "Multi-tenant SaaS base package with subscriptions, RBAC, and team collaboration for Laravel 13",
     "type": "library",
     "keywords": [
@@ -14,8 +14,16 @@
     "license": "proprietary",
     "authors": [
         {
-            "name": "Your Name",
-            "email": "your-email@example.com"
+            "name": "Dani",
+            "email": "dani@ideasandbusiness.com"
+        },
+        {
+            "name": "Nico",
+            "email": "nico@ideasandbusiness.com"
+        },
+        {
+            "name": "Enric",
+            "email": "enric@ideasandbusiness.com"
         }
     ],
     "require": {
@@ -56,7 +64,11 @@
     "autoload-dev": {
         "psr-4": {
             "Base\\Tenant\\Tests\\": "tests/"
-        }
+        },
+        "exclude-from-classmap": [
+            "tests/Feature/",
+            "tests/Unit/"
+        ]
     },
     "extra": {
         "laravel": {
