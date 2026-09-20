@@ -918,7 +918,7 @@ escribir nada**; y ofrece publicar la documentación para agentes.
 ### 9.2 Empezar de cero con el starter kit
 
 La forma más rápida de verlo funcionando no es instalarlo en una aplicación
-existente, sino arrancar un proyecto nuevo desde `k2labs/base-tenant-kit`, que llega
+existente, sino arrancar un proyecto nuevo desde `k2labs/starter-kit`, que llega
 con esto ya instalado y configurado.
 
 ### 9.3 Quedarte el código — `scaffold` / `eject`
