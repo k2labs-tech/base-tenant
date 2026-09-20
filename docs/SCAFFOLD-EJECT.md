@@ -193,7 +193,7 @@ updating the `config()` calls in `app/` to match.
 ## Proven end to end
 
 Both commands have been run against a real application built from
-`k2/base-tenant-kit`:
+`k2labs/base-tenant-kit`:
 
 - `scaffold` wrote all 255 files, generated `app/Providers/TenancyServiceProvider.php`
   and registered it in `bootstrap/providers.php`
