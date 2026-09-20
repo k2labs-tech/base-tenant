@@ -12,7 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
-## [3.0.0] - 2026-09-19
+## [3.0.0] - 2026-09-20
 
 First release published on Packagist, as `k2labs/base-tenant`. Upgrading from
 2.x is covered in [`UPGRADE.md`](UPGRADE.md#from-2x-to-30).
