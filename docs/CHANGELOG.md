@@ -12,6 +12,34 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.0.2] - 2026-09-21
+
+### Fixed
+
+- `user_invites.token` was created as `varchar(50)` while invitation tokens are
+  64 characters long. SQLite ignores the length, so it went unnoticed;
+  PostgreSQL rejects the insert and MySQL truncates it, breaking invitations in
+  both. The column is created as `varchar(64)` and a migration widens it on
+  existing installations, keeping the data and the unique index.
+- `usage_events.subject` was declared with `nullableMorphs()`, so `subject_id`
+  was a `bigint` receiving the UUID keys the package uses everywhere. On
+  PostgreSQL and MySQL every metered write that names its subject failed —
+  uploading a file, running an import or an export. It is `nullableUuidMorphs()`
+  now, with a migration that converts the column on existing installations.
+- `k2labs-base:install` could not get past its own database question on a
+  project whose SQLite file did not exist yet: connecting to a missing file
+  fails, and the file was only created once the settings were applied — which
+  needed a working connection. It now offers to create the file it just asked
+  for, and stops retrying instead of looping when nobody can answer
+  (`--no-interaction`).
+
+### Changed
+
+- The test suite reads the connection from the environment. It still defaults
+  to in-memory SQLite, and `DB_CONNECTION=pgsql vendor/bin/pest` now runs the
+  same suite against a real server — which is what catches schema problems
+  SQLite forgives.
+
 ## [3.0.1] - 2026-09-20
 
 ### Fixed

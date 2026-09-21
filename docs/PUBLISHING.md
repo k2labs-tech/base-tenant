@@ -101,10 +101,12 @@ the changelog and release the fix as soon as possible.
 
 ## Before each release: what not to ship
 
-- **No `repositories` block pointing at a local path.** Composer ignores the
-  `repositories` of a dependency, so it does no harm to users, but it signals a
-  development setup. The Flux Pro repository is kept on purpose, for the
-  package's own development.
+- **No `repositories` block pointing at a local path.** In this package it is
+  only untidy: Composer ignores the `repositories` of a dependency. In the
+  starter kit, which is installed as the root package, it is fatal — Composer
+  aborts with *the `url` supplied for the path repository does not exist* on
+  every machine without that directory. The Flux Pro repository is kept on
+  purpose, for the package's own development.
 - **No secrets.** The repository is public: `.env`, `auth.json` and Flux Pro
   credentials stay out of it (`.gitignore` covers them).
 - **`minimum-stability: dev`** in `composer.json` only affects the package's own
@@ -126,7 +128,17 @@ with it is governed by the licence, not by Packagist.
 
 ## The starter kit
 
-`k2labs-tech/starter-kit` requires `k2labs/base-tenant: ^3.0`. While both are
-developed side by side it resolves the package from a local checkout through a
-`path` repository. Once the kit is published, drop that block so projects
-created from it install the package from Packagist.
+`k2labs-tech/starter-kit` is published on Packagist the same way and requires
+`k2labs/base-tenant: ^3.0`. It is released alongside the package whenever a
+release changes what a new project gets.
+
+Its `composer.json` must never carry a `path` repository for the package. The
+kit is installed as the *root* package, so its `repositories` block is honoured
+in full, and one pointing at a developer's directory breaks `composer install`
+for everyone else. Working against a local checkout of the package is set up in
+the generated project instead:
+
+```bash
+composer config repositories.k2labs/base-tenant \
+  '{"type":"path","url":"~/Projects/base-tenant","options":{"symlink":true,"versions":{"k2labs/base-tenant":"3.0.1"}}}'
+```
