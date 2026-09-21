@@ -1,4 +1,4 @@
-# Website specification — base/tenant
+# Website specification — k2labs/base-tenant
 
 The public site for the package. A sibling specification exists in the starter
 kit repository for its own site; the two share a design system and cross-link,

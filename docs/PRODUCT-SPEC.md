@@ -1,4 +1,4 @@
-# Especificación de producto — base/tenant
+# Especificación de producto — k2labs/base-tenant
 
 > **Qué es este documento.** La fuente de verdad de todo lo que el producto hace
 > hoy y de lo que está construyéndose, escrita para que la landing de venta pueda
@@ -46,7 +46,7 @@ Variante corta, para el `<title>` y el hero:
 
 Variante larga, para el meta description y el primer párrafo:
 
-> `base/tenant` es un paquete para Laravel 13 que resuelve la capa que hay
+> `k2labs/base-tenant` es un paquete para Laravel 13 que resuelve la capa que hay
 > debajo de todo SaaS B2B: cada cliente es una cuenta, nada se filtra entre
 > ellas, cada cuenta tiene sus roles, sus límites y su configuración. Se instala
 > como dependencia y, el día que quieras, te quedas el código y lo desinstalas.
@@ -906,7 +906,7 @@ agente respeta y uno que el agente ignora.
 ### 9.1 Instalación
 
 ```bash
-composer require base/tenant
+composer require k2labs/base-tenant
 php artisan k2labs-base:install
 ```
 
@@ -1023,7 +1023,7 @@ contra el servicio real, no cuando su test pasa.
 Resumen del análisis completo en
 [`plans/2026-08-31-comparativa-saas-starter-kits.md`](plans/2026-08-31-comparativa-saas-starter-kits.md).
 
-| | base/tenant | SaaSykit | Larafast | JetShip | Spark | Wave |
+| | k2labs/base-tenant | SaaSykit | Larafast | JetShip | Spark | Wave |
 |---|---|---|---|---|---|---|
 | Aislamiento propagado a jobs, caché y broadcast | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |
 | Permisos por cuenta fuera de la sesión HTTP | ✅ | ❌ | ❌ | ❌ | ❌ | ❌ |

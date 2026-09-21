@@ -200,7 +200,7 @@ Both commands have been run against a real application built from
 - the scaffolded application booted with 48 routes and no duplicates, and its
   test suite passed against the copied `App\` classes
 - `eject` transferred 9 dependencies, removed the package, and the application
-  still booted and passed its suite with `vendor/base` gone
+  still booted and passed its suite with `vendor/k2labs/base-tenant` gone
 
 Three bugs surfaced in that run and are fixed: guard inference for the permission
 layer, the installer's rewrite of `models.user`, and factory resolution from a
