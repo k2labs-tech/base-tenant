@@ -59,18 +59,46 @@ class TestCase extends Orchestra
     {
         config()->set('app.key', 'base64:'.base64_encode(random_bytes(32)));
         config()->set('database.default', 'testing');
-        config()->set('database.connections.testing', [
-            'driver' => 'sqlite',
-            'database' => ':memory:',
-            'prefix' => '',
-            'foreign_key_constraints' => false,
-        ]);
+        config()->set('database.connections.testing', $this->connectionConfig());
 
         config()->set('base-tenant.subscription.enabled', false);
         config()->set('base-tenant.multi_team', true);
         config()->set('base-tenant.home_url', 'base-tenant.dashboard');
         config()->set('base-tenant.menu.cache.enabled', false);
         config()->set('auth.providers.users.model', User::class);
+    }
+
+    /**
+     * SQLite in memory by default. Exporting `DB_CONNECTION=pgsql` (or
+     * `mysql`) runs the same suite against a real server, which is the only
+     * way to catch what SQLite forgives — column lengths, strict types and
+     * anything else it does not enforce.
+     */
+    protected function connectionConfig(): array
+    {
+        $driver = env('DB_CONNECTION', 'sqlite');
+
+        if ($driver === 'sqlite') {
+            return [
+                'driver' => 'sqlite',
+                'database' => env('DB_DATABASE', ':memory:'),
+                'prefix' => '',
+                'foreign_key_constraints' => false,
+            ];
+        }
+
+        return [
+            'driver' => $driver,
+            'host' => env('DB_HOST', '127.0.0.1'),
+            'port' => env('DB_PORT', $driver === 'pgsql' ? '5432' : '3306'),
+            'database' => env('DB_DATABASE', 'base_tenant_test'),
+            'username' => env('DB_USERNAME', $driver === 'pgsql' ? 'postgres' : 'root'),
+            'password' => env('DB_PASSWORD', ''),
+            'charset' => $driver === 'pgsql' ? 'utf8' : 'utf8mb4',
+            'prefix' => '',
+            'search_path' => 'public',
+            'sslmode' => 'prefer',
+        ];
     }
 
     /**
