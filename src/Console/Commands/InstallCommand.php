@@ -239,7 +239,8 @@ class InstallCommand extends Command
 
             $this->components->error('  Could not connect: '.$this->databaseConfigurator->lastError());
 
-            if (! $this->components->confirm('  Try again?', true)) {
+            if ($this->option('no-interaction')
+                || ! $this->components->confirm('  Try again?', true)) {
                 $this->components->warn('  Continuing with the current settings. Migrations may fail.');
 
                 return null;
@@ -261,7 +262,9 @@ class InstallCommand extends Command
         );
 
         if ($driver === 'sqlite') {
-            $path = $this->ask('  Database file', $this->databaseConfigurator->defaultSqlitePath());
+            $path = (string) $this->ask('  Database file', $this->databaseConfigurator->defaultSqlitePath());
+
+            $this->ensureSqliteFile($path);
 
             return ['driver' => 'sqlite', 'database' => $path, 'host' => '', 'port' => '', 'username' => '', 'password' => ''];
         }
@@ -274,6 +277,27 @@ class InstallCommand extends Command
             'username' => (string) $this->ask('  Username', $current['username'] ?: 'root'),
             'password' => (string) ($this->secret('  Password (leave empty for none)') ?? ''),
         ];
+    }
+
+    /**
+     * An empty SQLite file is a valid, empty database, and connecting to one
+     * that does not exist fails. Without this the installer cannot get past the
+     * question it just asked: the file is only created when the settings are
+     * applied, and they are only applied once the connection works.
+     */
+    protected function ensureSqliteFile(string $path): void
+    {
+        if (file_exists($path)) {
+            return;
+        }
+
+        $relative = $this->databaseConfigurator->relativePath($path);
+
+        if ($this->option('no-interaction')
+            || $this->components->confirm("  {$relative} does not exist. Create it?", true)) {
+            $this->databaseConfigurator->ensureSqliteFileExists($path);
+            $this->components->info("  Created {$relative}.");
+        }
     }
 
     /**

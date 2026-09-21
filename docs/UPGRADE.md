@@ -1,5 +1,28 @@
 # Upgrade Guide
 
+## From 3.0.x to 3.0.2
+
+Two migrations, no configuration changes:
+
+```bash
+composer update k2labs/base-tenant
+php artisan migrate
+```
+
+The first widens `user_invites.token` from `varchar(50)` to `varchar(64)`, the
+length invitation tokens have always been. Installations on PostgreSQL or MySQL
+that patched the column themselves can drop their own migration: widening a
+column that is already 64 characters does nothing, and the row their migration
+left in the `migrations` table is harmless.
+
+The second turns `usage_events.subject_id` from `bigint` into a UUID column.
+Nothing is lost: on PostgreSQL and MySQL the column could never hold a subject
+— the write that fills it is the one that was failing — and on SQLite the
+values are copied over.
+
+Both are safe to run on a live database: neither drops a column, an index or a
+row.
+
 ## From 2.x to 3.0
 
 3.0 is the first release on Packagist. Three things change for an existing

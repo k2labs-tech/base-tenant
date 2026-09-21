@@ -135,7 +135,11 @@ Manual setup, and what the installer actually changes, are in
 The fastest way to see it working is not to install it into an existing
 application but to start a new project from the
 [starter kit](https://github.com/k2labs-tech/starter-kit), which arrives with
-this already installed and configured.
+this already installed and configured:
+
+```bash
+laravel new my-app --using=k2labs/starter-kit
+```
 
 To work on the package itself from an application, point Composer at a local
 checkout instead — see
@@ -622,6 +626,17 @@ vendor/bin/pest
 
 The suite runs on Orchestra Testbench against an in-memory SQLite database, and
 fails on deprecations, notices and warnings — a green run means a clean one.
+
+SQLite does not enforce everything a production server does — column lengths,
+above all — so the connection is read from the environment and the same suite
+can run against the database the application actually uses:
+
+```bash
+DB_CONNECTION=pgsql DB_DATABASE=base_tenant_test DB_USERNAME=postgres vendor/bin/pest
+```
+
+`DB_HOST`, `DB_PORT` and `DB_PASSWORD` are read too, and default to a local
+server. Point it at a throwaway database: the suite migrates and truncates it.
 
 ### Testing your own tenancy
 

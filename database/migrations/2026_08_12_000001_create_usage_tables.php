@@ -47,7 +47,7 @@ return new class extends Migration
             // that can be seen rather than guessed at.
             $table->bigInteger('delta');
 
-            $table->nullableMorphs('subject');
+            $table->nullableUuidMorphs('subject');
             $table->json('metadata')->nullable();
 
             // Stamped once the delta has been reported to the billing
