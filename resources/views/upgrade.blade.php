@@ -15,9 +15,19 @@
                 {{ __('base-tenant::plans.upgrade_message') }}
             </p>
 
-            <a href="{{ route('base-tenant.billing') }}" class="inline-flex items-center justify-center px-6 py-3 bg-accent-600 text-white font-medium rounded-lg hover:bg-accent-700 transition-colors">
-                {{ __('base-tenant::plans.upgrade_action') }}
-            </a>
+            {{-- La ruta de facturación sólo existe con las suscripciones
+                 activadas. Sin ese guard, la pantalla a la que redirige
+                 `HasFeature` cuando falta una feature de plan devuelve 500 en
+                 toda instalación que venda sus planes fuera del producto. --}}
+            @if (Route::has('base-tenant.billing'))
+                <a href="{{ route('base-tenant.billing') }}" class="inline-flex items-center justify-center px-6 py-3 bg-accent-600 text-white font-medium rounded-lg hover:bg-accent-700 transition-colors">
+                    {{ __('base-tenant::plans.upgrade_action') }}
+                </a>
+            @else
+                <p class="text-sm text-zinc-500 dark:text-zinc-400">
+                    {{ __('base-tenant::plans.upgrade_contact') }}
+                </p>
+            @endif
         </div>
     </div>
 </x-base-tenant::app-layout>
