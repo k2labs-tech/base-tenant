@@ -4,17 +4,32 @@ declare(strict_types=1);
 
 namespace {{ namespace }}\Providers;
 
+use {{ namespace }}\Facades\Security as SecurityFacade;
+use {{ namespace }}\Listeners\AcceptPendingInvitationListener;
 use {{ namespace }}\Menu\DefaultMenus;
 use {{ namespace }}\Menu\MenuManager;
+use {{ namespace }}\Support\Module;
+use {{ namespace }}\Support\ScheduledTasks;
+use {{ namespace }}\Suppressions\BlockSuppressedRecipients;
 use {{ namespace }}\Tenancy\QueueTenancy;
 use {{ namespace }}\Tenancy\TenantTeamResolver;
+use Illuminate\Auth\Events\Login as LoginEvent;
 use Illuminate\Auth\Notifications\ResetPassword;
+use Illuminate\Auth\Notifications\VerifyEmail as VerifyEmailNotification;
+use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Contracts\Events\Dispatcher;
+use Illuminate\Mail\Events\MessageSending;
+use Illuminate\Queue\Events\JobProcessing;
 use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Blade;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\URL;
 use Illuminate\Support\ServiceProvider;
+use Laravel\Octane\Events\RequestReceived as OctaneRequestReceived;
 use Livewire\Livewire;
+use SocialiteProviders\Manager\SocialiteWasCalled;
+use SocialiteProviders\Microsoft\MicrosoftExtendSocialite;
 
 /**
  * Wires up the tenancy, permission and navigation code that now lives in this
@@ -33,12 +48,27 @@ class TenancyServiceProvider extends ServiceProvider
         ] as $singleton) {
             $this->app->singleton($singleton);
         }
+
+        // Built by a named constructor: the class name alone is not enough.
+        foreach ([
+{{ factories }}
+        ] as $abstract => $factory) {
+            $this->app->singleton($abstract, static fn (): object => $abstract::$factory());
+        }
+
+        // Interfaces, which the container cannot resolve on its own. Bind your
+        // own implementation here to replace one.
+        foreach ([
+{{ bindings }}
+        ] as $abstract => $concrete) {
+            $this->app->bind($abstract, $concrete);
+        }
     }
 
     public function boot(): void
     {
         $this->loadViewsFrom(resource_path('views/{{ handle }}'), '{{ handle }}');
-        $this->loadTranslationsFrom(lang_path('{{ handle }}'), '{{ handle }}');
+        $this->loadTranslationsFrom(lang_path('vendor/{{ handle }}'), '{{ handle }}');
 
         $this->loadRoutesFrom(base_path('routes/{{ handle }}/web.php'));
         $this->loadRoutesFrom(base_path('routes/{{ handle }}/auth.php'));
@@ -51,7 +81,13 @@ class TenancyServiceProvider extends ServiceProvider
         $this->registerLivewireComponents();
         $this->registerBladeComponents();
         $this->registerCommands();
+        $this->registerSchedule();
         $this->configurePasswordReset();
+        $this->configureEmailVerification();
+        $this->registerSocialProviders();
+        $this->registerSuppressionGuard();
+        $this->registerInvitationAcceptance();
+        $this->registerSecurityPolicyLifecycle();
     }
 
     /**
@@ -169,6 +205,19 @@ class TenancyServiceProvider extends ServiceProvider
         ]);
     }
 
+    /**
+     * The maintenance work the product does on its own: pruning, metering,
+     * domain re-verification and the retention jobs. The table lives in
+     * `Support\ScheduledTasks`, which is yours to edit.
+     */
+    protected function registerSchedule(): void
+    {
+        $this->callAfterResolving(
+            Schedule::class,
+            static fn (Schedule $schedule): mixed => ScheduledTasks::register($schedule)
+        );
+    }
+
     protected function configurePasswordReset(): void
     {
         ResetPassword::createUrlUsing(function ($notifiable, string $token): string {
@@ -177,5 +226,81 @@ class TenancyServiceProvider extends ServiceProvider
                 'email' => $notifiable->getEmailForPasswordReset(),
             ], false));
         });
+    }
+
+    /**
+     * Point Laravel's own verification notification at this application's
+     * route. Without it the notification signs its link against
+     * `verification.verify`, a name nothing registers, and every unverified
+     * user hits a 500 the moment the screen tries to send the mail.
+     */
+    protected function configureEmailVerification(): void
+    {
+        VerifyEmailNotification::createUrlUsing(function ($notifiable): string {
+            return URL::temporarySignedRoute(
+                'base-tenant.verification.verify',
+                now()->addMinutes((int) config('auth.verification.expire', 60)),
+                [
+                    'id' => $notifiable->getKey(),
+                    'hash' => sha1($notifiable->getEmailForVerification()),
+                ]
+            );
+        });
+    }
+
+    /**
+     * Hand Socialite the drivers it does not ship with.
+     */
+    protected function registerSocialProviders(): void
+    {
+        if (! Module::enabled(Module::SOCIAL)) {
+            return;
+        }
+
+        if (! class_exists(SocialiteWasCalled::class) || ! class_exists(MicrosoftExtendSocialite::class)) {
+            return;
+        }
+
+        Event::listen(SocialiteWasCalled::class, [MicrosoftExtendSocialite::class, 'handle']);
+    }
+
+    /**
+     * Stop any message addressed to a suppressed address.
+     *
+     * On the event and not inside a Mailable, so it covers this application's
+     * mail and anything a library sends: a guard that has to be remembered at
+     * each call site will be forgotten at one of them.
+     */
+    protected function registerSuppressionGuard(): void
+    {
+        if (! Module::enabled(Module::SUPPRESSIONS)) {
+            return;
+        }
+
+        Event::listen(MessageSending::class, [BlockSuppressedRecipients::class, 'handle']);
+    }
+
+    /**
+     * Finish an invitation opened before sign-in, whichever way the person
+     * then signed in.
+     */
+    protected function registerInvitationAcceptance(): void
+    {
+        Event::listen(LoginEvent::class, AcceptPendingInvitationListener::class);
+    }
+
+    /**
+     * The security policy memo lives on a singleton. In a process that serves
+     * one request and exits that is the request's lifetime; under Octane or
+     * `queue:work` it would be the worker's, and a policy tightened on another
+     * worker would go unenforced here until this one recycled.
+     */
+    protected function registerSecurityPolicyLifecycle(): void
+    {
+        Event::listen(JobProcessing::class, static fn (): mixed => SecurityFacade::forget());
+
+        if (class_exists(OctaneRequestReceived::class)) {
+            Event::listen(OctaneRequestReceived::class, static fn (): mixed => SecurityFacade::forget());
+        }
     }
 }
