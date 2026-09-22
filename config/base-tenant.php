@@ -508,6 +508,11 @@ return [
             'security.view',
             'security.update',
         ],
+
+        // `k2labs-base:make-module` writes the permissions of a generated
+        // module above this line. Moving it is fine; deleting it is not — the
+        // generator stops rather than guess where the block belongs.
+        // base-tenant:permissions
     ],
 
     /*
