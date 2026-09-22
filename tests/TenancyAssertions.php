@@ -6,6 +6,7 @@ namespace Base\Tenant\Tests;
 
 use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Models\Account;
+use Base\Tenant\Services\PermissionRegistry;
 use Base\Tenant\Tenancy\QueueTenancy;
 use Closure;
 use Illuminate\Database\Eloquent\Model;
@@ -16,9 +17,70 @@ use Illuminate\Support\Facades\Queue;
  * Assertions a consuming application can run against its own models to prove
  * its tenancy holds. Isolation is the kind of property that has to be tested,
  * not read off the code.
+ *
+ * It also carries the four fixtures those assertions need — an account, a user
+ * holding a role inside it, the permission catalogue and an authenticated
+ * request with a tenant in context — because a test that cannot build a tenant
+ * cannot test one. The modules `k2labs-base:make-module` generates arrive with
+ * tests written against exactly these.
  */
 trait TenancyAssertions
 {
+    /**
+     * Write the configured permission catalogue and global roles. Nothing can
+     * be authorised before this runs.
+     */
+    protected function syncPermissions(): void
+    {
+        PermissionRegistry::sync();
+    }
+
+    /**
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function createAccount(array $attributes = []): Model
+    {
+        $model = config('base-tenant.models.account', Account::class);
+
+        return $model::factory()->create($attributes);
+    }
+
+    /**
+     * A user attached to an account, optionally holding a role inside it.
+     *
+     * @param  array<string, mixed>  $attributes
+     */
+    protected function createUser(?Model $account = null, ?string $role = null, array $attributes = []): Model
+    {
+        $account ??= $this->createAccount();
+
+        $model = config('auth.providers.users.model');
+
+        $user = $model::factory()->create([
+            'account_id' => $account->getKey(),
+            ...$attributes,
+        ]);
+
+        $user->accounts()->syncWithoutDetaching([$account->getKey()]);
+
+        if ($role !== null) {
+            Tenant::runFor($account, fn () => $user->assignRole($role));
+        }
+
+        return $user;
+    }
+
+    /**
+     * Authenticate as a user of the given account, with that account in
+     * context, which is what a real request would look like.
+     */
+    protected function actingAsTenant(Model $user, ?Model $account = null): static
+    {
+        Tenant::set($account ?? $user->account);
+
+        return $this->actingAs($user);
+    }
+
     /**
      * Prove records of one account are invisible from another.
      *

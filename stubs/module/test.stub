@@ -5,12 +5,35 @@ declare(strict_types=1);
 use App\Livewire\{{ class }}\Form;
 use App\Livewire\{{ class }}\Index;
 use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Tests\TenancyAssertions;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use {{ namespace }}\{{ class }};
 use Livewire\Livewire;
+
+// Las cuentas, los usuarios con rol y el catálogo de permisos que necesitan
+// estas pruebas vienen del kit de test del paquete, que se autocarga con él.
+// RefreshDatabase va aquí y no se da por supuesto: un proyecto puede aplicarlo
+// en su Pest.php o no hacerlo, y sin él no hay ni tabla de permisos.
+uses(TenancyAssertions::class, RefreshDatabase::class);
 
 beforeEach(function () {
     $this->syncPermissions();
 });
+
+/**
+ * Los permisos de este módulo acaban de entrar en el catálogo, y los roles de
+ * `config/base-tenant.php` todavía no los nombran. Hasta que los añadas ahí y
+ * corras `k2labs-base:sync-roles`, es la prueba quien se los da a quien actúa.
+ */
+function permisosDe{{ class }}(object $usuaria, object $cuenta): void
+{
+    Tenant::runFor($cuenta, fn () => $usuaria->givePermissionTo([
+        '{{ permission }}.view',
+        '{{ permission }}.create',
+        '{{ permission }}.update',
+        '{{ permission }}.delete',
+    ]));
+}
 
 /**
  * La garantía que ninguna aplicación multi-tenant puede permitirse perder.
@@ -23,6 +46,7 @@ test('una cuenta no ve los registros de otra', function () {
     Tenant::runFor($ajena, fn () => {{ class }}::factory()->create());
 
     $usuaria = $this->createUser($mia, 'customer-admin');
+    permisosDe{{ class }}($usuaria, $mia);
     $this->actingAsTenant($usuaria, $mia);
 
     expect({{ class }}::query()->count())->toBe(0);
@@ -31,6 +55,7 @@ test('una cuenta no ve los registros de otra', function () {
 test('el listado enseña los registros de la cuenta', function () {
     $cuenta = $this->createAccount();
     $usuaria = $this->createUser($cuenta, 'customer-admin');
+    permisosDe{{ class }}($usuaria, $cuenta);
 
     $this->actingAsTenant($usuaria, $cuenta);
 
@@ -53,6 +78,7 @@ test('quien no tiene permiso no entra', function () {
 test('crear guarda el registro dentro de la cuenta', function () {
     $cuenta = $this->createAccount();
     $usuaria = $this->createUser($cuenta, 'customer-admin');
+    permisosDe{{ class }}($usuaria, $cuenta);
 
     $this->actingAsTenant($usuaria, $cuenta);
 
@@ -67,6 +93,7 @@ test('crear guarda el registro dentro de la cuenta', function () {
 test('borrar pasa por el modal', function () {
     $cuenta = $this->createAccount();
     $usuaria = $this->createUser($cuenta, 'customer-admin');
+    permisosDe{{ class }}($usuaria, $cuenta);
 
     $this->actingAsTenant($usuaria, $cuenta);
 

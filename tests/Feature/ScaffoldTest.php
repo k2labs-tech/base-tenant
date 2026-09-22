@@ -220,7 +220,7 @@ test('the generated service provider is valid and registers everything', functio
         ->toContain('Gate::before')
         ->toContain("loadRoutesFrom(base_path('routes/tenant/web.php'))")
         ->toContain("loadViewsFrom(resource_path('views/tenant'), 'tenant')")
-        ->toContain("loadTranslationsFrom(lang_path('tenant'), 'tenant')")
+        ->toContain("loadTranslationsFrom(lang_path('vendor/tenant'), 'tenant')")
         ->not->toContain('Base\Tenant')
         ->not->toContain('{{');
 });
@@ -409,5 +409,149 @@ test('PHP translations keep the tenant namespace', function () {
     $plan = new ScaffoldPlan($this->packagePath, $this->workspace);
 
     expect(collect($plan->files())->pluck('relative'))
-        ->toContain('lang/tenant/en/users.php', 'lang/tenant/es/users.php');
+        ->toContain('lang/vendor/tenant/en/users.php', 'lang/vendor/tenant/es/users.php');
+});
+
+/**
+ * The generated provider is a copy of the package's boot sequence by hand, so
+ * the drift is silent: a behaviour added to the package boots for every
+ * application except the ones that took ownership of the code. These are the
+ * ones that went missing once — bindings that cannot be autowired, the
+ * schedule, the mail guard, the invitation listener — and the reason the
+ * comparison is a test rather than a note in a document.
+ */
+test('the generated provider boots everything the package provider boots', function () {
+    $rendered = (new ServiceProviderGenerator(
+        new CodeTransformer,
+        "{$this->packagePath}/stubs/TenancyServiceProvider.php.stub"
+    ))->render();
+
+    $paquete = file_get_contents("{$this->packagePath}/src/BaseTenantServiceProvider.php");
+
+    preg_match_all('/\$this->(\w+)\(\);/', $paquete, $llamadas);
+
+    $saltadas = [
+        // Only meaningful while the package is a dependency.
+        'registerPublishing',
+        'mergeConfigFrom',
+        // Laravel loads the application's own migrations by itself.
+        'loadMigrationsFrom',
+    ];
+
+    foreach (array_unique($llamadas[1]) as $metodo) {
+        if (in_array($metodo, $saltadas, true)) {
+            continue;
+        }
+
+        $this->assertStringContainsString(
+            "\$this->{$metodo}();",
+            $rendered,
+            "The generated provider never calls {$metodo}()"
+        );
+    }
+});
+
+test('the generated provider registers the container entries that cannot be autowired', function () {
+    $rendered = (new ServiceProviderGenerator(
+        new CodeTransformer,
+        "{$this->packagePath}/stubs/TenancyServiceProvider.php.stub"
+    ))->render();
+
+    foreach (BaseTenantServiceProvider::bindings() as $abstract => $concrete) {
+        $this->assertStringContainsString(
+            '\\'.str_replace('Base\\Tenant', 'App', $abstract).'::class',
+            $rendered,
+            "The generated provider never binds {$abstract}"
+        );
+    }
+
+    foreach (BaseTenantServiceProvider::factorySingletons() as $abstract => $method) {
+        $this->assertStringContainsString(
+            '\\'.str_replace('Base\\Tenant', 'App', $abstract)."::class => '{$method}'",
+            $rendered,
+            "The generated provider never builds {$abstract}"
+        );
+    }
+
+    expect($rendered)->toContain('ScheduledTasks::register($schedule)');
+});
+
+/**
+ * `MakeModuleCommand` travels with the code and imports it, so leaving it in
+ * the excluded directory made the module generator fatal on its first line.
+ */
+test('the support a scaffolded command needs travels with it', function () {
+    $plan = new ScaffoldPlan($this->packagePath, $this->workspace);
+
+    $relativos = collect($plan->files())->pluck('relative');
+
+    expect($relativos)->toContain('app/Console/Support/ModuleField.php')
+        ->and($relativos)->not->toContain('app/Console/Support/ScaffoldPlan.php');
+});
+
+test('the module templates are copied and rewritten', function () {
+    $plan = new ScaffoldPlan($this->packagePath, $this->workspace);
+
+    $stubs = collect($plan->files())
+        ->filter(fn (array $file): bool => str_starts_with($file['relative'], 'stubs/base-tenant/module/'));
+
+    expect($stubs)->not->toBeEmpty();
+
+    $transformer = new CodeTransformer;
+
+    foreach ($stubs as $stub) {
+        $contenido = $transformer->transform(file_get_contents($stub['source']));
+
+        expect($stub['transform'])->toBeTrue()
+            ->and($contenido)->not->toContain('Base\\Tenant\\')
+            ->and($contenido)->not->toContain('base-tenant::');
+    }
+});
+
+test('namespaced translations land where Laravel keeps them', function () {
+    $plan = new ScaffoldPlan($this->packagePath, $this->workspace);
+
+    $relativos = collect($plan->files())->pluck('relative');
+
+    expect($relativos->filter(fn (string $path): bool => str_starts_with($path, 'lang/vendor/tenant/')))->not->toBeEmpty()
+        ->and($relativos->filter(fn (string $path): bool => str_starts_with($path, 'lang/tenant/')))->toBeEmpty();
+});
+
+/**
+ * Composer accepts a map of repositories and a plain list; an application may
+ * have written either. Spreading one into the other renumbered the keys and
+ * produced an object with a "0" in it, which Composer refuses to read — and
+ * with its composer.json unreadable, the eject's own `composer remove` fails
+ * and the package stays installed.
+ */
+test('the repositories of an application that uses the list shape survive the transfer', function () {
+    File::put("{$this->workspace}/composer.json", json_encode([
+        'require' => ['laravel/framework' => '^13.0'],
+        'repositories' => [
+            ['type' => 'path', 'url' => '../some-package'],
+        ],
+    ], JSON_PRETTY_PRINT));
+
+    (new DependencyTransferManager($this->packagePath, $this->workspace))->transfer();
+
+    $manifest = json_decode(File::get("{$this->workspace}/composer.json"), true);
+
+    expect(array_is_list($manifest['repositories']))->toBeTrue()
+        ->and(collect($manifest['repositories'])->pluck('url'))
+        ->toContain('../some-package', 'https://composer.fluxui.dev');
+});
+
+test('a repository the application already has is not added twice', function () {
+    File::put("{$this->workspace}/composer.json", json_encode([
+        'require' => ['laravel/framework' => '^13.0'],
+        'repositories' => [
+            ['type' => 'composer', 'url' => 'https://composer.fluxui.dev'],
+        ],
+    ], JSON_PRETTY_PRINT));
+
+    (new DependencyTransferManager($this->packagePath, $this->workspace))->transfer();
+
+    $manifest = json_decode(File::get("{$this->workspace}/composer.json"), true);
+
+    expect(collect($manifest['repositories'])->where('url', 'https://composer.fluxui.dev'))->toHaveCount(1);
 });

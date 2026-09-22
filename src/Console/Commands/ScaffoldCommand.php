@@ -28,6 +28,7 @@ class ScaffoldCommand extends Command
         {--dry-run : List what would be written without touching anything}
         {--overwrite : Replace existing files instead of asking}
         {--skip-existing : Keep existing files instead of asking}
+        {--only-provider : Regenerate app/Providers/TenancyServiceProvider.php and nothing else}
         {--force : Run even if the installation state is not "installed"}';
 
     protected $description = 'Copy the package code into your application so you own it';
@@ -45,6 +46,37 @@ class ScaffoldCommand extends Command
         $this->transformer = new CodeTransformer;
         $this->plan = new ScaffoldPlan($packagePath, base_path());
         $this->detector = new ScaffoldConflictDetector;
+
+        // The generated provider is the one scaffolded file a package update
+        // has something new to say about: it reproduces registrations that
+        // live in the package, and an application that owns the code cannot
+        // pick those up by updating. Everything else in the copy is the
+        // application's own code by then, and rewriting it is a decision, not
+        // an upgrade step.
+        if ($this->option('only-provider')) {
+            $state = config('base-tenant.installation_state', 'installed');
+
+            // The generated provider registers `App\…` classes. In an
+            // application that has not copied them yet, writing it — and
+            // registering it in bootstrap/providers.php — stops the
+            // application from booting at all.
+            if (! in_array($state, ['scaffolded', 'ejected'], true)) {
+                $this->components->error(
+                    "--only-provider refreshes the provider of an application that already owns the code. This one is [{$state}]: run the full scaffold first."
+                );
+
+                return self::FAILURE;
+            }
+
+            $this->generateServiceProvider($packagePath);
+            $this->registerServiceProvider();
+
+            $this->newLine();
+            $this->line('  <fg=gray>Anything you had edited in it is gone: read the diff.</>');
+            $this->newLine();
+
+            return self::SUCCESS;
+        }
 
         if (! $this->verifyState()) {
             return self::FAILURE;
