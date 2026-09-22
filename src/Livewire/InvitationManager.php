@@ -11,6 +11,7 @@ use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
 use Base\Tenant\Models\UserInvite;
 use Base\Tenant\Services\InvitationService;
+use Base\Tenant\Support\Search;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -192,7 +193,7 @@ class InvitationManager extends Component
         $query = UserInvite::query()
             ->with(['role', 'invitedBy'])
             ->when($this->search, function (Builder $query): void {
-                $query->where('email', 'like', "%{$this->search}%");
+                $query->where('email', Search::operator(), "%{$this->search}%");
             });
 
         match ($this->filterStatus) {

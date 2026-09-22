@@ -3,6 +3,7 @@
 namespace Base\Tenant\Livewire\Notifications;
 
 use Base\Tenant\Services\NotificationService;
+use Base\Tenant\Support\Search;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -111,8 +112,8 @@ class Index extends Component
         // Apply search
         if (! empty($this->search)) {
             $query->where(function ($q) {
-                $q->where('data->title', 'like', "%{$this->search}%")
-                    ->orWhere('data->message', 'like', "%{$this->search}%");
+                $q->where('data->title', Search::operator(), "%{$this->search}%")
+                    ->orWhere('data->message', Search::operator(), "%{$this->search}%");
             });
         }
 

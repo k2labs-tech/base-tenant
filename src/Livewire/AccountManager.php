@@ -7,6 +7,7 @@ namespace Base\Tenant\Livewire;
 use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Services\AccountDeletionService;
+use Base\Tenant\Support\Search;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -154,8 +155,8 @@ class AccountManager extends Component
             ->with(['subscriptions', 'owner'])
             ->when($this->search, function (Builder $query): void {
                 $query->where(function (Builder $query): void {
-                    $query->where('name', 'like', "%{$this->search}%")
-                        ->orWhere('email', 'like', "%{$this->search}%");
+                    $query->where('name', Search::operator(), "%{$this->search}%")
+                        ->orWhere('email', Search::operator(), "%{$this->search}%");
                 });
             });
 

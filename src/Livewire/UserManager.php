@@ -8,6 +8,7 @@ use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
+use Base\Tenant\Support\Search;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -177,8 +178,8 @@ class UserManager extends Component
             ->with(['roles', 'account'])
             ->when($this->search, function (Builder $query): void {
                 $query->where(function (Builder $query): void {
-                    $query->where('name', 'like', "%{$this->search}%")
-                        ->orWhere('email', 'like', "%{$this->search}%");
+                    $query->where('name', Search::operator(), "%{$this->search}%")
+                        ->orWhere('email', Search::operator(), "%{$this->search}%");
                 });
             })
             ->when($this->filterRole !== '', function (Builder $query): void {

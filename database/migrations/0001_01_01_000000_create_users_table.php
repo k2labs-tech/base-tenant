@@ -23,8 +23,12 @@ return new class extends Migration
             $table->string('date_format')->default('d/m/Y');
             $table->string('time_format')->default('H:i:s');
             $table->integer('decimals_number')->default(2);
-            $table->char('decimals_separator')->default(',');
-            $table->char('thousands_separator')->default('.');
+            // `char()` with no length is char(255), and PostgreSQL pads a
+            // CHAR to its full width: the separator comes back as a comma
+            // followed by 254 spaces, and every number formatted with it is
+            // wrong. One character is all these ever hold.
+            $table->string('decimals_separator', 1)->default(',');
+            $table->string('thousands_separator', 1)->default('.');
             $table->string('default_locale')->default('en');
             $table->string('personal_email')->nullable();
             $table->string('personal_phone')->nullable();

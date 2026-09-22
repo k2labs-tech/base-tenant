@@ -6,6 +6,7 @@ namespace Base\Tenant\Livewire;
 
 use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\DataTransfer;
+use Base\Tenant\Support\Search;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -109,7 +110,7 @@ class TransferManager extends Component
             ->with(['file', 'errorFile', 'creator'])
             ->when($this->search !== '', fn (Builder $query) => $query->where(
                 'name',
-                'like',
+                Search::operator(),
                 '%'.trim($this->search).'%'
             ))
             ->when($this->filterType !== '', fn (Builder $query) => $query->where('type', $this->filterType))

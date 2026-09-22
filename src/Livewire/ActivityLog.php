@@ -7,14 +7,18 @@ namespace Base\Tenant\Livewire;
 use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\ActivityLog as ActivityLogModel;
 use Base\Tenant\Models\User;
+use Base\Tenant\Support\Search;
+use Carbon\Carbon;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Str;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Url;
 use Livewire\Component;
+use Throwable;
 
 #[Layout('base-tenant::layouts.app')]
 class ActivityLog extends Component
@@ -172,20 +176,51 @@ class ActivityLog extends Component
      * The account scope is applied by the model's global scope; superadmins
      * opt out of it explicitly.
      */
+    /**
+     * Los filtros llegan de la petición, y una columna de fecha comparada con
+     * algo que no lo es da error en PostgreSQL en vez de lista vacía.
+     */
+    protected function esFecha(string $valor): bool
+    {
+        if ($valor === '') {
+            return false;
+        }
+
+        try {
+            Carbon::parse($valor);
+        } catch (Throwable) {
+            return false;
+        }
+
+        return true;
+    }
+
     protected function baseQuery(): Builder
     {
         return ActivityLogModel::query()
             ->when(Auth::user()->isSuperAdmin(), fn (Builder $query): Builder => $query->acrossAccounts())
             ->when($this->filterAction, fn (Builder $query): Builder => $query->where('action', $this->filterAction))
-            ->when($this->filterUser, fn (Builder $query): Builder => $query->where('causer_id', $this->filterUser))
-            ->when($this->filterFrom, fn (Builder $query): Builder => $query->where('created_at', '>=', $this->filterFrom.' 00:00:00'))
+            // Sólo si el valor puede ser una clave: comparar una columna uuid
+            // con cualquier otra cosa es un error en PostgreSQL, no una lista
+            // vacía, y el valor viene de la petición.
+            ->when(
+                Str::isUuid($this->filterUser),
+                fn (Builder $query): Builder => $query->where('causer_id', $this->filterUser)
+            )
+            ->when(
+                $this->esFecha($this->filterFrom),
+                fn (Builder $query): Builder => $query->where('created_at', '>=', $this->filterFrom.' 00:00:00')
+            )
             // Hasta el final del día: con `<= 'Y-m-d'` una entrada de esa tarde
             // se quedaría fuera y parecería que ese día no pasó nada.
-            ->when($this->filterUntil, fn (Builder $query): Builder => $query->where('created_at', '<=', $this->filterUntil.' 23:59:59'))
+            ->when(
+                $this->esFecha($this->filterUntil),
+                fn (Builder $query): Builder => $query->where('created_at', '<=', $this->filterUntil.' 23:59:59')
+            )
             ->when($this->search, function (Builder $query): void {
                 $query->where(function (Builder $query): void {
-                    $query->where('description', 'like', "%{$this->search}%")
-                        ->orWhere('action', 'like', "%{$this->search}%");
+                    $query->where('description', Search::operator(), "%{$this->search}%")
+                        ->orWhere('action', Search::operator(), "%{$this->search}%");
                 });
             });
     }

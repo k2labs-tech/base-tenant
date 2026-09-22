@@ -7,6 +7,7 @@ namespace Base\Tenant\Livewire;
 use Base\Tenant\Files\FileStore;
 use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\File;
+use Base\Tenant\Support\Search;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Builder;
@@ -164,7 +165,7 @@ class FileLibrary extends Component
         $query = File::query()
             ->when($this->search !== '', fn (Builder $query) => $query->where(
                 'name',
-                'like',
+                Search::operator(),
                 '%'.trim($this->search).'%'
             ))
             ->when($this->filterCollection !== '', fn (Builder $query) => $query->where(
@@ -173,7 +174,7 @@ class FileLibrary extends Component
             ))
             ->when($this->filterKind === 'image', fn (Builder $query) => $query->where(
                 'mime_type',
-                'like',
+                Search::operator(),
                 'image/%'
             ))
             ->when($this->filterKind === 'document', fn (Builder $query) => $query->where(
