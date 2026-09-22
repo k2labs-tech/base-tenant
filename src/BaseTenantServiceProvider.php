@@ -125,6 +125,7 @@ use Base\Tenant\Sessions\SessionManager as UserSessionManager;
 use Base\Tenant\Settings\SettingsManager;
 use Base\Tenant\Social\SocialLoginService;
 use Base\Tenant\Support\Module;
+use Base\Tenant\Support\ScheduledTasks;
 use Base\Tenant\Suppressions\BlockSuppressedRecipients;
 use Base\Tenant\Suppressions\SuppressionManager;
 use Base\Tenant\Tenancy\QueueTenancy;
@@ -166,25 +167,28 @@ class BaseTenantServiceProvider extends ServiceProvider
             $this->app->singleton($singleton);
         }
 
-        // Takes a path, so it cannot be autowired from the class name alone.
-        $this->app->singleton(LangFileWriter::class, fn (): LangFileWriter => LangFileWriter::forApplication());
+        foreach (static::factorySingletons() as $abstract => $factory) {
+            $this->app->singleton($abstract, static fn (): object => $abstract::$factory());
+        }
 
-        // An interface, so it cannot be autowired: a test binds a fake and an
-        // installation behind a split-horizon resolver binds its own.
-        $this->app->bind(DnsLookup::class, SystemDnsLookup::class);
+        foreach (static::bindings() as $abstract => $concrete) {
+            $this->app->bind($abstract, $concrete);
+        }
     }
 
     public function boot(): void
     {
         $this->registerPublishing();
-        $this->registerSchedule();
 
         // Once the code has been copied into the application, the generated
-        // TenancyServiceProvider owns it. Registering routes, views and
-        // components from here as well would give every route two definitions.
+        // TenancyServiceProvider owns it. Registering routes, views, components
+        // or scheduled work from here as well would give every route two
+        // definitions and every maintenance task two runs.
         if ($this->hasBeenScaffolded()) {
             return;
         }
+
+        $this->registerSchedule();
 
         $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
         $this->loadViewsFrom(__DIR__.'/../resources/views', 'base-tenant');
@@ -325,6 +329,39 @@ class BaseTenantServiceProvider extends ServiceProvider
     }
 
     /** @return array<string, class-string> */
+    /**
+     * Container entries that cannot be autowired from a class name.
+     *
+     * Read by the scaffold generator, so anything added here reaches the
+     * application's own provider too. That is the whole point of the list: the
+     * two entries it holds were once written straight into `register()`, the
+     * generator never saw them, and an ejected application booted without them
+     * until something tried to resolve one.
+     *
+     * @return array<class-string, class-string>
+     */
+    public static function bindings(): array
+    {
+        return [
+            // An interface: a test binds a fake and an installation behind a
+            // split-horizon resolver binds its own.
+            DnsLookup::class => SystemDnsLookup::class,
+        ];
+    }
+
+    /**
+     * Singletons built by a named constructor rather than by the container.
+     *
+     * @return array<class-string, string>
+     */
+    public static function factorySingletons(): array
+    {
+        return [
+            // Takes a path, so the class name alone is not enough.
+            LangFileWriter::class => 'forApplication',
+        ];
+    }
+
     public static function singletons(): array
     {
         return [
@@ -555,38 +592,10 @@ class BaseTenantServiceProvider extends ServiceProvider
      */
     protected function registerSchedule(): void
     {
-        $this->callAfterResolving(Schedule::class, function (Schedule $schedule): void {
-            if (config('base-tenant.activity_log.enabled', true)) {
-                $schedule->command(PruneActivityLogCommand::class)->daily();
-            }
-
-            if (Module::enabled(Module::METERING)) {
-                $schedule->command(ReportUsageCommand::class)->hourly()->withoutOverlapping();
-            }
-
-            if (Module::enabled(Module::FILES) && Module::enabled(Module::METERING)) {
-                $schedule->command(ReconcileStorageCommand::class)->weekly()->withoutOverlapping();
-            }
-
-            if (Module::enabled(Module::CONNECTIONS)) {
-                $schedule->command(CheckConnectionsCommand::class)->daily()->withoutOverlapping();
-            }
-
-            if (Module::enabled(Module::GDPR)) {
-                $schedule->command(PurgeDeletedCommand::class)->daily()->withoutOverlapping();
-            }
-
-            // A domain verified once is not verified forever: zones get
-            // edited, and a hostname that stopped proving ownership should
-            // stop being treated as proof.
-            if (Module::enabled(Module::DOMAINS)) {
-                $schedule->command(VerifyDomainsCommand::class)->daily()->withoutOverlapping();
-            }
-
-            if (Module::enabled(Module::SECURITY) && config('base-tenant.security.sessions.enabled', true)) {
-                $schedule->command(PruneSessionsCommand::class)->daily()->withoutOverlapping();
-            }
-        });
+        $this->callAfterResolving(
+            Schedule::class,
+            static fn (Schedule $schedule): mixed => ScheduledTasks::register($schedule)
+        );
     }
 
     /**

@@ -10,6 +10,8 @@ use Base\Tenant\Jobs\ExportUserData;
 use Base\Tenant\Models\User;
 use Base\Tenant\Support\Module;
 use Illuminate\Console\Command;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Str;
 
 /**
  * Export one person's data, for a request that arrives by email rather than
@@ -25,6 +27,22 @@ class ExportUserDataCommand extends Command
 
     protected $description = 'Export everything held about one person';
 
+    /**
+     * @param  class-string<Model>  $model
+     */
+    protected function findByKey(string $model, string $needle): ?object
+    {
+        $instance = new $model;
+
+        // A string key is a uuid here; anything else cannot be one of ours,
+        // and asking the database would be an error rather than a no.
+        if ($instance->getKeyType() === 'string' && ! Str::isUuid($needle)) {
+            return null;
+        }
+
+        return $model::query()->whereKey($needle)->first();
+    }
+
     public function handle(DataExportService $exports): int
     {
         if (! Module::enabled(Module::GDPR)) {
@@ -36,7 +54,12 @@ class ExportUserDataCommand extends Command
         $model = config('base-tenant.models.user', User::class);
         $needle = (string) $this->argument('user');
 
-        $user = $model::query()->where('id', $needle)->orWhere('email', $needle)->first();
+        // Una dirección es una dirección y lo demás es una clave: comparar una
+        // columna uuid con un correo es un error en PostgreSQL, no una
+        // búsqueda sin resultados.
+        $user = str_contains($needle, '@')
+            ? $model::query()->where('email', $needle)->first()
+            : $this->findByKey($model, $needle);
 
         if (! $user) {
             $this->components->error("No user matched `{$needle}`.");

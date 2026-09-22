@@ -30,6 +30,8 @@ class ServiceProviderGenerator
             '{{ namespace }}' => $namespace,
             '{{ handle }}' => $handle,
             '{{ singletons }}' => $this->renderList(BaseTenantServiceProvider::singletons()),
+            '{{ bindings }}' => $this->renderMap(BaseTenantServiceProvider::bindings(), keysAreClasses: true),
+            '{{ factories }}' => $this->renderFactories(BaseTenantServiceProvider::factorySingletons()),
             '{{ policies }}' => $this->renderMap(BaseTenantServiceProvider::policies()),
             '{{ middleware }}' => $this->renderMap(BaseTenantServiceProvider::middlewareAliases()),
             '{{ livewire }}' => $this->renderMap(BaseTenantServiceProvider::livewireComponents()),
@@ -112,13 +114,35 @@ class ServiceProviderGenerator
     /**
      * @param  array<string, class-string>  $map
      */
-    protected function renderMap(array $map, int $indent = 12): string
+    protected function renderMap(array $map, int $indent = 12, bool $keysAreClasses = false): string
     {
         $pad = str_repeat(' ', $indent);
         $lines = [];
 
         foreach ($map as $key => $class) {
-            $lines[] = $pad."'{$key}' => \\".$this->transformer->transformNamespaces($class).'::class,';
+            $left = $keysAreClasses
+                ? '\\'.$this->transformer->transformNamespaces($key).'::class'
+                : "'{$key}'";
+
+            $lines[] = $pad.$left.' => \\'.$this->transformer->transformNamespaces($class).'::class,';
+        }
+
+        return implode("\n", $lines);
+    }
+
+    /**
+     * Singletons built by a named constructor: the abstract is the class and
+     * the value is the method that makes one.
+     *
+     * @param  array<class-string, string>  $factories
+     */
+    protected function renderFactories(array $factories, int $indent = 12): string
+    {
+        $pad = str_repeat(' ', $indent);
+        $lines = [];
+
+        foreach ($factories as $class => $method) {
+            $lines[] = $pad.'\\'.$this->transformer->transformNamespaces($class)."::class => '{$method}',";
         }
 
         return implode("\n", $lines);

@@ -1,5 +1,112 @@
 # Upgrade Guide
 
+## From 3.0.x to 3.0.3
+
+```bash
+composer update k2labs/base-tenant
+php artisan migrate
+php artisan optimize:clear
+```
+
+One migration, which trims the number separator columns and makes them one
+character wide. It matters on PostgreSQL, where `char(255)` padded them with
+254 spaces; on MySQL and SQLite it changes nothing you could see.
+
+No configuration changes — unless your application has taken ownership of the
+code, in which case read on.
+
+### Every installation
+
+`config/base-tenant.php` gains an anchor at the end of the `permissions` array:
+
+```php
+    // base-tenant:permissions
+],
+```
+
+Add it to your copy. `k2labs-base:make-module` writes the permissions of a
+generated module above that line; without it the generator now stops, and
+before this release it appended the block after the closing `];` of the file,
+which is a parse error that stops the application from booting.
+
+### Applications that scaffolded or ejected
+
+The generated `app/Providers/TenancyServiceProvider.php` is yours — a package
+update does not rewrite it. This release fixes eight registrations it was
+missing. If you have scaffolded but not ejected, one command writes it again:
+
+```bash
+php artisan k2labs-base:scaffold --only-provider
+```
+
+It replaces that file and nothing else, so anything you had edited in it is
+lost: read the diff.
+
+An ejected application no longer has the command. Bring the package back for as
+long as it takes, which is safe — with `installation_state` at `ejected` its
+provider stands down:
+
+```bash
+composer require k2labs/base-tenant
+php artisan k2labs-base:scaffold --only-provider
+composer remove k2labs/base-tenant
+php artisan optimize:clear
+```
+
+Or patch the file by hand. In `register()`:
+
+```php
+$this->app->singleton(\App\Languages\LangFileWriter::class,
+    static fn (): object => \App\Languages\LangFileWriter::forApplication());
+
+$this->app->bind(\App\Domains\Contracts\DnsLookup::class,
+    \App\Domains\SystemDnsLookup::class);
+```
+
+and in `boot()`, the calls this release adds to the stub: `registerSchedule()`,
+`configureEmailVerification()`, `registerSocialProviders()`,
+`registerSuppressionGuard()`, `registerInvitationAcceptance()` and
+`registerSecurityPolicyLifecycle()`. Their bodies are in
+`stubs/TenancyServiceProvider.php.stub` in this repository, and the schedule
+itself lives in `app/Support/ScheduledTasks.php`, which you copy from
+`src/Support/ScheduledTasks.php`.
+
+Check what you are missing before patching anything:
+
+```bash
+php artisan schedule:list          # seven maintenance tasks, none twice
+```
+
+Translations move. If yours are in `lang/tenant/`, move them and point the
+provider at the new path:
+
+```bash
+mkdir -p lang/vendor && git mv lang/tenant lang/vendor/tenant
+```
+
+```php
+$this->loadTranslationsFrom(lang_path('vendor/tenant'), 'tenant');
+```
+
+The module generator needs its templates inside the project, since there is no
+package to read them from:
+
+```bash
+cp -R vendor/k2labs/base-tenant/stubs/module stubs/base-tenant/module
+```
+
+Ejected applications take them from this repository instead, rewriting
+`Base\Tenant\` to `App\` and `base-tenant::` to `tenant::`, which is what eject
+now does on the way out.
+
+Finally, check nothing of yours still names the package — eject rewrites those
+references from this release on, but an application ejected before it kept
+them:
+
+```bash
+grep -rn 'Base.Tenant\\|base-tenant::' app database routes tests
+```
+
 ## From 3.0.x to 3.0.2
 
 Two migrations, no configuration changes:

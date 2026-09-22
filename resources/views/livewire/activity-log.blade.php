@@ -5,6 +5,12 @@
     // las etiquetas al compilar y no al pintar: la vista entera reventaría en
     // `view:cache` de cualquier instalación sin Pro. Por eso va por
     // `x-dynamic-component`, que se resuelve en tiempo de ejecución.
+    //
+    // El nombre lleva DOS puntos dobles: `flux::date-picker` es la vista del
+    // namespace que Flux registra con `anonymousComponentPath(..., 'flux')`,
+    // y es lo único que `x-dynamic-component` sabe resolver. Con uno solo
+    // —`flux:date-picker`, la forma de la etiqueta— no encuentra nada y la
+    // pantalla revienta justo cuando Pro SÍ está instalado.
     $hasPro = Flux\Flux::pro();
 @endphp
 
@@ -113,7 +119,7 @@
                     <div class="space-y-2 px-2 py-1.5">
                         @if($hasPro)
                             <x-dynamic-component
-                                component="flux:date-picker"
+                                component="flux::date-picker"
                                 mode="range"
                                 wire:model.live="filterFrom"
                                 wire:model.live.end="filterUntil"

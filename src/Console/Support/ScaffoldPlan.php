@@ -32,6 +32,20 @@ class ScaffoldPlan
         'Console/Commands/EjectCommand.php',
     ];
 
+    /**
+     * Exceptions to the exclusions above: files under an excluded directory
+     * that the copied code still needs.
+     *
+     * `ModuleField` is support for `MakeModuleCommand`, which does travel, so
+     * excluding the whole of `Console/Support` left the module generator
+     * importing a class that was never copied — a fatal on its first line.
+     *
+     * @var array<int, string>
+     */
+    public const INCLUDED_FROM_SRC = [
+        'Console/Support/ModuleField.php',
+    ];
+
     public function __construct(
         protected string $packagePath,
         protected string $basePath,
@@ -128,9 +142,14 @@ class ScaffoldPlan
                 'transform' => true,
             ],
             [
+                // `lang/vendor/{namespace}` is where Laravel keeps namespaced
+                // translations. Under `lang/{namespace}` they work, but every
+                // tool that reads `lang/` to list the locales — including this
+                // package's own `lang:status` — counts the namespace as a
+                // language of its own.
                 'label' => 'Translations',
                 'source' => 'resources/lang',
-                'destination' => 'lang/tenant',
+                'destination' => 'lang/vendor/tenant',
                 'exclude' => ['vendor'],
                 'extensions' => ['php'],
                 'transform' => true,
@@ -146,6 +165,18 @@ class ScaffoldPlan
                 'exclude' => ['vendor'],
                 'extensions' => ['json'],
                 'transform' => false,
+            ],
+            [
+                // `MakeModuleCommand` reads these. Once the package is gone
+                // there is no vendor directory to fall back to, so they have
+                // to arrive with it — rewritten, or every module it generates
+                // would import namespaces that no longer exist.
+                'label' => 'Module stubs',
+                'source' => 'stubs/module',
+                'destination' => 'stubs/base-tenant/module',
+                'exclude' => [],
+                'extensions' => ['stub'],
+                'transform' => true,
             ],
             [
                 'label' => 'Test kit',
@@ -191,7 +222,8 @@ class ScaffoldPlan
         foreach ($finder as $file) {
             $relative = $this->relativePath($file);
 
-            if ($this->isExcluded($relative, $group['exclude'])) {
+            if ($this->isExcluded($relative, $group['exclude'])
+                && ! in_array($relative, self::INCLUDED_FROM_SRC, true)) {
                 continue;
             }
 

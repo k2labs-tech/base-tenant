@@ -12,6 +12,91 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.0.3] - 2026-09-22
+
+Ten defects, nine of them found by auditing a real application that had taken
+ownership of the code. Eight only bite an application that has scaffolded or
+ejected; two bite every installation.
+
+### Fixed
+
+- **`k2labs-base:make-module` broke `config/base-tenant.php`.** The generator
+  looked for a `// base-tenant:permissions` anchor that the published config
+  never had, and fell back to appending the block at the end of the file —
+  after the `];` that closes the array. The result is a parse error: the whole
+  application stops booting, and the command reports a successful edit. The
+  anchor now ships in the config, and a missing anchor stops the generator
+  before it writes anything. This one affects every installation.
+- **`/upgrade` returned 500 without subscriptions.** The screen `HasFeature`
+  redirects to when a plan lacks a feature linked to `base-tenant.billing`,
+  a route that only exists when subscriptions are enabled. The link is behind
+  `Route::has()` now, with a contact line in its place. Every installation that
+  sells its plans outside the product hit this.
+- **The activity screen returned 500 with Flux Pro installed.** Its date-range
+  filter resolves the Pro component at runtime — right, since compiling
+  `<flux:date-picker>` would break `view:cache` where Pro is absent — but named
+  it `flux:date-picker`. `x-dynamic-component` resolves a view name, so it takes
+  `flux::date-picker`, with the namespace separator. One character, one screen.
+- **The generated service provider was missing eight registrations:** the
+  `DnsLookup` and `LangFileWriter` container entries, which cannot be autowired,
+  and the schedule, email verification, social providers, suppression guard,
+  invitation listener and security policy lifecycle. An ejected application
+  booted, served its routes, and failed only where one of them was needed —
+  `/domains`, `/languages`, verification mail, retention jobs. A test now
+  compares the two providers call by call.
+- **Scheduled work ran twice, or not at all.** The package registered the
+  schedule before the guard that hands the application its own code, so it kept
+  scheduling alongside a scaffolded application's provider. The table moved to
+  `Support\ScheduledTasks`, which travels with the code, and the package stands
+  down once the application owns it.
+- **The module generator did not survive the eject.** `Console\Support\ModuleField`
+  was excluded from the copy although `MakeModuleCommand` imports it, and the
+  templates it reads were never copied either — the fallback path resolves to
+  the project root once the command lives in `app/`. Both travel now, the
+  templates rewritten on the way, and a missing template says so instead of
+  failing on an unreadable path.
+- **The tests the generator writes now pass.** They called four helpers that
+  only existed inside the package's own suite; those fixtures ship with
+  `TenancyAssertions`, which host applications already autoload. They also
+  refresh the database and grant the new module's permissions, which no role
+  knows about until you add them.
+- **Eject left the application's own references to the package broken.** It
+  rewrites what it copies; a seeder, test or job that imported `Base\Tenant\…`
+  kept importing a class that no longer exists. Those files are rewritten too
+  now, before the package goes, and every one is listed.
+- **Eject could leave `composer.json` unreadable.** Composer accepts two shapes
+  for `repositories` — a map and a list — and merging the package's map into an
+  application's list renumbered the keys into an object with a `"0"` in it.
+  Composer then refuses to read the file at all, which takes the eject's own
+  `composer remove` with it: the package stays installed and its provider keeps
+  booting beside the copied code.
+- **Namespaced translations moved to `lang/vendor/tenant/`,** where Laravel keeps
+  them. Under `lang/tenant/` they load, but every tool that lists locales by
+  reading `lang/` counts `tenant` as a language stuck at 0% coverage.
+
+### Fixed — PostgreSQL
+
+Three more of the same kind: correct on SQLite and MySQL, broken on PostgreSQL,
+and invisible until the suite ran against a real server.
+
+- **Every search box was case-sensitive.** `LIKE` ignores case on MySQL and
+  SQLite and respects it on PostgreSQL, so typing `alf` stopped finding `Alfa`
+  in the account switcher, the user, invitation, file, transfer and activity
+  tables and the notification list. They ask `Support\Search::operator()` for
+  the comparison now, which is `ILIKE` on PostgreSQL.
+- **The number separators came back padded.** They were `char()` without a
+  length — `char(255)` — and PostgreSQL pads a CHAR to its full width, so the
+  comma a user picked arrived as a comma followed by 254 spaces and every
+  amount on the screen was formatted with it. The columns are one character
+  wide, with a migration that trims what is stored.
+- **Filter values from the request reached typed columns unchecked.** A
+  `causer_id` that is not a uuid, or a date filter that is not a date, is an
+  error on PostgreSQL rather than an empty result: a 500 where the other
+  engines return nothing. The activity filters and
+  `k2labs-base:export-user-data` check the shape of the value before asking.
+
+The suite itself now passes on PostgreSQL 18 and MySQL 8.4 as well as SQLite.
+
 ## [3.0.2] - 2026-09-21
 
 ### Fixed

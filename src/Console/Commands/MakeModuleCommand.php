@@ -10,6 +10,7 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Str;
 use InvalidArgumentException;
+use RuntimeException;
 
 /**
  * Scaffold a whole vertical module into the host application.
@@ -73,7 +74,14 @@ class MakeModuleCommand extends Command
 
         $this->planFiles($names, $fields);
 
-        $edits = $this->planEdits($names, $fields);
+        try {
+            $edits = $this->planEdits($names, $fields);
+        } catch (RuntimeException $exception) {
+            $this->components->error($exception->getMessage());
+            $this->line('  <fg=gray>Nothing was written.</>');
+
+            return self::FAILURE;
+        }
 
         if ($this->option('pretend')) {
             $this->report($edits);
@@ -292,9 +300,19 @@ PHP;
             );
         }
 
-        // An anchor keeps the block where a reader expects it. Without one it
-        // still lands, at the end, which is untidy rather than wrong.
-        if ($marker !== null && str_contains($contents, $marker)) {
+        // An anchor says where the block belongs inside the file. A file that
+        // asks for one and no longer has it cannot be appended to: the end of
+        // `config/base-tenant.php` is after the `];` that closes the array, and
+        // a block written there is a parse error that stops the application
+        // from booting — reported, until this guard, as a successful edit.
+        if ($marker !== null) {
+            if (! str_contains($contents, $marker)) {
+                throw new RuntimeException(
+                    "Anchor [{$marker}] not found. Put it back where the generated block belongs and run this again; "
+                    .'writing the block anywhere else would break the file.'
+                );
+            }
+
             return str_replace($marker, $section."\n\n".$indent.ltrim($marker), $contents);
         }
 
@@ -307,19 +325,44 @@ PHP;
      */
     protected function render(string $stub, array $names, array $extra = []): string
     {
-        // A project that has published the stubs owns them: the generator
-        // reads its copy so the house style survives a package update.
-        $published = base_path("stubs/base-tenant/module/{$stub}.stub");
-
-        $contents = File::get(File::exists($published)
-            ? $published
-            : dirname(__DIR__, 3)."/stubs/module/{$stub}.stub");
+        $contents = File::get($this->stubPath($stub));
 
         foreach ([...$names, ...$extra] as $token => $value) {
             $contents = str_replace('{{ '.$token.' }}', $value, $contents);
         }
 
         return $contents;
+    }
+
+    /**
+     * Where a template comes from.
+     *
+     * A project that has published the stubs owns them: the generator reads
+     * its copy so the house style survives a package update. The fallback is
+     * the package's own copy, which only exists while the package is a
+     * dependency — `dirname(__DIR__, 3)` from `app/Console/Commands/` is the
+     * project root, not a package. An application that has taken ownership of
+     * the code gets the stubs copied into `stubs/base-tenant/module/`; if they
+     * are not there, say so instead of failing on a path nobody can read.
+     */
+    protected function stubPath(string $stub): string
+    {
+        $published = base_path("stubs/base-tenant/module/{$stub}.stub");
+
+        if (File::exists($published)) {
+            return $published;
+        }
+
+        $packaged = dirname(__DIR__, 3)."/stubs/module/{$stub}.stub";
+
+        if (File::exists($packaged)) {
+            return $packaged;
+        }
+
+        throw new RuntimeException(
+            "Module template [{$stub}.stub] not found. Copy the package's stubs/module directory to "
+            .base_path('stubs/base-tenant/module').' and run this again.'
+        );
     }
 
     /**

@@ -7,6 +7,7 @@ namespace Base\Tenant\Livewire;
 use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Services\ActivityLogService;
+use Base\Tenant\Support\Search;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\Auth;
@@ -122,7 +123,7 @@ class AccountSwitcher extends Component
             // dropdown. The search narrows it, and the cap is what makes the
             // search necessary rather than decorative.
             return Account::query()
-                ->when($this->search !== '', fn ($query) => $query->where('name', 'like', '%'.trim($this->search).'%'))
+                ->when($this->search !== '', fn ($query) => $query->where('name', Search::operator(), '%'.trim($this->search).'%'))
                 ->orderBy('name')
                 ->limit(self::SEARCH_THRESHOLD * 5)
                 ->get();

@@ -8,5 +8,6 @@ return [
     'upgrade_title' => 'Mejora tu plan',
     'upgrade_message' => 'Esta funcionalidad está disponible en un plan superior.',
     'upgrade_action' => 'Ver planes',
+    'upgrade_contact' => 'Habla con nosotros para cambiar de plan.',
 
 ];
