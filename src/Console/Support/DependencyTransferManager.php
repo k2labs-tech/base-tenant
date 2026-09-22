@@ -68,7 +68,54 @@ class DependencyTransferManager
         $packageRepositories = $this->manifest("{$this->packagePath}/composer.json")['repositories'] ?? [];
         $appRepositories = $this->manifest("{$this->basePath}/composer.json")['repositories'] ?? [];
 
-        return array_diff_key($packageRepositories, $appRepositories);
+        // Composer accepts two shapes — a map of names and a plain list — and
+        // an application may use either, so the keys of one side say nothing
+        // about the other. What identifies a repository is its url.
+        $known = [];
+
+        foreach ($appRepositories as $repository) {
+            if (is_array($repository) && isset($repository['url'])) {
+                $known[] = $repository['url'];
+            }
+        }
+
+        $pending = [];
+
+        foreach ($packageRepositories as $name => $repository) {
+            if (is_array($repository) && isset($repository['url']) && in_array($repository['url'], $known, true)) {
+                continue;
+            }
+
+            $pending[$name] = $repository;
+        }
+
+        return $pending;
+    }
+
+    /**
+     * Add the package's repositories without changing the shape the
+     * application wrote.
+     *
+     * Spreading a map into a list renumbers its keys, and the result — an
+     * object with a "0" in it — is neither shape. Composer refuses to read it
+     * at all, which takes the application's own `composer remove`, `require`
+     * and `update` with it.
+     *
+     * @param  array<array-key, mixed>  $existing
+     * @param  array<array-key, mixed>  $pending
+     * @return array<array-key, mixed>
+     */
+    protected function mergeRepositories(array $existing, array $pending): array
+    {
+        if ($existing !== [] && array_is_list($existing)) {
+            foreach ($pending as $repository) {
+                $existing[] = $repository;
+            }
+
+            return $existing;
+        }
+
+        return [...$existing, ...$pending];
     }
 
     /**
@@ -106,7 +153,10 @@ class DependencyTransferManager
         ksort($manifest['require']);
 
         if ($repositories !== []) {
-            $manifest['repositories'] = [...$manifest['repositories'] ?? [], ...$repositories];
+            $manifest['repositories'] = $this->mergeRepositories(
+                $manifest['repositories'] ?? [],
+                $repositories
+            );
         }
 
         if ($files !== []) {

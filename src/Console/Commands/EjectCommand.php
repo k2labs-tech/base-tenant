@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace Base\Tenant\Console\Commands;
 
 use Base\Tenant\Console\Concerns\HasDeprecatedAlias;
+use Base\Tenant\Console\Support\CodeTransformer;
 use Base\Tenant\Console\Support\DependencyTransferManager;
 use Base\Tenant\Console\Support\ScaffoldPlan;
 use Base\Tenant\Console\Support\StylesheetManager;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Finder\Finder;
 use Symfony\Component\Process\Process;
 
 /**
@@ -76,6 +78,12 @@ class EjectCommand extends Command
             $this->setInstallationState('ejected');
             $this->components->task('Updating installation state');
 
+            // Before the package leaves: once its files are gone, nothing of
+            // it that has not already been loaded can be autoloaded, and the
+            // rewrite would die halfway through with the command reporting
+            // success.
+            $rewritten = $this->rewriteLeftoverReferences();
+
             if (! $this->option('keep-package')) {
                 $this->removePackage();
             }
@@ -94,6 +102,7 @@ class EjectCommand extends Command
         File::delete($backup);
 
         $this->showSummary($transferred);
+        $this->reportRewrittenReferences($rewritten);
 
         return self::SUCCESS;
     }
@@ -221,6 +230,28 @@ class EjectCommand extends Command
         if (! $process->isSuccessful()) {
             $this->components->warn('composer remove did not finish cleanly. Run it by hand once you have resolved the problem.');
         }
+
+        $this->forgetPackageDiscovery();
+    }
+
+    /**
+     * Laravel caches which packages registered which providers, and that cache
+     * survives the package it describes.
+     *
+     * Left behind, it names a provider whose class is gone: the application
+     * either dies on boot, or — if the files are still there because the
+     * removal did not finish — boots the package alongside the copied code,
+     * with both scheduling the same maintenance work.
+     */
+    protected function forgetPackageDiscovery(): void
+    {
+        foreach (['packages.php', 'services.php'] as $file) {
+            $path = base_path("bootstrap/cache/{$file}");
+
+            if (File::exists($path)) {
+                File::delete($path);
+            }
+        }
     }
 
     /**
@@ -303,6 +334,106 @@ class EjectCommand extends Command
     /**
      * @param  array{require: array<string, string>, repositories: array<string, mixed>, files: array<int, string>}  $transferred
      */
+    /**
+     * Files of the application's own that still name the package.
+     *
+     * Eject rewrites what it copies; it cannot rewrite what the application
+     * wrote. A seeder, a test or a job that imported `Base\\Tenant\\…` keeps
+     * importing a class that no longer exists, and nothing says so until that
+     * code runs — `db:seed` on a fresh database, typically, which is when
+     * there is nothing to sign in with.
+     */
+    /**
+     * @return array{rewritten: array<int, string>, skipped: array<int, string>}
+     */
+    protected function rewriteLeftoverReferences(): array
+    {
+        $transformer = new CodeTransformer;
+        $rewritten = [];
+        $skipped = [];
+
+        foreach ($this->leftoverReferences() as $relative) {
+            $path = base_path($relative);
+            $contents = (string) File::get($path);
+
+            // The package's own provider has no copy in the application: the
+            // generated one replaces it, and rewriting the name would point
+            // the file at a class that was never created.
+            if (str_contains($contents, 'BaseTenantServiceProvider')) {
+                $skipped[] = $relative;
+
+                continue;
+            }
+
+            File::put($path, $transformer->transform($contents));
+            $rewritten[] = $relative;
+        }
+
+        return ['rewritten' => $rewritten, 'skipped' => $skipped];
+    }
+
+    /**
+     * @param  array{rewritten: array<int, string>, skipped: array<int, string>}  $result
+     */
+    protected function reportRewrittenReferences(array $result): void
+    {
+        ['rewritten' => $rewritten, 'skipped' => $skipped] = $result;
+
+        if ($rewritten !== []) {
+            $this->components->info('Rewrote the references your own files made to the package:');
+
+            foreach ($rewritten as $file) {
+                $this->line("  <fg=green>{$file}</>");
+            }
+
+            $this->newLine();
+            $this->line('  <fg=gray>Same rewrite the copied code got. Read the diff before committing.</>');
+            $this->newLine();
+        }
+
+        if ($skipped !== []) {
+            $this->components->warn('These name the package and were left alone:');
+
+            foreach ($skipped as $file) {
+                $this->line("  <fg=yellow>{$file}</>");
+            }
+
+            $this->newLine();
+            $this->line('  <fg=gray>They mention the package service provider, which has no copy here:</>');
+            $this->line('  <fg=gray>App\Providers\TenancyServiceProvider replaces it.</>');
+            $this->newLine();
+        }
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    protected function leftoverReferences(): array
+    {
+        // `config/base-tenant.php` and `bootstrap/providers.php` are rewritten
+        // by the scaffold step, which knows what belongs in them.
+        $roots = ['app', 'database', 'routes', 'tests'];
+        $found = [];
+
+        foreach ($roots as $root) {
+            $path = base_path($root);
+
+            if (! is_dir($path)) {
+                continue;
+            }
+
+            foreach (Finder::create()->files()->in($path)->name(['*.php', '*.blade.php'])->sortByName() as $file) {
+                $contents = (string) file_get_contents($file->getPathname());
+
+                if (str_contains($contents, 'Base\\Tenant\\') || str_contains($contents, 'base-tenant::')) {
+                    $found[] = $root.'/'.str_replace('\\', '/', $file->getRelativePathname());
+                }
+            }
+        }
+
+        return $found;
+    }
+
     protected function showSummary(array $transferred): void
     {
         $this->newLine();
