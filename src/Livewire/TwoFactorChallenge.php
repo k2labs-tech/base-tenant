@@ -2,11 +2,13 @@
 
 namespace Base\Tenant\Livewire;
 
+use Base\Tenant\Livewire\Attributes\GuestLayout;
 use Base\Tenant\Models\User;
+use Base\Tenant\Support\Home;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Layout;
+use Livewire\Attributes\Locked;
 use Livewire\Component;
 use PragmaRX\Google2FA\Google2FA;
 
@@ -14,8 +16,10 @@ use PragmaRX\Google2FA\Google2FA;
  * Sin este atributo Livewire cae en el layout por defecto de la aplicación, que
  * este paquete no trae: la pantalla a la que redirige el acceso cuando hay
  * segundo factor respondía con un 500 y dejaba el inicio de sesión sin salida.
+ * El layout sale de `layouts.guest`; el `->layout()` que había en `render()`
+ * nunca se aplicaba, porque el atributo de clase lo pisa.
  */
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class TwoFactorChallenge extends Component
 {
     public $code = '';
@@ -24,6 +28,12 @@ class TwoFactorChallenge extends Component
 
     public $usingRecoveryCode = false;
 
+    /**
+     * Who is being challenged, taken from the session the password step left.
+     * Locked: otherwise the browser could swap in somebody else and skip
+     * their password with nothing but one of their codes.
+     */
+    #[Locked]
     public $userId;
 
     protected $rules = [
@@ -42,8 +52,7 @@ class TwoFactorChallenge extends Component
 
     public function render()
     {
-        return view('base-tenant::livewire.two-factor-challenge')
-            ->layout('base-tenant::guest-layout');
+        return view('base-tenant::livewire.two-factor-challenge');
     }
 
     public function toggleRecoveryCode()
@@ -89,7 +98,7 @@ class TwoFactorChallenge extends Component
         Auth::login($user, session('2fa.remember', false));
         session()->forget(['2fa.user_id', '2fa.remember']);
 
-        $this->redirect(route('base-tenant.dashboard'));
+        $this->redirect(Home::url());
     }
 
     protected function verifyRecoveryCode()
@@ -124,6 +133,6 @@ class TwoFactorChallenge extends Component
             text: __('base-tenant::auth.2fa.recovery_code_warning'),
         );
 
-        $this->redirect(route('base-tenant.dashboard'));
+        $this->redirect(Home::url());
     }
 }

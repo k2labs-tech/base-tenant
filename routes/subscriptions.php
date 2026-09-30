@@ -3,10 +3,12 @@
 declare(strict_types=1);
 
 use Base\Tenant\Http\Controllers\CheckoutController;
+use Base\Tenant\Support\Home;
+use Base\Tenant\Support\RouteGroup;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-if (! config('base-tenant.routes.enabled', true) || ! config('base-tenant.subscription.enabled', true)) {
+if (! RouteGroup::enabled(RouteGroup::SUBSCRIPTIONS) || ! config('base-tenant.subscription.enabled', true)) {
     return;
 }
 
@@ -45,9 +47,7 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
             ->name('base-tenant.checkout.cancel');
 
         Route::get('billing', function () {
-            $dashboardRoute = config('base-tenant.home_url', 'base-tenant.dashboard');
-
-            return Auth::user()->account->redirectToBillingPortal(route($dashboardRoute));
+            return Auth::user()->account->redirectToBillingPortal(Home::url());
         })->name('base-tenant.billing');
     });
 });

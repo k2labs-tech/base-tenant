@@ -136,6 +136,30 @@ window passes.
 
 ---
 
+## Links
+
+```php
+$file->url(10);                 // signed, expires in 10 minutes
+$file->temporaryUrlOrNull(10);  // signed, or null -- never the streaming route
+$file->publicUrl();             // stable, no session; null unless the collection is public
+```
+
+`url()` falls back to the streaming route `base-tenant.files.show` when the
+disk cannot sign, which authorises on every request but does not expire. An
+application that promises every link expires sets `files.stream_fallback`
+to `false`; `url()` and `variantUrl()` then throw instead of handing out that
+link. `temporaryUrlOrNull()` ignores the setting and returns null.
+
+A collection declared `public` (`'public' => true` in `files.collections`, or
+`FileCollection::make(..., public: true)` / `images(..., public: true)` on the
+model) gives its files a stable address, `base-tenant.files.public`, for
+things meant to be embedded -- a status page's logo. The route checks the
+collection's current rules on every request, so making it private again stops
+every address already out there; anything else answers 404. Collections are
+private unless they say otherwise.
+
+---
+
 ## Metering
 
 Uploads increment the `storage.bytes` gauge, and so do the derived renditions:

@@ -55,6 +55,49 @@ Resolvers run in order until one answers, configured in
 - `auto` (default) — unfiltered in console and queue work, no results over HTTP
 - `allow` — unfiltered everywhere (single-tenant installs only)
 - `deny` — no results anywhere without an account
+- `throw` — `MissingTenantException` on any scoped query without an account,
+  unless `Tenant::runWithout()` is open (then unfiltered)
+
+`Tenant::set(null)` and `Tenant::forget()` pin "no account" until the manager
+is reset. To drop the account and let the next access resolve one again (the
+next request under Octane, the next step of a test), use `Tenant::clear()`.
+
+### Strict tenancy (`tenancy.strict`, off by default)
+
+- Creating a record with no account throws `MissingTenantException`
+  (override `allowsAccountlessRecords()` for platform-wide rows).
+- `account_id` is immutable; updating, deleting or restoring another account's
+  record throws `CrossAccountWriteException`. With no account in context,
+  writes follow the read rule above (allowed in console under `auto`).
+- Models get `TenantBuilder`: `forceDelete()` is scoped, `truncate()` /
+  `updateOrInsert()` / `updateFrom()` throw `UnscopableQueryException`,
+  `upsert()` needs `account_id` in the conflict target and stamps it, and
+  joins to tenant tables get `account_id = ?` in their `ON`. Tables whose
+  `account_id` means something else are exempt (`tenancy.join_exempt_tables`).
+- `belongsToMany` pivots with `account_id` use `TenantBelongsToMany`: the
+  parent's account is written on attach and constrains reads and detaches.
+- `Tenant::set($id)` with an id that names no account throws
+  `UnknownTenantException`; `set(null)` behaves like `clear()`.
+
+All exceptions extend `Base\Tenant\Tenancy\Exceptions\TenancyException`.
+
+### Auditing bypasses
+
+`Tenant::runWithout($callback, 'reason')`, `->acrossAccounts()` and
+`->forAccount($other)` dispatch `Base\Tenant\Tenancy\Events\TenancyBypassed`
+(source, reason, account, call site, user, model). Listen to it to keep an
+audit trail.
+
+`php artisan k2labs-base:tenancy-audit` scans `tenancy.audit.paths` (default
+`app/Models`) and exits 1 when a model's table has `account_id` but the model
+does not use `BelongsToAccount`. Run it in CI.
+
+### Deferred dispatches (`tenancy.restore_dispatch_context`)
+
+`Tenant::runFor($a, fn () => Job::dispatch())` pushes after the block ends,
+and `->afterResponse()` jobs run at terminate. With this option on, the
+`TenantAwareBusDispatcher` pushes each under the context it was built in, and
+inline (`sync`) jobs hand the caller its context back when they finish.
 
 ---
 

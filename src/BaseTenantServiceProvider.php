@@ -18,6 +18,7 @@ use Base\Tenant\Console\Commands\MakeModuleCommand;
 use Base\Tenant\Console\Commands\PresaleOpenCommand;
 use Base\Tenant\Console\Commands\PruneActivityLogCommand;
 use Base\Tenant\Console\Commands\PruneSessionsCommand;
+use Base\Tenant\Console\Commands\PruneTransfersCommand;
 use Base\Tenant\Console\Commands\PublishAgentDocsCommand;
 use Base\Tenant\Console\Commands\PurgeDeletedCommand;
 use Base\Tenant\Console\Commands\ReconcileStorageCommand;
@@ -25,6 +26,7 @@ use Base\Tenant\Console\Commands\ReportUsageCommand;
 use Base\Tenant\Console\Commands\ScaffoldCommand;
 use Base\Tenant\Console\Commands\SyncMenusCommand;
 use Base\Tenant\Console\Commands\SyncRolesCommand;
+use Base\Tenant\Console\Commands\TenancyAuditCommand;
 use Base\Tenant\Console\Commands\VerifyDomainsCommand;
 use Base\Tenant\Domains\Contracts\DnsLookup;
 use Base\Tenant\Domains\DomainManager;
@@ -129,6 +131,7 @@ use Base\Tenant\Support\ScheduledTasks;
 use Base\Tenant\Suppressions\BlockSuppressedRecipients;
 use Base\Tenant\Suppressions\SuppressionManager;
 use Base\Tenant\Tenancy\QueueTenancy;
+use Base\Tenant\Tenancy\TenantAwareBusDispatcher;
 use Base\Tenant\Tenancy\TenantManager;
 use Base\Tenant\Tenancy\TenantTeamResolver;
 use Base\Tenant\Transfer\TransferManager;
@@ -272,6 +275,10 @@ class BaseTenantServiceProvider extends ServiceProvider
     {
         if (config('base-tenant.tenancy.propagate_to_queue', true)) {
             QueueTenancy::register($this->app->make(Dispatcher::class));
+        }
+
+        if (config('base-tenant.tenancy.restore_dispatch_context', false)) {
+            TenantAwareBusDispatcher::register($this->app);
         }
     }
 
@@ -580,6 +587,8 @@ class BaseTenantServiceProvider extends ServiceProvider
             ReconcileStorageCommand::class,
             VerifyDomainsCommand::class,
             PruneSessionsCommand::class,
+            PruneTransfersCommand::class,
+            TenancyAuditCommand::class,
         ]);
     }
 

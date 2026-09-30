@@ -6,13 +6,14 @@ namespace Base\Tenant\Livewire\Auth;
 
 use Base\Tenant\Facades\MagicLink;
 use Base\Tenant\Facades\Passkey;
+use Base\Tenant\Livewire\Attributes\GuestLayout;
 use Base\Tenant\Livewire\Forms\LoginForm;
+use Base\Tenant\Support\Home;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Session;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class Login extends Component
 {
     public LoginForm $form;
@@ -29,7 +30,7 @@ class Login extends Component
         // Only redirect to dashboard if not already redirecting (e.g., to 2FA)
         if (! session()->has('2fa.user_id')) {
             Session::regenerate();
-            $this->redirectIntended(default: route('base-tenant.dashboard', absolute: false), navigate: true);
+            $this->redirectIntended(default: Home::url(absolute: false), navigate: true);
         }
     }
 

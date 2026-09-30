@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Http\Middleware;
 
+use Base\Tenant\Support\Home;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -18,21 +19,19 @@ class DoesNotHaveSubscription
      */
     public function handle(Request $request, Closure $next): Response
     {
-        $dashboardRoute = config('base-tenant.home_url', 'base-tenant.dashboard');
-
         // Admin users bypass subscription check
         if (Auth::user()?->is_admin) {
-            return redirect()->route($dashboardRoute);
+            return redirect()->to(Home::url());
         }
 
         // Bypass in non-production if Stripe is not configured
         if (! app()->environment('production') && ! $this->isStripeConfigured()) {
-            return redirect()->route($dashboardRoute);
+            return redirect()->to(Home::url());
         }
 
         // If user has an active subscription, redirect to dashboard
         if (Auth::user()?->account?->hasActiveSubscription()) {
-            return redirect()->route($dashboardRoute);
+            return redirect()->to(Home::url());
         }
 
         return $next($request);

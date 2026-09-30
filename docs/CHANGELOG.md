@@ -12,6 +12,157 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.1.0] - 2026-10-01
+
+The package's sign-in can now be used on its own: a host application can keep
+its own dashboard and take only the login, registration, second factor and
+passkeys. Outbound webhooks can carry a product's own published contract,
+tenancy can fail closed, and several 3.0 settings that were declared but never
+read now take effect. With the default configuration nothing changes, except
+where noted under Security and Changed.
+
+### Security
+
+- **The second-factor challenge trusted the browser with the user id.**
+  `TwoFactorChallenge::$userId` was a public Livewire property: changing it let
+  someone complete the second factor as another user with one of that user's
+  recovery codes, without their password. It is locked now.
+- **CSV exports are protected against formula injection.** `Csv::write()`
+  prefixes with `'` every cell that starts with `=`, `+`, `-`, `@`, tab or
+  carriage return (OWASP), so a value a user typed as `=HYPERLINK(...)` is text
+  in whoever opens the export. Plain numbers, signed ones included, are left as
+  numbers so sums keep working. On by default; `transfer.csv.escape_formulas`
+  turns it off.
+
+### Added
+
+- **Route groups.** `routes.auth.enabled`, `routes.app.enabled`,
+  `routes.subscriptions.enabled` and `routes.webhooks.enabled` switch each group
+  of routes on its own. Left unset they follow `routes.enabled`, which keeps
+  meaning "everything".
+- **`routes.auth.laravel_names`.** Registers `login`, `register`, `logout`,
+  `password.request`, `password.reset`, `password.confirm`,
+  `verification.notice`, `verification.verify` and `two-factor.login` as
+  aliases of the package screens, so the `auth`, `verified` and
+  `password.confirm` middleware keep working after an application drops
+  Fortify. The aliases answer OPTIONS only: a second GET route on the same URI
+  would replace the package's and erase its `base-tenant.*` name.
+- `Base\Tenant\Support\Home` and `Base\Tenant\Support\RouteGroup`.
+- **Outbound webhooks are configurable.** Everything a receiver sees was a
+  constant. New keys under `base-tenant.webhooks`, all defaulting to the 3.0
+  behaviour:
+  - `headers.{signature,event,delivery}` — header names.
+  - `signature_prefix` — e.g. `sha256=`. The signature is still the
+    HMAC-SHA256 of the raw body exactly as sent, serialised once.
+  - `payload_builder` — a class implementing the new
+    `Connections\Webhooks\PayloadBuilder`; `DefaultPayloadBuilder` keeps
+    `{event, delivery, occurred_at, data}`.
+  - `attempts`, `backoff`, `timeout` — the retry schedule and the HTTP timeout.
+    The job's own timeout stays at least 15 s above the HTTP one.
+  - `failure_limit` and `on_failure_limit` (`disable` or `degrade`).
+    `degrade` keeps the endpoint receiving and sets `degraded_at`; a
+    successful delivery clears it.
+  - `models.endpoint`, `models.delivery` — the manager, the job and the
+    relations use the configured classes, which must extend the package's.
+- **`WebhookEndpointFailing` event**, raised once when an endpoint reaches the
+  failure limit, whichever the action. 3.0 switched endpoints off without
+  telling anyone.
+- **`Webhook::redeliver($delivery)`** — a new delivery with the original's
+  exact body, linked through `redelivery_of`.
+- Each webhook delivery keeps the bytes it sent (`body`), so every retry and
+  every redelivery sends the same signed request even if the envelope changed
+  in between.
+- **Strict tenancy**, all opt-in:
+  - `tenancy.on_missing_tenant = throw`: a scoped query with no account in
+    context and no `Tenant::runWithout()` throws `MissingTenantException`
+    instead of returning nothing.
+  - `tenancy.strict`: `BelongsToAccount` models get `TenantBuilder` (scoped
+    `forceDelete()`, refused `truncate()`/`updateOrInsert()`/`updateFrom()`,
+    `upsert()` requiring `account_id` in the conflict target and stamping it,
+    account predicate in the `ON` of joins to tenant tables) and
+    `TenantBelongsToMany` for pivots with `account_id`; `account_id` becomes
+    immutable; updating, deleting or restoring another account's record throws
+    `CrossAccountWriteException`; creating with no account throws (override
+    `allowsAccountlessRecords()` to allow it); `Tenant::set($id)` with an
+    unknown id throws `UnknownTenantException`.
+  - `tenancy.join_exempt_tables`: tables whose `account_id` is not ownership,
+    never constrained in joins or pivots.
+  - `tenancy.restore_dispatch_context`: `TenantAwareBusDispatcher` pushes jobs
+    returned from `runFor()`/`runWithout()` and `afterResponse()` jobs under
+    the context they were built in; inline jobs restore their caller's context
+    instead of resetting it.
+  - All tenancy exceptions extend `Base\Tenant\Tenancy\Exceptions\TenancyException`.
+- `Tenant::clear()`: drops the account and lets the next access run the
+  resolver chain again.
+- `TenancyBypassed` event, dispatched by `Tenant::runWithout($callback, $reason)`,
+  `->acrossAccounts($reason)` and `->forAccount($other)`, with call site and
+  user. Always on.
+- `k2labs-base:tenancy-audit`: exits 1 when a model's table has `account_id`
+  but the model does not use `BelongsToAccount`, or the reverse (paths in
+  `tenancy.audit.paths`).
+- `k2labs-base:prune-transfers` and `Transfer::prune($days)`: apply
+  `transfer.retention_days`, which was declared and never applied. Old
+  transfers go with the export and error files they produced; the source file
+  of an import is never touched. Scheduled daily only when
+  `transfer.prune_schedule` is on.
+- Suppression drivers for Postmark (`PostmarkDriver`, basic auth in the webhook
+  URL, since Postmark does not sign) and Resend (`ResendDriver`, Svix signature
+  with a five-minute window). Both refuse everything until configured.
+- `files.stream_fallback` (default `true`): set to `false` and `File::url()` /
+  `variantUrl()` throw instead of falling back to the non-expiring streaming
+  route when the disk cannot sign.
+- `File::temporaryUrlOrNull()`: a signed, expiring URL or null, never the
+  streaming route.
+- Public file collections: `'public' => true` in `files.collections`, or
+  `FileCollection::make(..., public: true)`. Their files get a stable,
+  session-less address from `File::publicUrl()` (route
+  `base-tenant.files.public`), checked against the collection's current rules
+  on every request. Collections stay private by default.
+- `FileCollection::fromConfig()`, `File::isPublic()`, `File::collectionRules()`.
+
+### Changed
+
+- Registration runs user, account and owner role in one transaction, and
+  `Illuminate\Auth\Events\Registered` is dispatched after the commit instead of
+  before.
+- `ActivityLog` may be created with no account under `tenancy.strict`
+  (sign-in and session events belong to a person, not an account).
+- The suppression webhook answers 401 instead of 404 for `postmark` and
+  `resend` until their secrets are configured.
+
+### Deprecated
+
+- `OutboundWebhook::FAILURE_LIMIT` and `OutboundWebhookDelivery::BACKOFF`.
+  Read `WebhookManager::failureLimit()`, `backoff()` and `attempts()`. The
+  first entry of `BACKOFF` (60) never applied: the 3.0 schedule was five
+  attempts at 5m, 30m, 2h and 12h, which is the new default.
+
+### Fixed
+
+- **`layouts.guest` was never read.** The auth screens fixed their layout with
+  `#[Layout('base-tenant::layouts.guest')]`. They now use `#[GuestLayout]`,
+  which reads the config when the screen renders.
+- **`home_url` was ignored on half the screens.** Login, second factor, password
+  confirmation, email verification, forced password change, registration,
+  social sign-in, invitations, account switching and impersonation named
+  `base-tenant.dashboard` by hand. Every one of them goes through
+  `Home::url()` now, which accepts a route name or a path.
+- **Registration returned 500 without subscriptions.** It always redirected to
+  `base-tenant.checkout`, a route that only exists with subscriptions on — after
+  the user and their account had been created. It goes to the checkout only
+  when that route exists, and home otherwise.
+- **Registration could leave half an account.** A missing owner role (roles
+  never synced) now rolls everything back instead of leaving an account nobody
+  can manage.
+- **Users coming from Fortify were locked out of their recovery codes.** Fortify
+  stores them as `encrypt(json_encode($codes))`; the `array` cast read that as
+  null, and spending a code failed with a `TypeError`. Both formats are read,
+  and a row keeps its format when a code is spent or the set regenerated.
+- **`Tenant::set(null)` left the manager marked as resolved**, so in a
+  long-lived process (Octane, tests) the next request never resolved its
+  account. Use `Tenant::clear()`; under `tenancy.strict`, `set(null)` now
+  behaves like it.
+
 ## [3.0.3] - 2026-09-22
 
 Ten defects, nine of them found by auditing a real application that had taken

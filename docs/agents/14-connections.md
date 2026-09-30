@@ -109,33 +109,89 @@ can add `booking.cancelled` without every subscriber being edited.
 
 ### What a receiver sees
 
-| Header | Meaning |
-|---|---|
-| `X-BaseTenant-Signature` | `hash_hmac('sha256', $rawBody, $secret)` |
-| `X-BaseTenant-Event` | the event name |
-| `X-BaseTenant-Delivery` | the delivery id, unique per attempt series |
+| Header (default name) | Config key | Meaning |
+|---|---|---|
+| `X-BaseTenant-Signature` | `webhooks.headers.signature` | `signature_prefix` + `hash_hmac('sha256', $rawBody, $secret)` |
+| `X-BaseTenant-Event` | `webhooks.headers.event` | the event name |
+| `X-BaseTenant-Delivery` | `webhooks.headers.delivery` | the delivery id, unique per attempt series |
 
-The body is `{event, delivery, occurred_at, data}`. Verify against the **raw**
-body: it is serialised once and both signed and sent, and re-encoding between
-the two is the classic reason a correctly computed signature never matches.
+`signature_prefix` is empty by default; `'sha256='` gives the GitHub-style
+`sha256=<hex>`. `Webhook::sign($body, $secret)` returns the full header value
+and `Webhook::verify($body, $secret, $header)` compares it in constant time
+(`hash_equals`).
 
-The delivery id is inside the signed body, so a captured request cannot be
-replayed against a different event.
+The body is `{event, delivery, occurred_at, data}`, built by
+`DefaultPayloadBuilder`. A product with its own published envelope points
+`webhooks.payload_builder` at a class implementing `PayloadBuilder`:
+
+```php
+use Base\Tenant\Connections\Webhooks\PayloadBuilder;
+
+class CheckPayload implements PayloadBuilder
+{
+    public function build(OutboundWebhookDelivery $delivery, OutboundWebhook $webhook): array
+    {
+        return ['type' => $delivery->event, 'id' => $delivery->getKey(), 'data' => $delivery->payload];
+    }
+}
+```
+
+The builder returns an array; the job serialises it once, stores the bytes on
+the delivery (`body`) and both signs and sends that string. Verify against the
+**raw** body: re-encoding is the classic reason a correctly computed signature
+never matches. Every retry sends the stored bytes, even if the builder changed
+in between.
+
+The delivery id is inside the default signed body, so a captured request cannot
+be replayed against a different event.
 
 ### Retries
 
-Five attempts at 1m, 5m, 30m, 2h and 12h. Widening gaps because a receiver
-that is down is usually down for minutes or hours, and hammering it every
-minute for a day helps nobody; the spread covers a deploy, an outage and a
-night.
+| Key | Default | Meaning |
+|---|---|---|
+| `webhooks.attempts` | `5` | attempts per delivery, the first included |
+| `webhooks.backoff` | `[300, 1800, 7200, 43200]` | seconds to wait after each failed attempt; the last gap repeats if there are more attempts than entries |
+| `webhooks.timeout` | `15` | HTTP timeout in seconds; the job's own timeout stays at least 15 s above it |
+
+Widening gaps because a receiver that is down is usually down for minutes or
+hours; the spread covers a deploy, an outage and a night. The 3.0 constant
+`OutboundWebhookDelivery::BACKOFF` (deprecated) starts with a `60` that never
+applied: the schedule in force was always the one above.
 
 The schedule lives on the delivery row rather than in the queue's own retry
 count, so a customer can be shown when the next attempt is due instead of being
 told it failed and left to guess whether anything more will happen.
 
-After 20 consecutive failures the endpoint is switched off. A URL that has been
-gone for days is not coming back on its own, and every delivery to it costs a
-queued job and a timeout.
+### Failing endpoints
+
+After `webhooks.failure_limit` (20) consecutive failed deliveries the endpoint
+is acted on, per `webhooks.on_failure_limit`:
+
+- `disable` (default) — `enabled = false`, `disabled_at` set. It receives nothing
+  more until someone switches it back on.
+- `degrade` — stays enabled, `degraded_at` set (`isDegraded()`). The next
+  successful delivery clears it and resets `failure_count`.
+
+Either way `Base\Tenant\Events\WebhookEndpointFailing` (`webhook`, `action`,
+`failures`) is raised once per episode. The package notifies nobody itself;
+listen for it to warn the customer. `failure_limit => null` never acts.
+
+### Redelivery
+
+```php
+$copy = Webhook::redeliver($delivery);
+```
+
+A new delivery row (`redelivery_of` = the original, `original()`,
+`isRedelivery()`) with the original's exact body — the bytes it sent, or the
+ones it would have sent — queued at once. The body therefore keeps the
+original `delivery` id; the delivery header carries the new one.
+
+### Models
+
+`webhooks.models.endpoint` and `webhooks.models.delivery` name the classes the
+manager, the job and the relations use. They must extend `OutboundWebhook` and
+`OutboundWebhookDelivery`; anything else throws.
 
 ---
 
@@ -166,9 +222,11 @@ Webhook::dispatch('booking.confirmed', $payload);
 `account_connections` — encrypted `credentials`, `status`, `checked_at`.
 `UNIQUE (account_id, provider, label)`.
 
-`outbound_webhooks` — `url`, `events`, encrypted `secret`, `failure_count`.
+`outbound_webhooks` — `url`, `events`, encrypted `secret`, `failure_count`,
+`disabled_at`, `degraded_at`.
 
 `outbound_webhook_deliveries` — one row per event per endpoint, with its
-attempt count, response and next attempt. Separate from the subscription so
+attempt count, response, next attempt, the exact `body` sent and
+`redelivery_of`. Separate from the subscription so
 that changing an endpoint's URL does not rewrite the history of what was sent
 to it.

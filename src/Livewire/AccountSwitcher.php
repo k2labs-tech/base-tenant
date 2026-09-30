@@ -7,6 +7,7 @@ namespace Base\Tenant\Livewire;
 use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Services\ActivityLogService;
+use Base\Tenant\Support\Home;
 use Base\Tenant\Support\Search;
 use Illuminate\Contracts\View\View;
 use Illuminate\Database\Eloquent\Collection;
@@ -71,7 +72,7 @@ class AccountSwitcher extends Component
             $this->recordEntry($account);
         }
 
-        $this->redirect(route('base-tenant.dashboard'), navigate: false);
+        $this->redirect(Home::url(), navigate: false);
     }
 
     /**
@@ -95,7 +96,7 @@ class AccountSwitcher extends Component
 
         $this->currentAccountId = null;
 
-        $this->redirect(route('base-tenant.dashboard'), navigate: false);
+        $this->redirect(Home::url(), navigate: false);
     }
 
     public function render(): View

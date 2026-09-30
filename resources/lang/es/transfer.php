@@ -50,4 +50,9 @@ return [
 
     'partial' => 'Se han rechazado algunas filas. Descárgalas, corrígelas y vuelve a subir el fichero.',
 
+    'console' => [
+        'pruned' => 'Eliminados :count traspasos con más de :days días, con los ficheros que generaron.',
+        'retention_disabled' => 'La retención de traspasos está desactivada: no se ha eliminado nada.',
+    ],
+
 ];

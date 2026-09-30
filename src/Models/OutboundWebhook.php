@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Models;
 
+use Base\Tenant\Connections\WebhookManager;
 use Base\Tenant\Traits\BelongsToAccount;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
@@ -12,6 +13,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * An endpoint that wants to be told when something happens.
+ *
+ * Extend it and point `base-tenant.webhooks.models.endpoint` at the subclass
+ * to add relations or behaviour; the manager and the delivery job use the
+ * configured class.
  */
 class OutboundWebhook extends Model
 {
@@ -19,12 +24,17 @@ class OutboundWebhook extends Model
     use HasUuids;
 
     /**
-     * Consecutive failures before the endpoint is switched off.
+     * Consecutive failures before the endpoint is acted on, by default.
      *
      * An endpoint that has been gone for days is not coming back on its own,
-     * and every delivery to it costs a queued job and a timeout.
+     * and every delivery to it costs a queued job and a timeout. The limit in
+     * force is `base-tenant.webhooks.failure_limit`.
+     *
+     * @deprecated 3.1.0 Read `WebhookManager::failureLimit()` instead.
      */
     public const FAILURE_LIMIT = 20;
+
+    protected $table = 'outbound_webhooks';
 
     protected $guarded = ['id'];
 
@@ -39,17 +49,27 @@ class OutboundWebhook extends Model
             'failure_count' => 'integer',
             'last_delivered_at' => 'datetime',
             'disabled_at' => 'datetime',
+            'degraded_at' => 'datetime',
         ];
     }
 
     public function deliveries(): HasMany
     {
-        return $this->hasMany(OutboundWebhookDelivery::class);
+        return $this->hasMany(app(WebhookManager::class)->deliveryModel(), 'outbound_webhook_id');
     }
 
     public function scopeEnabled(Builder $query): Builder
     {
         return $query->where('enabled', true);
+    }
+
+    /**
+     * Reached the failure limit under the `degrade` action: still receiving,
+     * but somebody should look at it.
+     */
+    public function isDegraded(): bool
+    {
+        return $this->degraded_at !== null;
     }
 
     /**

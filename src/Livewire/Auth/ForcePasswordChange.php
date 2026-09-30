@@ -2,13 +2,14 @@
 
 namespace Base\Tenant\Livewire\Auth;
 
+use Base\Tenant\Livewire\Attributes\GuestLayout;
+use Base\Tenant\Support\Home;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class ForcePasswordChange extends Component
 {
     public $current_password = '';
@@ -35,7 +36,7 @@ class ForcePasswordChange extends Component
 
         // If user doesn't need to change password, redirect to dashboard
         if (! Auth::user()->must_change_password) {
-            return redirect()->route('base-tenant.dashboard');
+            return redirect()->to(Home::url());
         }
     }
 
@@ -70,7 +71,7 @@ class ForcePasswordChange extends Component
         );
 
         // Redirect to dashboard
-        return redirect()->route('base-tenant.dashboard');
+        return redirect()->to(Home::url());
     }
 
     public function logout()

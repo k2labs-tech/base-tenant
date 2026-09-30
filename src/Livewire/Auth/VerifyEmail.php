@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Base\Tenant\Livewire\Auth;
 
 use Base\Tenant\Livewire\Actions\Logout;
+use Base\Tenant\Livewire\Attributes\GuestLayout;
+use Base\Tenant\Support\Home;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class VerifyEmail extends Component
 {
     /**
@@ -21,7 +22,7 @@ class VerifyEmail extends Component
         $user = Auth::user();
 
         if ($user->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route('base-tenant.dashboard', absolute: false), navigate: true);
+            $this->redirectIntended(default: Home::url(absolute: false), navigate: true);
 
             return;
         }
@@ -46,7 +47,7 @@ class VerifyEmail extends Component
     public function sendVerification(): void
     {
         if (Auth::user()->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route('base-tenant.dashboard', absolute: false), navigate: true);
+            $this->redirectIntended(default: Home::url(absolute: false), navigate: true);
 
             return;
         }

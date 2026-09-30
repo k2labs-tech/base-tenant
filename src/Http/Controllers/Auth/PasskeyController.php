@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Http\Controllers\Auth;
 
 use Base\Tenant\Facades\Passkey;
+use Base\Tenant\Support\Home;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -146,7 +147,7 @@ class PasskeyController
         $request->session()->regenerate();
 
         return response()->json([
-            'redirect' => route(config('base-tenant.home_url', 'base-tenant.dashboard')),
+            'redirect' => Home::url(),
         ]);
     }
 }

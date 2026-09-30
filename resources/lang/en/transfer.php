@@ -50,4 +50,9 @@ return [
 
     'partial' => 'Some rows were rejected. Download them, correct them and upload the file again.',
 
+    'console' => [
+        'pruned' => 'Deleted :count transfers older than :days days, with the files they produced.',
+        'retention_disabled' => 'Transfer retention is disabled: nothing was deleted.',
+    ],
+
 ];

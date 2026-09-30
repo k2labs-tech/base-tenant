@@ -36,7 +36,7 @@ class TwoFactorAuthentication extends Component
     public function mount()
     {
         if (auth()->user()->hasTwoFactorEnabled()) {
-            $this->recoveryCodes = auth()->user()->two_factor_recovery_codes;
+            $this->recoveryCodes = auth()->user()->two_factor_recovery_codes ?? [];
         }
     }
 
@@ -113,7 +113,7 @@ class TwoFactorAuthentication extends Component
         $user->enableTwoFactorAuthentication($this->secret);
         $user->confirmTwoFactorAuthentication();
 
-        $this->recoveryCodes = $user->two_factor_recovery_codes;
+        $this->recoveryCodes = $user->two_factor_recovery_codes ?? [];
         $this->showEnableModal = false;
         $this->showRecoveryCodesModal = true;
 
@@ -156,7 +156,7 @@ class TwoFactorAuthentication extends Component
     public function regenerateRecoveryCodes()
     {
         auth()->user()->regenerateRecoveryCodes();
-        $this->recoveryCodes = auth()->user()->two_factor_recovery_codes;
+        $this->recoveryCodes = auth()->user()->two_factor_recovery_codes ?? [];
 
         Flux::toast(
             variant: 'success',

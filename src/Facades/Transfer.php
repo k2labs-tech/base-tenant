@@ -18,6 +18,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static DataTransfer export(string $handler, array $options = [], string|null $name = null)
  * @method static array<string, string> guessMapping(Import $import, array $headings)
  * @method static string template(Import $import)
+ * @method static int prune(int $days)
  *
  * @see TransferManager
  */

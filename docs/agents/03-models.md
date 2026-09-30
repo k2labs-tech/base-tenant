@@ -329,8 +329,8 @@ also has a past date, and it is not the same thing.
 | `UsageEvent` | `UPDATED_AT = null`. `delta` is signed, so events sum to the counter. `reported_at` is stamped once billing has it, so a run that dies repeats nothing. |
 | `DataTransfer` | `file()` and `errorFile()` both point at `files`. `progress()` returns null, not 0, when the total is unknown — a bar at 0% reads as stuck. Constants: `IMPORT`, `EXPORT`, `PENDING`…`FAILED`. Scopes `imports()`, `exports()`. |
 | `AccountConnection` | `credentials` is `encrypted:array` and hidden. Unique on `(account_id, provider, label)`, so an account can hold two of the same provider. Scope `enabled()`. |
-| `OutboundWebhook` | `secret` encrypted and hidden, `events` an array of patterns. `wants($event)` matches `*` and `booking.*`. Disabled after `FAILURE_LIMIT` (20) consecutive failures. |
-| `OutboundWebhookDelivery` | `BACKOFF` = 60, 300, 1800, 7200, 43200 seconds. `hasAttemptsLeft()`, `backoff()`. |
+| `OutboundWebhook` | `secret` encrypted and hidden, `events` an array of patterns. `wants($event)` matches `*` and `booking.*`. Disabled (or marked `degraded_at`, `isDegraded()`) after `webhooks.failure_limit` (20) consecutive failures. Class set by `webhooks.models.endpoint`. |
+| `OutboundWebhookDelivery` | Schedule from `webhooks.attempts`/`webhooks.backoff` (5 attempts; 300, 1800, 7200, 43200 s). `hasAttemptsLeft()`, `backoff()`, `body`, `original()`, `isRedelivery()`. Class set by `webhooks.models.delivery`. |
 | `Sequence` | `account_id` is a **string** column defaulting to `Sequence::GLOBAL` (`'global'`), not a nullable uuid — same NULL-in-a-unique-index reasoning as `period`. `next_value` is what the next call hands out, not the last one given. Never write it through Eloquent: handing out a number is a locked read plus a write. |
 | `Language` | Unique `code`. Scopes `enabled()`, `ordered()`. `native_name` is what the picker shows. |
 | `SocialAccount` | `token`/`refresh_token` cast `encrypted` and hidden. `UNIQUE (provider, provider_id)` is the whole safety story: one external identity cannot become two users. |

@@ -31,20 +31,26 @@ class DeliverWebhook implements ShouldQueue
      */
     public int $tries = 1;
 
+    /**
+     * At least thirty seconds, and always longer than the HTTP timeout: a
+     * worker killed mid-request leaves the delivery without its outcome.
+     */
     public int $timeout = 30;
 
-    public function __construct(public readonly string $deliveryId) {}
+    public function __construct(public readonly string $deliveryId)
+    {
+        $this->timeout = max(30, app(WebhookManager::class)->timeout() + 15);
+    }
 
     public function handle(WebhookManager $webhooks): void
     {
-        $delivery = OutboundWebhookDelivery::query()->acrossAccounts()->find($this->deliveryId);
+        $delivery = $webhooks->findDelivery($this->deliveryId);
 
         if (! $delivery || $delivery->status === OutboundWebhookDelivery::DELIVERED) {
             return;
         }
 
-        /** @var OutboundWebhook|null $webhook */
-        $webhook = OutboundWebhook::query()->acrossAccounts()->find($delivery->outbound_webhook_id);
+        $webhook = $webhooks->findEndpoint((string) $delivery->outbound_webhook_id);
 
         if (! $webhook || ! $webhook->enabled) {
             $delivery->update([
@@ -61,38 +67,45 @@ class DeliverWebhook implements ShouldQueue
         // Serialised once and both signed and sent, so the receiver hashes
         // exactly the bytes we hashed. Re-encoding between the two is the
         // classic way a signature that is computed correctly still never
-        // matches.
-        $body = (string) json_encode([
-            'event' => $delivery->event,
-            'delivery' => $delivery->getKey(),
-            'occurred_at' => $delivery->created_at?->toIso8601String(),
-            'data' => $delivery->payload,
-        ]);
+        // matches. Kept on the row, so later attempts and a redelivery send
+        // the same request.
+        $body = $webhooks->serialize($delivery, $webhook);
+
+        if ($delivery->body === null) {
+            $delivery->forceFill(['body' => $body])->save();
+        }
+
+        $headers = $webhooks->headers();
 
         try {
             $response = Http::withHeaders([
                 'Content-Type' => 'application/json',
-                WebhookManager::SIGNATURE_HEADER => $webhooks->sign($body, $webhook->secret),
-                WebhookManager::EVENT_HEADER => $delivery->event,
-                WebhookManager::DELIVERY_HEADER => $delivery->getKey(),
+                $headers['signature'] => $webhooks->sign($body, $webhook->secret),
+                $headers['event'] => $delivery->event,
+                $headers['delivery'] => $delivery->getKey(),
             ])->withBody($body, 'application/json')
-                ->timeout(15)
+                ->timeout($webhooks->timeout())
                 ->post($webhook->url);
 
             if ($response->successful()) {
-                $this->succeed($delivery, $webhook, $response->status(), $response->body());
+                $this->succeed($webhooks, $delivery, $webhook, $response->status(), $response->body());
 
                 return;
             }
 
-            $this->fail($delivery, $webhook, $response->status(), $response->body(), null);
+            $this->fail($webhooks, $delivery, $webhook, $response->status(), $response->body(), null);
         } catch (Throwable $exception) {
-            $this->fail($delivery, $webhook, null, null, $exception->getMessage());
+            $this->fail($webhooks, $delivery, $webhook, null, null, $exception->getMessage());
         }
     }
 
-    protected function succeed(OutboundWebhookDelivery $delivery, OutboundWebhook $webhook, int $status, string $body): void
-    {
+    protected function succeed(
+        WebhookManager $webhooks,
+        OutboundWebhookDelivery $delivery,
+        OutboundWebhook $webhook,
+        int $status,
+        string $body,
+    ): void {
         $delivery->update([
             'status' => OutboundWebhookDelivery::DELIVERED,
             'response_status' => $status,
@@ -104,13 +117,11 @@ class DeliverWebhook implements ShouldQueue
             'delivered_at' => now(),
         ]);
 
-        $webhook->forceFill([
-            'failure_count' => 0,
-            'last_delivered_at' => now(),
-        ])->save();
+        $webhooks->recordSuccess($webhook);
     }
 
     protected function fail(
+        WebhookManager $webhooks,
         OutboundWebhookDelivery $delivery,
         OutboundWebhook $webhook,
         ?int $status,
@@ -135,17 +146,8 @@ class DeliverWebhook implements ShouldQueue
             return;
         }
 
-        // Out of attempts. Count it against the endpoint, and switch the
-        // endpoint off once it has been gone long enough that it is plainly
-        // not coming back -- every delivery to a dead URL costs a queued job
-        // and a timeout.
-        $webhook->increment('failure_count');
-
-        if ($webhook->fresh()?->failure_count >= OutboundWebhook::FAILURE_LIMIT) {
-            $webhook->forceFill([
-                'enabled' => false,
-                'disabled_at' => now(),
-            ])->save();
-        }
+        // Out of attempts: the manager counts it against the endpoint and
+        // decides whether the endpoint has failed for long enough to act on.
+        $webhooks->recordFailure($webhook);
     }
 }

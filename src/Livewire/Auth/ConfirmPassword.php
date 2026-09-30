@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire\Auth;
 
+use Base\Tenant\Livewire\Attributes\GuestLayout;
+use Base\Tenant\Support\Home;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\ValidationException;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class ConfirmPassword extends Component
 {
     public string $password = '';
@@ -34,7 +35,7 @@ class ConfirmPassword extends Component
 
         session(['auth.password_confirmed_at' => time()]);
 
-        $this->redirectIntended(default: route('base-tenant.dashboard', absolute: false), navigate: true);
+        $this->redirectIntended(default: Home::url(absolute: false), navigate: true);
     }
 
     public function render()

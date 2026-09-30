@@ -8,6 +8,7 @@ use Base\Tenant\Http\Controllers\Controller;
 use Base\Tenant\Social\SocialAuthException;
 use Base\Tenant\Social\SocialLoginService;
 use Base\Tenant\Social\SocialProviders;
+use Base\Tenant\Support\Home;
 use Base\Tenant\Support\Module;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -52,11 +53,11 @@ class SocialLoginController extends Controller
             try {
                 $this->social->link(Auth::user(), $provider, $identity);
             } catch (SocialAuthException $exception) {
-                return redirect()->route('base-tenant.profile')
+                return redirect()->to(Home::routeOrHome('base-tenant.profile'))
                     ->with('error', $exception->getMessage());
             }
 
-            return redirect()->route('base-tenant.profile')
+            return redirect()->to(Home::routeOrHome('base-tenant.profile'))
                 ->with('status', __('base-tenant::social.linked', [
                     'provider' => SocialProviders::label($provider),
                 ]));
@@ -84,7 +85,7 @@ class SocialLoginController extends Controller
 
         Session::regenerate();
 
-        return redirect()->intended(route('base-tenant.dashboard'));
+        return redirect()->intended(Home::url());
     }
 
     protected function assertAvailable(string $provider): void

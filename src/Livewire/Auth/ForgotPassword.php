@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire\Auth;
 
+use Base\Tenant\Livewire\Attributes\GuestLayout;
 use Illuminate\Support\Facades\Password;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class ForgotPassword extends Component
 {
     public string $email = '';
