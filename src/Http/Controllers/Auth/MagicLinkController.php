@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Http\Controllers\Auth;
 
 use Base\Tenant\Facades\MagicLink;
+use Base\Tenant\Support\Home;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -65,6 +66,6 @@ class MagicLinkController
 
         $request->session()->regenerate();
 
-        return redirect()->intended(route(config('base-tenant.home_url', 'base-tenant.dashboard')));
+        return redirect()->intended(Home::url());
     }
 }

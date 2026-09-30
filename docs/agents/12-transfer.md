@@ -115,6 +115,18 @@ usual reason a file "arrives empty".
 Exports are written with a BOM on purpose: without it Excel opens a UTF-8 CSV
 as Latin-1 and every accented name comes out wrong.
 
+**Formula injection is neutralised.** `Csv::write()` prefixes with `'` any cell
+starting with `=`, `+`, `-`, `@`, tab or carriage return (OWASP), so a name a
+user typed as `=HYPERLINK(...)` is text in whoever opens the export. Plain
+numbers, signed ones included, are left as numbers. `transfer.csv.escape_formulas`
+turns it off; `Csv::write(..., escapeFormulas: false)` does it for one call.
+Reading does not undo it.
+
+**Retention.** `k2labs-base:prune-transfers` deletes transfers older than
+`transfer.retention_days` (empty to keep them), with the export and error
+files they produced. The source file of an import is left alone -- it may be a
+library file. Also `Transfer::prune($days)`.
+
 ---
 
 ## Anti-patterns

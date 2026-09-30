@@ -1,5 +1,6 @@
 <?php
 
+use Base\Tenant\Connections\Webhooks\DefaultPayloadBuilder;
 use Base\Tenant\Gdpr\Erasers\ActivityEraser;
 use Base\Tenant\Gdpr\Erasers\FileEraser;
 use Base\Tenant\Gdpr\Erasers\InvitationEraser;
@@ -13,6 +14,8 @@ use Base\Tenant\Gdpr\Exporters\ActivityExporter;
 use Base\Tenant\Gdpr\Exporters\ProfileExporter;
 use Base\Tenant\Gdpr\Exporters\SessionExporter;
 use Base\Tenant\Models\Account;
+use Base\Tenant\Models\OutboundWebhook;
+use Base\Tenant\Models\OutboundWebhookDelivery;
 use Base\Tenant\Models\Permission;
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
@@ -20,6 +23,8 @@ use Base\Tenant\Models\UserInvite;
 use Base\Tenant\Onboarding\Checks\ProfileCompleted;
 use Base\Tenant\Onboarding\Checks\TeamInvited;
 use Base\Tenant\Suppressions\MailgunDriver;
+use Base\Tenant\Suppressions\PostmarkDriver;
+use Base\Tenant\Suppressions\ResendDriver;
 use Base\Tenant\Tenancy\Resolvers\ApiTokenTenantResolver;
 use Base\Tenant\Tenancy\Resolvers\DomainTenantResolver;
 use Base\Tenant\Tenancy\Resolvers\SessionTenantResolver;
@@ -99,6 +104,17 @@ return [
     |   auto  - unfiltered in console and queue work, no results over HTTP
     |   allow - unfiltered everywhere (only for single-tenant installs)
     |   deny  - no results anywhere without an account in context
+    |   throw - MissingTenantException without an account in context, unless
+    |           Tenant::runWithout() is open (then unfiltered)
+    |
+    | strict: write guards (immutable account_id, no cross-account update,
+    | delete or restore, no account-less create), TenantBuilder (scoped
+    | forceDelete, refused truncate/updateOrInsert, safe upsert, constrained
+    | joins), tenant-aware pivots, and Tenant::set() throwing on unknown ids.
+    |
+    | restore_dispatch_context: push deferred and afterResponse() jobs under
+    | the context they were built in, and give inline jobs' callers their
+    | context back.
     |
     */
 
@@ -118,6 +134,17 @@ return [
         'on_missing_tenant' => env('BASE_TENANT_ON_MISSING_TENANT', 'auto'),
 
         'propagate_to_queue' => env('BASE_TENANT_PROPAGATE_TO_QUEUE', true),
+
+        'strict' => env('BASE_TENANT_STRICT_TENANCY', false),
+
+        'join_exempt_tables' => [],
+
+        'restore_dispatch_context' => env('BASE_TENANT_RESTORE_DISPATCH_CONTEXT', false),
+
+        'audit' => [
+            'paths' => [app_path('Models')],
+            'exempt' => [],
+        ],
     ],
 
     /*
@@ -270,7 +297,11 @@ return [
     | Home URL
     |--------------------------------------------------------------------------
     |
-    | The route name to redirect users to after login.
+    | Where people land once they are in: after login, second factor, password
+    | confirmation, email verification, registration without checkout,
+    | invitation acceptance and account switching. A route name (default) or
+    | a path such as `/app`. A route name that is not registered -- the default
+    | one with `routes.app.enabled` off -- falls back to `/`.
     |
     */
 
@@ -673,6 +704,8 @@ return [
     |
     | Blade layouts the package's Livewire components render into. Point these
     | at your own layouts to keep the package pages inside your chrome.
+    | `guest` is the layout of the login, registration, password, verification
+    | and second-factor screens.
     |
     */
 
@@ -718,6 +751,40 @@ return [
         'prefix' => env('BASE_TENANT_ROUTES_PREFIX', ''),
         'middleware' => ['web'],
         'auth_middleware' => ['web', 'auth', 'verified', 'base-tenant.subscription'],
+
+        /*
+        | Per-group switches. Left null, a group follows `routes.enabled`, so an
+        | installation that never sets them registers exactly what 3.0 did. An
+        | application that only wants the package's sign-in screens sets
+        | `routes.app.enabled` and `routes.subscriptions.enabled` to false.
+        */
+
+        // Login, registration, password reset, verification, second factor,
+        // passkeys, magic links, social sign-in, invitation acceptance.
+        'auth' => [
+            'enabled' => env('BASE_TENANT_ROUTES_AUTH_ENABLED'),
+
+            // Also answer to the names Laravel's middleware redirect to
+            // (`login`, `verification.notice`, `password.confirm`, ...). Turn
+            // it on when the application drops Fortify or Breeze; leave it off
+            // while they still own those names.
+            'laravel_names' => env('BASE_TENANT_ROUTES_LARAVEL_NAMES', false),
+        ],
+
+        // Home, dashboard, profile, settings, users and the rest of the app.
+        'app' => [
+            'enabled' => env('BASE_TENANT_ROUTES_APP_ENABLED'),
+        ],
+
+        // Checkout and billing portal. Also needs `subscription.enabled`.
+        'subscriptions' => [
+            'enabled' => env('BASE_TENANT_ROUTES_SUBSCRIPTIONS_ENABLED'),
+        ],
+
+        // Incoming webhooks (suppressions, LangSyncer).
+        'webhooks' => [
+            'enabled' => env('BASE_TENANT_ROUTES_WEBHOOKS_ENABLED'),
+        ],
     ],
 
     /*
@@ -850,6 +917,15 @@ return [
         'disk' => env('BASE_TENANT_FILES_DISK', 's3'),
 
         /*
+        | When the disk cannot sign a temporary URL, `File::url()` falls back
+        | to the streaming route, which checks access on every request but
+        | does not expire. Set to false when every link handed out must
+        | expire: `url()` and `variantUrl()` then throw, and
+        | `temporaryUrlOrNull()` returns null.
+        */
+        'stream_fallback' => env('BASE_TENANT_FILES_STREAM_FALLBACK', true),
+
+        /*
         | Collections for files that belong to the account rather than to one
         | of its records -- the media library. Files attached to a model take
         | their rules from that model's `fileCollections()` instead.
@@ -858,6 +934,9 @@ return [
         |   max_size  bytes
         |   single    replace rather than accumulate
         |   variants  renditions derived from images
+        |   public    true for files anyone may see (a status page logo):
+        |             File::publicUrl() gives them a stable address with no
+        |             session. Private unless it says so.
         */
 
         'collections' => [
@@ -884,7 +963,28 @@ return [
 
     'transfer' => [
         'enabled' => env('BASE_TENANT_TRANSFER_ENABLED', true),
+        /*
+        | Days a transfer and the files it produced (the export, the rejected
+        | rows) are kept. Applied by k2labs-base:prune-transfers. Empty keeps
+        | them forever. The source file of an import is never touched.
+        */
         'retention_days' => env('BASE_TENANT_TRANSFER_RETENTION_DAYS', 30),
+
+        /*
+        | Run k2labs-base:prune-transfers daily from the package's schedule.
+        | Off by default, so an upgrade never starts deleting exports on its
+        | own; the command can also be scheduled by the application.
+        */
+        'prune_schedule' => env('BASE_TENANT_TRANSFER_PRUNE_SCHEDULE', false),
+
+        'csv' => [
+            /*
+            | Prefix with ' every exported cell that starts with = + - @, tab
+            | or carriage return, so a spreadsheet reads it as text and not as
+            | a formula (OWASP CSV injection). Plain numbers are left alone.
+            */
+            'escape_formulas' => env('BASE_TENANT_TRANSFER_CSV_ESCAPE_FORMULAS', true),
+        ],
 
         /*
         | The handlers this product offers, keyed by the name that appears in
@@ -915,6 +1015,55 @@ return [
 
     'webhooks' => [
         'enabled' => env('BASE_TENANT_WEBHOOKS_ENABLED', true),
+
+        /*
+        | What a receiver sees. The defaults are the 3.0 contract; a product
+        | with its own published contract changes them here.
+        */
+        'headers' => [
+            'signature' => 'X-BaseTenant-Signature',
+            'event' => 'X-BaseTenant-Event',
+            'delivery' => 'X-BaseTenant-Delivery',
+        ],
+
+        /*
+        | Put before the hex HMAC-SHA256 of the raw body, e.g. 'sha256='.
+        */
+        'signature_prefix' => env('BASE_TENANT_WEBHOOKS_SIGNATURE_PREFIX', ''),
+
+        /*
+        | Builds the body envelope. Must implement
+        | Base\Tenant\Connections\Webhooks\PayloadBuilder. The default sends
+        | {event, delivery, occurred_at, data}.
+        */
+        'payload_builder' => DefaultPayloadBuilder::class,
+
+        /*
+        | Attempts per delivery (the first included), seconds to wait after
+        | each failed one -- the last gap repeats if there are more attempts
+        | than entries -- and the HTTP timeout in seconds.
+        */
+        'attempts' => 5,
+        'backoff' => [300, 1800, 7200, 43200],
+        'timeout' => 15,
+
+        /*
+        | Consecutive failed deliveries before the endpoint is acted on (null:
+        | never), and how: 'disable' switches it off, 'degrade' marks it with
+        | degraded_at and keeps sending. Either raises
+        | Base\Tenant\Events\WebhookEndpointFailing once.
+        */
+        'failure_limit' => 20,
+        'on_failure_limit' => 'disable',
+
+        /*
+        | Models the manager and the delivery job use. They must extend the
+        | package's.
+        */
+        'models' => [
+            'endpoint' => OutboundWebhook::class,
+            'delivery' => OutboundWebhookDelivery::class,
+        ],
     ],
 
     /*
@@ -1020,12 +1169,26 @@ return [
         'mailgun_signing_key' => env('MAILGUN_WEBHOOK_SIGNING_KEY'),
 
         /*
+        | Postmark does not sign webhooks: put these credentials in the
+        | webhook URL, https://user:password@host/webhooks/suppressions/postmark.
+        */
+        'postmark_webhook_username' => env('POSTMARK_WEBHOOK_USERNAME'),
+        'postmark_webhook_password' => env('POSTMARK_WEBHOOK_PASSWORD'),
+
+        /*
+        | Resend signs through Svix; the secret starts with `whsec_`.
+        */
+        'resend_signing_secret' => env('RESEND_WEBHOOK_SECRET'),
+
+        /*
         | One class per mail provider, reached at
         | POST /webhooks/suppressions/{driver}.
         */
 
         'drivers' => [
             'mailgun' => MailgunDriver::class,
+            'postmark' => PostmarkDriver::class,
+            'resend' => ResendDriver::class,
         ],
     ],
 

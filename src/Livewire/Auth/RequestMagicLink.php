@@ -5,15 +5,15 @@ declare(strict_types=1);
 namespace Base\Tenant\Livewire\Auth;
 
 use Base\Tenant\Facades\MagicLink;
+use Base\Tenant\Livewire\Attributes\GuestLayout;
 use Base\Tenant\Support\Module;
 use Illuminate\Contracts\View\View;
-use Livewire\Attributes\Layout;
 use Livewire\Component;
 
 /**
  * Ask for a sign-in link.
  */
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class RequestMagicLink extends Component
 {
     public string $email = '';

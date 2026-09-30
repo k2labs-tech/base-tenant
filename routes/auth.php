@@ -17,9 +17,10 @@ use Base\Tenant\Livewire\Auth\ResetPassword;
 use Base\Tenant\Livewire\Auth\VerifyEmail;
 use Base\Tenant\Livewire\TwoFactorChallenge;
 use Base\Tenant\Support\Module;
+use Base\Tenant\Support\RouteGroup;
 use Illuminate\Support\Facades\Route;
 
-if (! config('base-tenant.routes.enabled', true)) {
+if (! RouteGroup::enabled(RouteGroup::AUTH)) {
     return;
 }
 
@@ -121,3 +122,45 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
     Route::get('invitations/accept/{token}', InvitationAcceptController::class)
         ->name('base-tenant.invitations.accept');
 });
+
+// The names Laravel's own middleware and notifications redirect to: `auth`
+// sends guests to `login`, `verified` to `verification.notice`,
+// `password.confirm` to `password.confirm`. An application that drops Fortify
+// loses them, and every one of those middleware then fails with "Route [login]
+// not defined".
+//
+// A route has a single name, and a second route on the same method and URI
+// would replace the first one — taking its `base-tenant.*` name with it. So
+// each alias is registered for OPTIONS only, on the URI of the package route:
+// it lends its name to the URL generator, which ignores the method, and never
+// takes a GET or a POST away from the package screen. An OPTIONS request that
+// reaches it is sent to that screen.
+if (RouteGroup::registersLaravelNames()) {
+    $aliases = [
+        'login' => 'base-tenant.login',
+        'register' => 'base-tenant.register',
+        'logout' => 'base-tenant.logout',
+        'password.request' => 'base-tenant.password.request',
+        'password.reset' => 'base-tenant.password.reset',
+        'password.confirm' => 'base-tenant.password.confirm',
+        'verification.notice' => 'base-tenant.verification.notice',
+        'verification.verify' => 'base-tenant.verification.verify',
+        'two-factor.login' => 'base-tenant.two-factor.challenge',
+    ];
+
+    // Names are given after a route is added, so the lookup only knows them
+    // once it has been rebuilt.
+    Route::getRoutes()->refreshNameLookups();
+
+    foreach ($aliases as $alias => $target) {
+        $route = Route::getRoutes()->getByName($target);
+
+        if ($route === null) {
+            continue;
+        }
+
+        Route::match(['OPTIONS'], $route->uri(), fn () => redirect()->route($target, request()->route()->parameters()))
+            ->middleware($middleware)
+            ->name($alias);
+    }
+}

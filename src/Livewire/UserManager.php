@@ -8,6 +8,7 @@ use Base\Tenant\Facades\Tenant;
 use Base\Tenant\Livewire\Concerns\InteractsWithTable;
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
+use Base\Tenant\Support\Home;
 use Base\Tenant\Support\Search;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
@@ -155,7 +156,7 @@ class UserManager extends Component
             text: __('base-tenant::users.impersonating_as', ['name' => $target->name]),
         );
 
-        return redirect()->route('base-tenant.dashboard');
+        return redirect()->to(Home::url());
     }
 
     /**

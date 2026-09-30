@@ -17,6 +17,11 @@ use InvalidArgumentException;
 final class FileCollection
 {
     /**
+     * `public` is for files meant to be seen by anyone with the link -- the
+     * logo on a status page, an avatar in a public profile. Their files get a
+     * stable address from `File::publicUrl()` that needs no session and does
+     * not expire. Everything else stays private, which is the default.
+     *
      * @param  list<string>  $accepts  MIME patterns; `image/*` matches a family
      * @param  array<string, array{width?: int, height?: int, fit?: string}>  $variants
      */
@@ -26,6 +31,7 @@ final class FileCollection
         public readonly ?int $maxSize = null,
         public readonly bool $single = false,
         public readonly array $variants = [],
+        public readonly bool $public = false,
     ) {}
 
     /**
@@ -38,15 +44,38 @@ final class FileCollection
         ?int $maxSize = null,
         bool $single = false,
         array $variants = [],
+        bool $public = false,
     ): self {
-        return new self($name, $accepts, $maxSize, $single, $variants);
+        return new self($name, $accepts, $maxSize, $single, $variants, $public);
+    }
+
+    /**
+     * A collection from its entry in `files.collections`, which may be the
+     * array form or an instance already.
+     *
+     * @param  FileCollection|array{accepts?: list<string>, max_size?: int|null, single?: bool, variants?: array<string, array{width?: int, height?: int, fit?: string}>, public?: bool}  $rules
+     */
+    public static function fromConfig(string $name, self|array $rules): self
+    {
+        if ($rules instanceof self) {
+            return $rules;
+        }
+
+        return new self(
+            name: $name,
+            accepts: $rules['accepts'] ?? [],
+            maxSize: $rules['max_size'] ?? null,
+            single: $rules['single'] ?? false,
+            variants: $rules['variants'] ?? [],
+            public: (bool) ($rules['public'] ?? false),
+        );
     }
 
     /**
      * An image collection with the two renditions almost every one of them
      * wants, so the common case is one call and not five arguments.
      */
-    public static function images(string $name, ?int $maxSize = null, bool $single = false): self
+    public static function images(string $name, ?int $maxSize = null, bool $single = false, bool $public = false): self
     {
         return new self(
             name: $name,
@@ -57,6 +86,7 @@ final class FileCollection
                 'thumb' => ['width' => 200, 'height' => 200, 'fit' => 'cover'],
                 'preview' => ['width' => 1200, 'fit' => 'contain'],
             ],
+            public: $public,
         );
     }
 

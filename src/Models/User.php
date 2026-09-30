@@ -11,7 +11,9 @@ use Base\Tenant\Traits\HasRolesAndPermissions;
 use Base\Tenant\Traits\HasSettings;
 use Base\Tenant\Traits\PurgesPersonalData;
 use Carbon\Carbon;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -72,7 +74,6 @@ class User extends Authenticatable
             'decimal_places' => 'integer',
             'two_factor_confirmed_at' => 'datetime',
             'two_factor_required_from' => 'datetime',
-            'two_factor_recovery_codes' => 'array',
         ];
     }
 
@@ -326,12 +327,81 @@ class User extends Authenticatable
     }
 
     /**
+     * The recovery codes, whichever way they were stored.
+     *
+     * The package writes them as plain JSON. Laravel Fortify writes
+     * `encrypt(json_encode($codes))` into the same column, so an application
+     * that moves from Fortify brings rows the old `array` cast read as null,
+     * and every one of those users lost their way back in. Both are read now.
+     *
+     * Writing keeps the format the row already had: a Fortify row stays
+     * encrypted when a code is spent or the set regenerated, and a package row
+     * stays plain JSON, as in 3.0. Nothing is rewritten on read — a getter that
+     * saves would turn every page that shows the codes into a write.
+     */
+    protected function twoFactorRecoveryCodes(): Attribute
+    {
+        return Attribute::make(
+            get: fn (?string $value): ?array => static::decodeRecoveryCodes($value),
+            set: function (?array $codes): ?string {
+                if ($codes === null) {
+                    return null;
+                }
+
+                $json = json_encode($codes);
+
+                return static::recoveryCodesAreEncrypted($this->attributes['two_factor_recovery_codes'] ?? null)
+                    ? encrypt($json)
+                    : $json;
+            },
+        );
+    }
+
+    /**
+     * @return array<int, string>|null
+     */
+    public static function decodeRecoveryCodes(?string $value): ?array
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        $codes = json_decode($value, true);
+
+        if (is_array($codes)) {
+            return $codes;
+        }
+
+        try {
+            $decrypted = decrypt($value);
+        } catch (DecryptException) {
+            return null;
+        }
+
+        if (is_array($decrypted)) {
+            return $decrypted;
+        }
+
+        $codes = is_string($decrypted) ? json_decode($decrypted, true) : null;
+
+        return is_array($codes) ? $codes : null;
+    }
+
+    /**
+     * Whether a stored value is Fortify's encrypted form rather than JSON.
+     */
+    public static function recoveryCodesAreEncrypted(?string $value): bool
+    {
+        return $value !== null && $value !== '' && ! is_array(json_decode($value, true));
+    }
+
+    /**
      * Verify a recovery code and invalidate it.
      */
     public function invalidateRecoveryCode(string $code): bool
     {
-        $codes = $this->two_factor_recovery_codes;
-        $key = array_search($code, $codes);
+        $codes = $this->two_factor_recovery_codes ?? [];
+        $key = array_search($code, $codes, true);
 
         if ($key !== false) {
             unset($codes[$key]);

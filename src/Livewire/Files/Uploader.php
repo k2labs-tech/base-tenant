@@ -90,12 +90,6 @@ class Uploader extends Component
         $declared = config('base-tenant.files.collections', []);
         $rules = $declared[$this->collection] ?? [];
 
-        return $rules instanceof FileCollection ? $rules : FileCollection::make(
-            name: $this->collection,
-            accepts: $rules['accepts'] ?? [],
-            maxSize: $rules['max_size'] ?? null,
-            single: $rules['single'] ?? false,
-            variants: $rules['variants'] ?? [],
-        );
+        return FileCollection::fromConfig($this->collection, $rules);
     }
 }

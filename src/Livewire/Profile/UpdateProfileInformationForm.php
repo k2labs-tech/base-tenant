@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Livewire\Profile;
 
 use Base\Tenant\Models\User;
+use Base\Tenant\Support\Home;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Session;
@@ -63,7 +64,7 @@ class UpdateProfileInformationForm extends Component
         $user = Auth::user();
 
         if ($user->hasVerifiedEmail()) {
-            $this->redirectIntended(default: route('base-tenant.dashboard', absolute: false));
+            $this->redirectIntended(default: Home::url(absolute: false));
 
             return;
         }

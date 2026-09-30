@@ -1,5 +1,154 @@
 # Upgrade Guide
 
+## From 3.0.x to 3.1.0
+
+```bash
+composer update k2labs/base-tenant
+php artisan migrate
+php artisan optimize:clear
+```
+
+One migration, adding three nullable columns for outbound webhooks:
+`outbound_webhook_deliveries.body` and `redelivery_of`, and
+`outbound_webhooks.degraded_at`. Nothing changes for receivers.
+
+Every new setting is optional and its default keeps 3.0 behaviour, with two
+exceptions listed under [Behaviour changes](#behaviour-changes-in-310). If you
+published `config/base-tenant.php`, copy the new keys from the package's copy
+into yours; a key you leave out falls back to its default.
+
+### Behaviour changes in 3.1.0
+
+- **CSV exports escape formulas** (`transfer.csv.escape_formulas`, on by
+  default): exported cells that start with `= + - @`, tab or carriage return
+  now get a leading `'`. Plain numbers are untouched. If something parses your
+  exports by machine and relies on those characters, set it to `false` or call
+  `Csv::write(..., escapeFormulas: false)` for that export.
+- **Registration** dispatches `Illuminate\Auth\Events\Registered` after the
+  transaction commits, not before, and fails — rolling back — when the owner
+  role (`customer-admin`) cannot be assigned. Run
+  `php artisan k2labs-base:sync-roles` if you see it. With subscriptions off it
+  now lands on `home_url` instead of failing on the missing checkout route.
+- `User::$casts` no longer has `two_factor_recovery_codes`. If your user model
+  redeclares that cast as `array`, remove it, or Fortify-format rows will read
+  as null again.
+
+### Routes and sign-in
+
+Leaving the new `routes.auth`, `routes.app`, `routes.subscriptions` and
+`routes.webhooks` entries out is the same as leaving them null: each group
+follows `routes.enabled`.
+
+To use only the package's sign-in:
+
+```dotenv
+BASE_TENANT_ROUTES_APP_ENABLED=false
+BASE_TENANT_ROUTES_SUBSCRIPTIONS_ENABLED=false
+BASE_TENANT_HOME_URL=/app            # or a route name of yours
+BASE_TENANT_LAYOUT_GUEST=layouts.guest   # optional: your own guest layout
+```
+
+`home_url` accepts a path now as well as a route name. If it names a route that
+is not registered, people land on `/` instead of getting an error.
+
+#### Leaving Fortify
+
+1. Remove Fortify's provider and routes, and set
+   `BASE_TENANT_ROUTES_LARAVEL_NAMES=true`. The `auth`, `verified` and
+   `password.confirm` middleware and any `route('login')` in your views then
+   point at the package screens.
+2. The `two_factor_secret`, `two_factor_recovery_codes` and
+   `two_factor_confirmed_at` columns are the ones Fortify uses, and the secret
+   is encrypted the same way: nobody has to set up their second factor again.
+   Fortify's encrypted recovery codes are read as they are. No data migration
+   is needed, and there is no reason to rewrite them.
+3. If the users table was created by the package, `two_factor_secret` is
+   `string(255)`: enough for the package's 16-character secrets (228 characters
+   once encrypted), but not for 32-character ones (256). A table created by
+   Fortify keeps its `text` column.
+
+### Outbound webhooks
+
+Without the new keys the module sends exactly what 3.0 sent. To adopt them,
+copy the new `webhooks` block; a published 3.0 config only has `enabled`, and
+the missing keys fall back to the 3.0 values.
+
+If your code read `OutboundWebhook::FAILURE_LIMIT` or
+`OutboundWebhookDelivery::BACKOFF`, both still exist but are deprecated. Read
+`Webhook::failureLimit()`, `Webhook::backoff()` and `Webhook::attempts()`
+instead: they reflect the configuration in force.
+
+To warn anyone when an endpoint keeps failing, listen for
+`Base\Tenant\Events\WebhookEndpointFailing`.
+
+### Tenancy
+
+Nothing changes until you opt in. The new keys in the `tenancy` block:
+
+```php
+        'strict' => env('BASE_TENANT_STRICT_TENANCY', false),
+        'join_exempt_tables' => [],
+        'restore_dispatch_context' => env('BASE_TENANT_RESTORE_DISPATCH_CONTEXT', false),
+        'audit' => [
+            'paths' => [app_path('Models')],
+            'exempt' => [],
+        ],
+```
+
+Before turning on `tenancy.strict`:
+
+- Run `php artisan k2labs-base:tenancy-audit` and fix every finding.
+- Models whose rows may legitimately have no account (platform-wide logs) must
+  override `allowsAccountlessRecords()` to return `true`. The package's
+  `ActivityLog` already does.
+- Replace `truncate()` / `updateOrInsert()` on tenant models with
+  `->acrossAccounts()`, `Tenant::runWithout()` or `updateOrCreate()`; add
+  `account_id` to every `upsert()` conflict target (and a unique index to back
+  it).
+- Add tables whose `account_id` means something other than ownership to
+  `tenancy.join_exempt_tables`.
+- A model with its own Eloquent builder must extend
+  `Base\Tenant\Tenancy\TenantBuilder`.
+- Replace `Tenant::set(null)` with `Tenant::clear()` where the intent is to let
+  the next request resolve its own account; keep `Tenant::forget()` where
+  "no account" must stay pinned.
+- Write guards run on model events, so `saveQuietly()` and `withoutEvents()`
+  skip them.
+
+Other opt-ins: `BASE_TENANT_ON_MISSING_TENANT=throw` to fail loudly instead of
+returning nothing; `BASE_TENANT_RESTORE_DISPATCH_CONTEXT=true` if you dispatch
+jobs from inside `Tenant::runFor()` or use `->afterResponse()`. Listen to
+`Base\Tenant\Tenancy\Events\TenancyBypassed` to audit cross-account access.
+
+`BelongsToAccount` now defines `newEloquentBuilder()`, `newBelongsToMany()` and
+`allowsAccountlessRecords()`. If a model also uses another trait that defines
+the first two, resolve the collision with `insteadof`.
+
+### Files, transfers and suppressions
+
+- `files.stream_fallback` — `true` keeps 3.0 behaviour.
+- Public collections: add `'public' => true` to a collection to serve its files
+  from `File::publicUrl()` without a session. Collections stay private unless
+  they say so.
+- **Transfer retention.** `k2labs-base:prune-transfers` deletes transfers older
+  than `transfer.retention_days` (30 by default), with their export and error
+  files. It is not scheduled unless you set
+  `BASE_TENANT_TRANSFER_PRUNE_SCHEDULE=true`; you may also schedule the command
+  yourself.
+- `suppressions.postmark_webhook_username`, `suppressions.postmark_webhook_password`,
+  `suppressions.resend_signing_secret`, and the `postmark` / `resend` entries in
+  `suppressions.drivers` if you want those providers. Webhook URL:
+  `POST /webhooks/suppressions/{postmark|resend}`; for Postmark put the
+  credentials in the URL (`https://user:pass@host/...`).
+
+### Applications that scaffolded or ejected
+
+Add `PruneTransfersCommand` and `TenancyAuditCommand` to your provider's command
+list, `PruneTransfersCommand` to `Support\ScheduledTasks` if you want it
+scheduled, the `TenantAwareBusDispatcher` registration if you turn on
+`restore_dispatch_context`, and the `base-tenant.files.public` route if you use
+public collections.
+
 ## From 3.0.x to 3.0.3
 
 ```bash

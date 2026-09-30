@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire;
 
+use Base\Tenant\Support\Home;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Layout;
@@ -30,7 +31,7 @@ class AcceptTerms extends Component
             'terms_version' => (string) config('base-tenant.gdpr.terms_version'),
         ])->save();
 
-        $this->redirect(route(config('base-tenant.home_url', 'base-tenant.dashboard')), navigate: true);
+        $this->redirect(Home::url(), navigate: true);
     }
 
     public function render(): View

@@ -6,6 +6,7 @@ use Base\Tenant\Facades\Presale;
 use Base\Tenant\Http\Controllers\FileController;
 use Base\Tenant\Http\Controllers\LangSyncerWebhookController;
 use Base\Tenant\Http\Controllers\NotificationController;
+use Base\Tenant\Http\Controllers\PublicFileController;
 use Base\Tenant\Http\Controllers\SuppressionWebhookController;
 use Base\Tenant\Livewire\AcceptTerms;
 use Base\Tenant\Livewire\AccountManager;
@@ -13,7 +14,6 @@ use Base\Tenant\Livewire\AccountSettings;
 use Base\Tenant\Livewire\ActivityLog;
 use Base\Tenant\Livewire\ConnectionManager as ConnectionManagerComponent;
 use Base\Tenant\Livewire\DomainManager as DomainManagerComponent;
-use Base\Tenant\Livewire\SecurityPolicyManager as SecurityPolicyManagerComponent;
 use Base\Tenant\Livewire\EditAccount;
 use Base\Tenant\Livewire\EditUser;
 use Base\Tenant\Livewire\FeatureManager;
@@ -23,18 +23,20 @@ use Base\Tenant\Livewire\LanguageManager as LanguageManagerComponent;
 use Base\Tenant\Livewire\NavigationManager;
 use Base\Tenant\Livewire\Notifications\Index;
 use Base\Tenant\Livewire\RoleManager;
+use Base\Tenant\Livewire\SecurityPolicyManager as SecurityPolicyManagerComponent;
 use Base\Tenant\Livewire\TransferManager as TransferManagerComponent;
 use Base\Tenant\Livewire\UsageManager;
 use Base\Tenant\Livewire\UserManager;
+use Base\Tenant\Support\Home;
 use Base\Tenant\Support\Module;
+use Base\Tenant\Support\RouteGroup;
 use Illuminate\Foundation\Http\Middleware\ValidateCsrfToken;
 use Illuminate\Support\Facades\Route;
 
-if (! config('base-tenant.routes.enabled', true)) {
-    return;
-}
-
-if (Module::enabled(Module::SUPPRESSIONS)) {
+// Each group has its own switch, and an unset switch follows
+// `routes.enabled`. The webhooks stay reachable for an installation that
+// switches the screens off but still receives bounces or translations.
+if (RouteGroup::enabled(RouteGroup::WEBHOOKS) && Module::enabled(Module::SUPPRESSIONS)) {
     Route::post('webhooks/suppressions/{driver}', SuppressionWebhookController::class)
         ->withoutMiddleware([ValidateCsrfToken::class])
         ->name('base-tenant.webhooks.suppressions');
@@ -43,10 +45,23 @@ if (Module::enabled(Module::SUPPRESSIONS)) {
 // Outside the group below on purpose: a webhook arrives with no session, no
 // account and no CSRF token, and gating it on any of those would fail every
 // delivery.
-if (Module::enabled(Module::LANGUAGES)) {
+if (RouteGroup::enabled(RouteGroup::WEBHOOKS) && Module::enabled(Module::LANGUAGES)) {
     Route::post('webhooks/langsyncer', LangSyncerWebhookController::class)
         ->withoutMiddleware([ValidateCsrfToken::class])
         ->name('base-tenant.webhooks.langsyncer');
+}
+
+if (! RouteGroup::enabled(RouteGroup::APP)) {
+    return;
+}
+
+// Files in a collection declared `public` -- a status page's logo. Outside the
+// `web` group on purpose: no session and no account, so it can be cached. The
+// controller checks the collection's rules on every request and answers 404
+// for anything that is not public.
+if (Module::enabled(Module::FILES)) {
+    Route::get(ltrim(config('base-tenant.routes.prefix', '').'/files/public/{file}', '/'), PublicFileController::class)
+        ->name('base-tenant.files.public');
 }
 
 $prefix = config('base-tenant.routes.prefix', '');
@@ -55,8 +70,11 @@ $middleware = config('base-tenant.routes.middleware', ['web']);
 Route::prefix($prefix)->middleware($middleware)->group(function () {
     // Public routes - redirect to login or dashboard
     Route::get('/', function () {
+        // Home, unless home is this very page: that would redirect to itself.
         if (auth()->check()) {
-            return redirect()->route('base-tenant.dashboard');
+            $home = Home::url();
+
+            return redirect()->to($home === route('base-tenant.home') ? route('base-tenant.dashboard') : $home);
         }
 
         // During pre-sale the public front door is the landing page, not the
@@ -65,7 +83,8 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
             return response()->view('base-tenant::presale.landing');
         }
 
-        return redirect()->route('base-tenant.login');
+        // With the package's auth routes switched off, the login is the host's.
+        return redirect()->route(Route::has('base-tenant.login') ? 'base-tenant.login' : 'login');
     })->name('base-tenant.home');
 
     // Protected routes

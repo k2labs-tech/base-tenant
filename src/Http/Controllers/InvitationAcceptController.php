@@ -8,6 +8,7 @@ use Base\Tenant\Exceptions\DomainNotAllowedException;
 use Base\Tenant\Exceptions\InvitationException;
 use Base\Tenant\Models\UserInvite;
 use Base\Tenant\Services\InvitationService;
+use Base\Tenant\Support\Home;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
@@ -34,11 +35,11 @@ class InvitationAcceptController
             } catch (InvitationException|DomainNotAllowedException $exception) {
                 // Not remembered: signing out flushes the session, so the
                 // message tells the person to open the link again instead.
-                return redirect()->route('base-tenant.dashboard')
+                return redirect()->to(Home::url())
                     ->with('error', $exception->getMessage());
             }
 
-            return redirect()->route('base-tenant.dashboard')
+            return redirect()->to(Home::url())
                 ->with('status', __('base-tenant::invitations.accepted'));
         }
 

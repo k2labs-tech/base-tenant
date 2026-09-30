@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Models;
 
+use Base\Tenant\Files\FileCollection;
 use Base\Tenant\Traits\BelongsToAccount;
 use Illuminate\Contracts\Filesystem\Filesystem;
 use Illuminate\Database\Eloquent\Builder;
@@ -14,6 +15,8 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Number;
+use RuntimeException;
+use Throwable;
 
 /**
  * One stored file.
@@ -73,20 +76,39 @@ class File extends Model
      *
      * Files live on a private disk: an account's documents are not public
      * because the URL is hard to guess. Drivers that cannot sign fall back to
-     * the streaming route, which authorises on every request.
+     * the streaming route, which authorises on every request -- unless
+     * `files.stream_fallback` is off, for an application that has promised
+     * every link it hands out expires. Then this throws instead of quietly
+     * returning a link that does not.
+     *
+     * @throws RuntimeException when the disk cannot sign and the fallback is off
      */
     public function url(int $minutes = 5): string
     {
-        try {
-            return $this->storage()->temporaryUrl($this->path, now()->addMinutes($minutes));
-        } catch (\RuntimeException) {
-            return route('base-tenant.files.show', ['file' => $this->getKey()]);
-        }
+        return $this->temporaryUrlOrNull($minutes)
+            ?? $this->streamUrl(['file' => $this->getKey()]);
     }
 
     public function variantUrl(string $variant, int $minutes = 5): ?string
     {
-        $path = $this->variants[$variant] ?? null;
+        if (($this->variants[$variant] ?? null) === null) {
+            return null;
+        }
+
+        return $this->temporaryUrlOrNull($minutes, $variant)
+            ?? $this->streamUrl(['file' => $this->getKey(), 'variant' => $variant]);
+    }
+
+    /**
+     * A signed, expiring URL, or null when the disk cannot sign one.
+     *
+     * Never the streaming route, whatever `files.stream_fallback` says: this
+     * is the call for code that needs to know it got a link with an expiry,
+     * and would rather handle the absence than be handed something else.
+     */
+    public function temporaryUrlOrNull(int $minutes = 5, ?string $variant = null): ?string
+    {
+        $path = $variant === null ? $this->path : ($this->variants[$variant] ?? null);
 
         if ($path === null) {
             return null;
@@ -94,9 +116,104 @@ class File extends Model
 
         try {
             return $this->storage()->temporaryUrl($path, now()->addMinutes($minutes));
-        } catch (\RuntimeException) {
-            return route('base-tenant.files.show', ['file' => $this->getKey(), 'variant' => $variant]);
+        } catch (RuntimeException) {
+            return null;
         }
+    }
+
+    /**
+     * Does this file belong to a collection declared `public`?
+     *
+     * The rules are looked up where they are declared -- the owning model's
+     * `fileCollections()`, or `files.collections` for the account library --
+     * and never stored on the row, so turning a collection private again
+     * takes effect for every file already in it.
+     */
+    public function isPublic(): bool
+    {
+        return $this->collectionRules()?->public === true;
+    }
+
+    /**
+     * A stable address for a file anyone may see, or null for the rest.
+     *
+     * It does not expire and needs no session: it is meant to be embedded, as
+     * the logo of a status page is. The route streams the file only while its
+     * collection is still public and the file still exists, so the address is
+     * stable without being a standing grant.
+     */
+    public function publicUrl(?string $variant = null): ?string
+    {
+        if (! $this->isPublic()) {
+            return null;
+        }
+
+        if ($variant !== null && ($this->variants[$variant] ?? null) === null) {
+            return null;
+        }
+
+        return route('base-tenant.files.public', array_filter([
+            'file' => $this->getKey(),
+            'variant' => $variant,
+        ]));
+    }
+
+    /**
+     * The rules of the collection this file was stored under, or null when
+     * nothing declares it any more.
+     */
+    public function collectionRules(): ?FileCollection
+    {
+        if ($this->fileable_type !== null && $this->fileable_id !== null) {
+            return $this->ownerCollection();
+        }
+
+        $rules = config("base-tenant.files.collections.{$this->collection}");
+
+        return $rules === null ? null : FileCollection::fromConfig($this->collection, $rules);
+    }
+
+    /**
+     * Asked of the owning record, found without the tenant scope: the public
+     * route runs with no account in context, and the file's own account is
+     * the only one the owner can be in anyway.
+     */
+    protected function ownerCollection(): ?FileCollection
+    {
+        $class = Model::getActualClassNameForMorph($this->fileable_type);
+
+        if (! class_exists($class)) {
+            return null;
+        }
+
+        $owner = (new $class)->newQueryWithoutScopes()->find($this->fileable_id);
+
+        if (! $owner || ! method_exists($owner, 'fileCollection')) {
+            return null;
+        }
+
+        try {
+            return $owner->fileCollection($this->collection);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    /**
+     * @param  array<string, string>  $parameters
+     *
+     * @throws RuntimeException when the fallback is switched off
+     */
+    protected function streamUrl(array $parameters): string
+    {
+        if (! config('base-tenant.files.stream_fallback', true)) {
+            throw new RuntimeException(sprintf(
+                'Disk `%s` cannot sign temporary URLs and `files.stream_fallback` is off.',
+                $this->disk,
+            ));
+        }
+
+        return route('base-tenant.files.show', $parameters);
     }
 
     public function isImage(): bool

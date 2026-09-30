@@ -156,13 +156,7 @@ class FileController extends Controller
 
         $rules = $declared[$name];
 
-        return $rules instanceof FileCollection ? $rules : FileCollection::make(
-            name: $name,
-            accepts: $rules['accepts'] ?? [],
-            maxSize: $rules['max_size'] ?? null,
-            single: $rules['single'] ?? false,
-            variants: $rules['variants'] ?? [],
-        );
+        return FileCollection::fromConfig($name, $rules);
     }
 
     /**

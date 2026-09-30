@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Facades;
 
 use Base\Tenant\Connections\WebhookManager;
+use Base\Tenant\Connections\Webhooks\PayloadBuilder;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\OutboundWebhook;
 use Base\Tenant\Models\OutboundWebhookDelivery;
@@ -17,6 +18,23 @@ use Illuminate\Support\Facades\Facade;
  * @method static OutboundWebhook register(string $url, array $events = ['*'], string|null $name = null, Account|string|null $account = null)
  * @method static string sign(string $payload, string $secret)
  * @method static bool verify(string $payload, string $secret, string|null $signature)
+ * @method static OutboundWebhookDelivery redeliver(OutboundWebhookDelivery $delivery)
+ * @method static string serialize(OutboundWebhookDelivery $delivery, OutboundWebhook $webhook)
+ * @method static PayloadBuilder payloadBuilder()
+ * @method static array{signature: string, event: string, delivery: string} headers()
+ * @method static string signaturePrefix()
+ * @method static int attempts()
+ * @method static list<int> backoff()
+ * @method static int|null retryDelay(int $attempt)
+ * @method static int timeout()
+ * @method static int|null failureLimit()
+ * @method static string failureAction()
+ * @method static void recordFailure(OutboundWebhook $webhook)
+ * @method static void recordSuccess(OutboundWebhook $webhook)
+ * @method static class-string<OutboundWebhook> endpointModel()
+ * @method static class-string<OutboundWebhookDelivery> deliveryModel()
+ * @method static OutboundWebhook|null findEndpoint(string $id)
+ * @method static OutboundWebhookDelivery|null findDelivery(string $id)
  *
  * @see WebhookManager
  */

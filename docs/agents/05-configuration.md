@@ -27,9 +27,13 @@ those services, not an API for application code.
 | `admin.name` / `.email` / `.password` | The staff user `AdminUserSeeder` creates | `Administrator`, `admin@example.com`, `secret123` |
 | `tenancy.resolvers` | Ordered list; the first to return an account wins | `Domain`, `ApiToken`, `Session`, `User` resolvers |
 | `tenancy.central_domains` | Domains that carry no tenant, comma-separated in env | `[]` |
-| `tenancy.on_missing_tenant` | `auto` (unfiltered in console/queue, empty over HTTP), `allow`, `deny` | `'auto'` |
+| `tenancy.on_missing_tenant` | `auto` (unfiltered in console/queue, empty over HTTP), `allow`, `deny`, `throw` (`MissingTenantException` unless `runWithout()`) | `'auto'` |
 | `tenancy.propagate_to_queue` | Carry the account into queued jobs | `true` |
-| `home_url` | Route name to land on after login | `'base-tenant.dashboard'` |
+| `tenancy.strict` | Write guards, `TenantBuilder`, tenant pivots, throwing `set()` — see [01](01-architecture.md) | `false` |
+| `tenancy.join_exempt_tables` | Extra tables whose `account_id` is not ownership, never constrained in joins or pivots | `[]` |
+| `tenancy.restore_dispatch_context` | Push deferred / `afterResponse()` jobs under the context they were built in; restore context after inline jobs | `false` |
+| `tenancy.audit.paths` / `.exempt` | Directories `k2labs-base:tenancy-audit` scans; classes or `Namespace\` prefixes it skips | `[app_path('Models')]`, `[]` |
+| `home_url` | Where people land once in (login, 2FA, verification, registration without checkout, invitations, account switch). Route name or path; an unregistered route name falls back to `/` | `'base-tenant.dashboard'` |
 | `subscription` | Stripe checkout: `enabled`, `default_product`, `default_price`, `success_url`, `cancel_url`, `trial_days` | enabled, product/price `null`, trial `14` |
 | `plans` | Plan catalogue: `name`, `stripe_price_id`, `features`. Numeric `-1` unlimited, `0` off; booleans gate | `free`, `starter`, `professional` |
 | `notifications` | `enabled`, `channels`, `polling_interval`, `dropdown_limit`, `per_page`, `categories`, `ai_usage_threshold`, `quota_warning_percent` | `['database']`, `30`s, `10`, `25`, `50`, `80` |
@@ -41,6 +45,8 @@ those services, not an API for application code.
 | `layouts.app` / `.guest` | Blade layouts the package's Livewire pages render into | `base-tenant::layouts.app` / `.guest` |
 | `menu` | `enabled`, `cache.enabled`, `cache.ttl`, `default_menus` | `true`, `true`, `3600`, `['main','settings']` |
 | `routes` | `enabled`, `prefix`, `middleware`, `auth_middleware` | `true`, `''`, `['web']`, `['web','auth','verified','base-tenant.subscription']` |
+| `routes.{auth,app,subscriptions,webhooks}.enabled` | Per-group switches; null follows `routes.enabled` | `null` |
+| `routes.auth.laravel_names` | Also register `login`, `register`, `password.confirm`, `verification.notice`… as OPTIONS-only aliases of the package screens | `false` |
 | `ui.brand_name` / `.brand_logo` | Chrome | `APP_NAME` (`Laravel`), `null` |
 | `force_password_change` | `enabled`, `send_welcome_email` for users an admin creates | `false`, `true` |
 | `invitations` | `enabled`, `expires_in_days` | `true`, `7` |
@@ -81,15 +87,15 @@ registration, which nobody should get by upgrading a package.
 | Key | Setting | Default |
 |---|---|---|
 | `metering` | `metrics` — every metric the product may record, keyed by name, with `type` (`counter`/`gauge`), `reset`, `feature`, `scale`, `stripe_meter`. An undeclared key is refused | `storage.bytes` (gauge, `max_storage_gb`, scale `1073741824`) |
-| `files` | `driver` (`vapor` direct-to-S3, or `local`), `disk`, `collections` (`accepts`, `max_size`, `single`, `variants`) | `vapor`, `s3`, one `library` collection: any MIME, 100 MB, `thumb` 200×200 cover + `preview` 1200 contain |
-| `transfer` | `retention_days`, `imports`, `exports` — handler classes keyed by the name that appears in a URL | `30`, `[]`, `[]` |
+| `files` | `driver` (`vapor` direct-to-S3, or `local`), `disk`, `stream_fallback`, `collections` (`accepts`, `max_size`, `single`, `variants`, `public`) | `vapor`, `s3`, one `library` collection: any MIME, 100 MB, `thumb` 200×200 cover + `preview` 1200 contain |
+| `transfer` | `retention_days` (applied by `k2labs-base:prune-transfers`), `prune_schedule`, `csv.escape_formulas`, `imports`, `exports` — handler classes keyed by the name that appears in a URL | `30`, `false`, `true`, `[]`, `[]` |
 | `connections` | `connectors` — connector classes keyed by name | `[]` |
-| `webhooks` | nothing but the switch | — |
+| `webhooks` | `headers.{signature,event,delivery}`, `signature_prefix`, `payload_builder`, `attempts`, `backoff`, `timeout`, `failure_limit`, `on_failure_limit` (`disable`/`degrade`), `models.{endpoint,delivery}` | `X-BaseTenant-*`, no prefix, `DefaultPayloadBuilder`, 5 attempts at 300/1800/7200/43200 s, 15 s, 20, `disable`, package models |
 | `languages` | `reference` locale, `langsyncer.{url,key,project,webhook_secret}`, `seed` | `en`; LangSyncer at `https://langsyncer.com` with no credentials; seeds `en` (default), `es`, `ca` (disabled) |
 | `social` | `allowed_domains` — restrict sign-up to these email domains. A provider appears when its credentials exist in `config/services.php`; there is no second switch | `[]` |
 | `sequences` | nothing but the switch | — |
 | `onboarding` | `steps` — `label`, `description`, `route`, `completed` class per step. A step with no `completed` class is never marked done | `complete_profile`, `invite_team` |
-| `suppressions` | `mailgun_signing_key`, `drivers` reached at `POST /webhooks/suppressions/{driver}` | no key, `mailgun => MailgunDriver` |
+| `suppressions` | `mailgun_signing_key`, `postmark_webhook_username` / `_password`, `resend_signing_secret`, `drivers` reached at `POST /webhooks/suppressions/{driver}` | no secrets; `mailgun`, `postmark`, `resend` drivers |
 | `gdpr` | `retention_days` before a soft-deleted record is destroyed, `terms_version` (empty switches the re-acceptance middleware off), `terms_url`, `exporters` | `30`, `''`, `null`, `ProfileExporter` + `ActivityExporter` |
 | `presale` | `seats`, `price_id`, `plan_after` | `50`, `null`, `professional` |
 
@@ -111,6 +117,8 @@ Every variable the config file reads, in file order.
 | `BASE_TENANT_CENTRAL_DOMAINS` | `''` | comma-separated `tenancy.central_domains` |
 | `BASE_TENANT_ON_MISSING_TENANT` | `auto` | what tenant-scoped queries do with no account |
 | `BASE_TENANT_PROPAGATE_TO_QUEUE` | `true` | tenancy inside queued jobs |
+| `BASE_TENANT_STRICT_TENANCY` | `false` | `tenancy.strict` |
+| `BASE_TENANT_RESTORE_DISPATCH_CONTEXT` | `false` | `tenancy.restore_dispatch_context` |
 | `BASE_TENANT_HOME_URL` | `base-tenant.dashboard` | post-login route |
 | `BASE_TENANT_SUBSCRIPTION_ENABLED` | `true` | subscription system and its routes |
 | `BASE_TENANT_SUBSCRIPTION_DEFAULT_PRODUCT` | `null` | Stripe product for checkout |
@@ -137,6 +145,11 @@ Every variable the config file reads, in file order.
 | `BASE_TENANT_MENU_CACHE_TTL` | `3600` | seconds, cast to int |
 | `BASE_TENANT_ROUTES_ENABLED` | `true` | whether the package registers routes |
 | `BASE_TENANT_ROUTES_PREFIX` | `''` | URL prefix for package routes |
+| `BASE_TENANT_ROUTES_AUTH_ENABLED` | `null` | `routes.auth.enabled` |
+| `BASE_TENANT_ROUTES_LARAVEL_NAMES` | `false` | `routes.auth.laravel_names` |
+| `BASE_TENANT_ROUTES_APP_ENABLED` | `null` | `routes.app.enabled` |
+| `BASE_TENANT_ROUTES_SUBSCRIPTIONS_ENABLED` | `null` | `routes.subscriptions.enabled` |
+| `BASE_TENANT_ROUTES_WEBHOOKS_ENABLED` | `null` | `routes.webhooks.enabled` |
 | `APP_NAME` | `Laravel` | `ui.brand_name` |
 | `BASE_TENANT_BRAND_LOGO` | `null` | `ui.brand_logo` |
 | `BASE_TENANT_FORCE_PASSWORD_CHANGE` | `false` | change password on first login |
@@ -148,10 +161,14 @@ Every variable the config file reads, in file order.
 | `BASE_TENANT_FILES_ENABLED` | `true` | M2 |
 | `BASE_TENANT_FILES_DRIVER` | `vapor` | upload flow: `vapor` or `local` |
 | `BASE_TENANT_FILES_DISK` | `s3` | filesystem disk |
+| `BASE_TENANT_FILES_STREAM_FALLBACK` | `true` | fall back to the streaming route when the disk cannot sign |
 | `BASE_TENANT_TRANSFER_ENABLED` | `true` | M3 |
-| `BASE_TENANT_TRANSFER_RETENTION_DAYS` | `30` | days generated files are kept |
+| `BASE_TENANT_TRANSFER_RETENTION_DAYS` | `30` | days transfers and their generated files are kept |
+| `BASE_TENANT_TRANSFER_PRUNE_SCHEDULE` | `false` | schedule `k2labs-base:prune-transfers` daily |
+| `BASE_TENANT_TRANSFER_CSV_ESCAPE_FORMULAS` | `true` | prefix formula-looking CSV cells with `'` |
 | `BASE_TENANT_CONNECTIONS_ENABLED` | `true` | M5 credentials |
 | `BASE_TENANT_WEBHOOKS_ENABLED` | `true` | M5 outbound webhooks |
+| `BASE_TENANT_WEBHOOKS_SIGNATURE_PREFIX` | `''` | prefix of the signature header value, e.g. `sha256=` |
 | `BASE_TENANT_LANGUAGES_ENABLED` | `true` | Q1 |
 | `BASE_TENANT_LANGUAGES_REFERENCE` | `en` | locale coverage is measured against |
 | `LANGSYNCER_URL` | `https://langsyncer.com` | translation service endpoint |
@@ -163,6 +180,8 @@ Every variable the config file reads, in file order.
 | `BASE_TENANT_ONBOARDING_ENABLED` | `true` | Q4 |
 | `BASE_TENANT_SUPPRESSIONS_ENABLED` | `true` | Q5 |
 | `MAILGUN_WEBHOOK_SIGNING_KEY` | `null` | verifies Mailgun suppression webhooks |
+| `POSTMARK_WEBHOOK_USERNAME` / `POSTMARK_WEBHOOK_PASSWORD` | `null` | basic auth expected on Postmark suppression webhooks |
+| `RESEND_WEBHOOK_SECRET` | `null` | Svix secret (`whsec_…`) for Resend suppression webhooks |
 | `BASE_TENANT_GDPR_ENABLED` | `true` | Q6 |
 | `BASE_TENANT_GDPR_RETENTION_DAYS` | `30` | grace period before hard delete |
 | `BASE_TENANT_TERMS_VERSION` | `''` | bump to ask everyone again; empty disables the middleware |

@@ -19,6 +19,16 @@ class ActivityLog extends Model
 
     protected $guarded = ['id'];
 
+    /**
+     * Some entries have no account to belong to: sign-in, second factor and
+     * session events are about a person, recorded before or outside any
+     * account context.
+     */
+    public function allowsAccountlessRecords(): bool
+    {
+        return true;
+    }
+
     protected function casts(): array
     {
         return [

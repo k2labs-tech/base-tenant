@@ -7,6 +7,7 @@ namespace Base\Tenant\Support;
 use Base\Tenant\Console\Commands\CheckConnectionsCommand;
 use Base\Tenant\Console\Commands\PruneActivityLogCommand;
 use Base\Tenant\Console\Commands\PruneSessionsCommand;
+use Base\Tenant\Console\Commands\PruneTransfersCommand;
 use Base\Tenant\Console\Commands\PurgeDeletedCommand;
 use Base\Tenant\Console\Commands\ReconcileStorageCommand;
 use Base\Tenant\Console\Commands\ReportUsageCommand;
@@ -45,6 +46,15 @@ class ScheduledTasks
 
         if (Module::enabled(Module::GDPR)) {
             $schedule->command(PurgeDeletedCommand::class)->daily()->withoutOverlapping();
+        }
+
+        // Opt-in: `transfer.retention_days` was declared from the start and
+        // applied by nothing until 3.1, so scheduling it by default would make
+        // an upgrade start deleting exports nobody expected to lose.
+        if (Module::enabled(Module::TRANSFER)
+            && config('base-tenant.transfer.prune_schedule', false)
+            && filled(config('base-tenant.transfer.retention_days'))) {
+            $schedule->command(PruneTransfersCommand::class)->daily()->withoutOverlapping();
         }
 
         // A domain verified once is not verified forever: zones get edited, and

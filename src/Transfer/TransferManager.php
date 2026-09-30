@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Transfer;
 
 use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Files\FileStore;
 use Base\Tenant\Jobs\RunExport;
 use Base\Tenant\Jobs\RunImport;
 use Base\Tenant\Models\DataTransfer;
@@ -153,6 +154,57 @@ class TransferManager
         Csv::write($path, array_map(fn (string $label): string => __($label), $import->columns()), []);
 
         return $path;
+    }
+
+    /**
+     * Forget transfers older than the retention window, and the files they
+     * produced.
+     *
+     * An export is a copy of the account's data sitting in storage, and an
+     * error file is a copy of the rows someone uploaded: both are personal
+     * data kept for convenience, and convenience runs out. Only what the
+     * transfer made itself goes -- the export and the rejected rows. The
+     * source of an import is whatever file the application handed over, which
+     * may well be a library file somebody still wants.
+     *
+     * The files go through `FileStore::delete()`, so the bytes leave the disk
+     * and the storage meter comes down with them; the rows are soft deleted
+     * and the GDPR purge destroys them on its usual schedule.
+     *
+     * Age is counted from creation and status does not matter: a transfer
+     * still pending or processing after the whole window never ran and never
+     * will, and leaving it would keep it on screen as "running" forever.
+     *
+     * Returns the number of transfers removed.
+     */
+    public function prune(int $days): int
+    {
+        $cutoff = now()->subDays(max(1, $days));
+        $store = app(FileStore::class);
+        $produced = ['exports', 'transfer-errors'];
+        $pruned = 0;
+
+        DataTransfer::query()
+            ->acrossAccounts()
+            ->where('created_at', '<', $cutoff)
+            ->with([
+                'file' => fn ($query) => $query->acrossAccounts(),
+                'errorFile' => fn ($query) => $query->acrossAccounts(),
+            ])
+            ->chunkById(100, function ($transfers) use ($store, $produced, &$pruned): void {
+                foreach ($transfers as $transfer) {
+                    foreach ([$transfer->file, $transfer->errorFile] as $file) {
+                        if ($file && in_array($file->collection, $produced, true)) {
+                            $store->delete($file);
+                        }
+                    }
+
+                    $transfer->delete();
+                    $pruned++;
+                }
+            });
+
+        return $pruned;
     }
 
     /**

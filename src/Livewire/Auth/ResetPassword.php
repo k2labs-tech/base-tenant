@@ -4,17 +4,17 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Livewire\Auth;
 
+use Base\Tenant\Livewire\Attributes\GuestLayout;
 use Illuminate\Auth\Events\PasswordReset;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rules;
-use Livewire\Attributes\Layout;
 use Livewire\Attributes\Locked;
 use Livewire\Component;
 
-#[Layout('base-tenant::layouts.guest')]
+#[GuestLayout]
 class ResetPassword extends Component
 {
     #[Locked]
