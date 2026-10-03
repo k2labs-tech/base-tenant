@@ -40,4 +40,14 @@ return [
         'action' => 'Review connections',
     ],
 
+    'webhooks' => [
+        'unsigned_refused' => 'The endpoint has no signing secret and unsigned webhooks are not allowed.',
+        'postponed' => 'The endpoint is paused after repeated failures. Next attempt at :until.',
+        'attempt_outcomes' => [
+            'delivered' => 'Delivered',
+            'failed' => 'Failed',
+            'postponed' => 'Postponed',
+        ],
+    ],
+
 ];

@@ -6,6 +6,7 @@ namespace Base\Tenant\Models;
 
 use Base\Tenant\Connections\WebhookManager;
 use Base\Tenant\Traits\BelongsToAccount;
+use Carbon\CarbonInterface;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
@@ -50,6 +51,7 @@ class OutboundWebhook extends Model
             'last_delivered_at' => 'datetime',
             'disabled_at' => 'datetime',
             'degraded_at' => 'datetime',
+            'last_failed_at' => 'datetime',
         ];
     }
 
@@ -70,6 +72,24 @@ class OutboundWebhook extends Model
     public function isDegraded(): bool
     {
         return $this->degraded_at !== null;
+    }
+
+    /**
+     * Whether deliveries carry a signature. An endpoint without a secret is
+     * only sent to when `base-tenant.webhooks.allow_unsigned` is on.
+     */
+    public function isSigned(): bool
+    {
+        return is_string($this->secret) && $this->secret !== '';
+    }
+
+    /**
+     * Until when a degraded endpoint is left alone, under
+     * `base-tenant.webhooks.degraded_cooldown`, or null when it is not paused.
+     */
+    public function pausedUntil(): ?CarbonInterface
+    {
+        return app(WebhookManager::class)->pausedUntil($this);
     }
 
     /**

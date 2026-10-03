@@ -39,7 +39,7 @@ Every model uses `HasUuids`, so it is left out of the traits column below.
 | `DataTransfer` | `data_transfers` | BelongsToAccount | One import or export and how it went. |
 | `AccountConnection` | `account_connections` | BelongsToAccount | One account's credentials at a third party. |
 | `OutboundWebhook` | `outbound_webhooks` | BelongsToAccount | An endpoint subscribed to events. |
-| `OutboundWebhookDelivery` | `outbound_webhook_deliveries` | BelongsToAccount | One attempt at one event. |
+| `OutboundWebhookDelivery` | `outbound_webhook_deliveries` | BelongsToAccount | One event for one endpoint. Each try is an `OutboundWebhookAttempt` (`outbound_webhook_attempts`, BelongsToAccount). |
 | `Sequence` | `sequences` | — | A correlative counter. |
 | `Language` | `languages` | — | A language the installation offers. |
 | `SocialAccount` | `social_accounts` | — | An external identity linked to a user. |
@@ -329,8 +329,8 @@ also has a past date, and it is not the same thing.
 | `UsageEvent` | `UPDATED_AT = null`. `delta` is signed, so events sum to the counter. `reported_at` is stamped once billing has it, so a run that dies repeats nothing. |
 | `DataTransfer` | `file()` and `errorFile()` both point at `files`. `progress()` returns null, not 0, when the total is unknown — a bar at 0% reads as stuck. Constants: `IMPORT`, `EXPORT`, `PENDING`…`FAILED`. Scopes `imports()`, `exports()`. |
 | `AccountConnection` | `credentials` is `encrypted:array` and hidden. Unique on `(account_id, provider, label)`, so an account can hold two of the same provider. Scope `enabled()`. |
-| `OutboundWebhook` | `secret` encrypted and hidden, `events` an array of patterns. `wants($event)` matches `*` and `booking.*`. Disabled (or marked `degraded_at`, `isDegraded()`) after `webhooks.failure_limit` (20) consecutive failures. Class set by `webhooks.models.endpoint`. |
-| `OutboundWebhookDelivery` | Schedule from `webhooks.attempts`/`webhooks.backoff` (5 attempts; 300, 1800, 7200, 43200 s). `hasAttemptsLeft()`, `backoff()`, `body`, `original()`, `isRedelivery()`. Class set by `webhooks.models.delivery`. |
+| `OutboundWebhook` | `secret` encrypted, hidden and nullable (`isSigned()`; null only under `webhooks.allow_unsigned`), `events` an array of patterns. `wants($event)` matches `*` and `booking.*`. Disabled (or marked `degraded_at`, `isDegraded()`) after `webhooks.failure_limit` (20) consecutive failures. `last_failed_at` is the last failed attempt; `pausedUntil()` is the end of the `webhooks.degraded_cooldown` pause, or null. Class set by `webhooks.models.endpoint`. |
+| `OutboundWebhookDelivery` | Schedule from `webhooks.attempts`/`webhooks.backoff` (5 attempts; 300, 1800, 7200, 43200 s). `hasAttemptsLeft()`, `backoff()`, `body`, `original()`, `isRedelivery()`, `attempts()`: one `OutboundWebhookAttempt` per try (`outcome` `delivered`/`failed`/`postponed`, `status_code`, `error`, `duration_ms`, `attempted_at`), written while `webhooks.log_attempts` is on, never pruned by the package, class set by `webhooks.models.attempt`. The delivery row keeps only the last response. Class set by `webhooks.models.delivery`. |
 | `Sequence` | `account_id` is a **string** column defaulting to `Sequence::GLOBAL` (`'global'`), not a nullable uuid — same NULL-in-a-unique-index reasoning as `period`. `next_value` is what the next call hands out, not the last one given. Never write it through Eloquent: handing out a number is a locked read plus a write. |
 | `Language` | Unique `code`. Scopes `enabled()`, `ordered()`. `native_name` is what the picker shows. |
 | `SocialAccount` | `token`/`refresh_token` cast `encrypted` and hidden. `UNIQUE (provider, provider_id)` is the whole safety story: one external identity cannot become two users. |

@@ -6,6 +6,7 @@ namespace Base\Tenant\Files;
 
 use Base\Tenant\Models\File;
 use GdImage;
+use Illuminate\Support\Facades\Log;
 use RuntimeException;
 
 /**
@@ -19,6 +20,12 @@ use RuntimeException;
 class ImageVariants
 {
     public const SUPPORTED = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+
+    /**
+     * 40 megapixels: any camera's full-size photo, and some 160 MB of GD
+     * memory at four bytes a pixel.
+     */
+    public const DEFAULT_MAX_PIXELS = 40_000_000;
 
     public static function supports(string $mimeType): bool
     {
@@ -34,7 +41,7 @@ class ImageVariants
      */
     public function generate(File $file, array $variants): array
     {
-        if (! self::supports($file->mime_type)) {
+        if (! in_array($file->mime_type, self::SUPPORTED, true)) {
             return [];
         }
 
@@ -43,6 +50,16 @@ class ImageVariants
 
         if ($bytes === null) {
             throw new RuntimeException("The original of file {$file->getKey()} is missing.");
+        }
+
+        // Before GD: the check reads only the header, and is the one thing
+        // standing between a small file and a worker out of memory.
+        if (! $this->withinPixelLimit($file, $bytes)) {
+            return [];
+        }
+
+        if (! extension_loaded('gd')) {
+            return [];
         }
 
         $source = @imagecreatefromstring($bytes);
@@ -76,6 +93,59 @@ class ImageVariants
         imagedestroy($source);
 
         return $written;
+    }
+
+    /**
+     * The most pixels an original may have before renditions are skipped;
+     * null when there is no limit.
+     */
+    public static function maxPixels(): ?int
+    {
+        $limit = config('base-tenant.files.max_image_pixels', self::DEFAULT_MAX_PIXELS);
+
+        return is_numeric($limit) && (int) $limit > 0 ? (int) $limit : null;
+    }
+
+    /**
+     * A decompression bomb: a PNG of a few kilobytes can declare 50,000 x
+     * 50,000 pixels, and GD allocates four bytes for each of them before
+     * resizing anything -- some 10 GB for that one. The dimensions are in the
+     * header, so they are read from there first, without decoding.
+     *
+     * Over the limit the original is kept as it is and simply gets no
+     * renditions; the reason goes to the log.
+     */
+    protected function withinPixelLimit(File $file, string $bytes): bool
+    {
+        $limit = self::maxPixels();
+
+        if ($limit === null) {
+            return true;
+        }
+
+        $size = @getimagesizefromstring($bytes);
+
+        if ($size === false) {
+            return false;
+        }
+
+        [$width, $height] = $size;
+        $pixels = (int) $width * (int) $height;
+
+        if ($pixels <= $limit) {
+            return true;
+        }
+
+        Log::warning('Image renditions skipped: the original exceeds files.max_image_pixels.', [
+            'file' => $file->getKey(),
+            'account' => $file->account_id,
+            'width' => $width,
+            'height' => $height,
+            'pixels' => $pixels,
+            'limit' => $limit,
+        ]);
+
+        return false;
     }
 
     /**

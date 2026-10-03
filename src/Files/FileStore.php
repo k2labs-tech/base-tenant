@@ -171,10 +171,14 @@ class FileStore
 
     /**
      * Remove a file, its renditions and the space it occupied.
+     *
+     * The renditions were added to the gauge when they were generated, so
+     * they come off it here too; read before the directory goes, since after
+     * that there is nothing left to measure.
      */
     public function delete(File $file, bool $keepBytes = false): void
     {
-        $size = $file->size;
+        $size = $file->size + $file->variantsSize();
         $account = $file->account;
 
         if (! $keepBytes) {

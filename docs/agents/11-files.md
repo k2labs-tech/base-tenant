@@ -1,6 +1,6 @@
 # Files — storage and uploads
 
-**Module:** M2 · **Package version:** v2 · **Last reviewed:** 2026-08-12
+**Module:** M2 · **Package version:** v3.2 · **Last reviewed:** 2026-10-03
 **Switch:** `BASE_TENANT_FILES_ENABLED` (on by default)
 
 ## When to use this
@@ -52,6 +52,17 @@ whether it arrives from the uploader, an import or a command.
 
 `FileCollection::images()` is the shortcut for the common case: image types
 plus a `thumb` (200×200 cover) and a `preview` (1200 wide, contain).
+
+SVG is not among them. An SVG is a document that can carry `<script>`, and
+`image/*` -- like any wildcard -- never matches it, nor HTML, XHTML, XML
+(`*+xml` included) or JavaScript. A collection that really wants one names it:
+
+```php
+FileCollection::images('logo', single: true, public: true, svg: true);
+FileCollection::make('pages', accepts: ['text/html']);
+```
+
+Even then the file is served sandboxed; see [Serving active content](#serving-active-content).
 
 ---
 
@@ -158,6 +169,38 @@ collection's current rules on every request, so making it private again stops
 every address already out there; anything else answers 404. Collections are
 private unless they say otherwise.
 
+### Serving active content
+
+SVG, HTML, XHTML, XML and scripts run when a browser opens them, in the origin
+that served them. Both routes that stream bytes (`files.show` and
+`files.public`) treat them as follows, whatever collection let them in:
+
+| | Every file | Active content |
+|---|---|---|
+| `X-Content-Type-Options` | `nosniff` | `nosniff` |
+| `Content-Security-Policy` | -- | `default-src 'none'; style-src 'unsafe-inline'; sandbox` |
+| `Content-Disposition` on `files.public` | `inline` | `attachment` |
+| `Content-Disposition` on `files.show` | `inline` | `inline` (sandboxed) |
+
+An `<img src>` ignores the disposition, so an SVG logo still renders when
+embedded. Scripts are served as `text/plain`, so a `<script src>` pointing at
+one is refused even on a page whose CSP trusts `'self'`. Signed URLs cannot
+carry a CSP: for active content `temporaryUrlOrNull()` asks the disk for
+`ResponseContentDisposition: attachment` (S3 honours it). The list lives in
+`Base\Tenant\Files\ActiveContent`.
+
+---
+
+## Renditions
+
+`GenerateFileVariants` derives the declared renditions of JPEG, PNG, GIF and
+WebP originals on GD. Before decoding, it reads the dimensions from the header
+and skips the renditions when width × height exceeds `files.max_image_pixels`
+(40 megapixels by default; `0` or `null` removes the limit). A PNG of a few
+kilobytes can declare a 50,000 × 50,000 canvas, and GD would allocate some
+10 GB for it. Over the limit the original stays as it is, without renditions,
+and a warning naming the file and its dimensions goes to the log.
+
 ---
 
 ## Metering
@@ -166,7 +209,15 @@ Uploads increment the `storage.bytes` gauge, and so do the derived renditions:
 counting only originals would make the gauge disagree with the storage bill by
 a factor that grows with every variant added.
 
-`k2labs-base:reconcile-storage` recomputes the gauge from the table weekly.
+`FileStore::delete()` takes off the original and the renditions, measured on
+the disk before the directory goes. Regenerating renditions meters only the
+difference against what was there, and removes renditions no longer declared.
+
+`File::variantsSize()` gives the bytes the renditions occupy right now.
+
+`k2labs-base:reconcile-storage` recomputes the gauge from the table weekly,
+adding the renditions of every file that has any (read from the disk, one
+request per rendition).
 Increments can be lost — a finalize that dies between the move and the meter, a
 file removed straight from the bucket — and nobody should be billed on a drift.
 

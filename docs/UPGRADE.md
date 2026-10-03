@@ -1,5 +1,67 @@
 # Upgrade Guide
 
+## From 3.1.x to 3.2.0
+
+### Files
+
+- **SVG is no longer accepted by `image/*`**, and no MIME wildcard matches
+  HTML, XHTML, XML (`*+xml` included) or JavaScript. A collection that should
+  take them names the type in `accepts` (`'image/svg+xml'`) or uses
+  `FileCollection::images(..., svg: true)`. Files already stored are not
+  touched.
+- **Active content is served sandboxed.** `files.show` and `files.public` add
+  `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`
+  to SVG, HTML and XML, and `files.public` sends them as `attachment`. An SVG
+  in `<img src>` still renders; opened on its own it downloads (public route)
+  or renders without script (streaming route). JavaScript is served as
+  `text/plain`. `X-Content-Type-Options: nosniff` is now on every file.
+- **Renditions are skipped for images over 40 megapixels**
+  (`files.max_image_pixels`). Raise it, or set `0` to remove the limit, if you
+  generate renditions of larger originals; each pixel costs GD four bytes.
+- **Deleting a file now takes its renditions off `storage.bytes`**, and
+  `k2labs-base:reconcile-storage` now counts them (one disk request per
+  rendition, so the weekly run takes longer on large libraries). Run it once
+  after upgrading to correct gauges that drifted before:
+  `php artisan k2labs-base:reconcile-storage`.
+
+### Outbound webhooks
+
+```bash
+composer update k2labs/base-tenant
+php artisan migrate
+php artisan optimize:clear
+```
+
+Two migrations: a new table `outbound_webhook_attempts`, and on
+`outbound_webhooks` the `secret` column made nullable plus a nullable
+`last_failed_at`. Run them before the first webhook job of 3.2 does: with
+`webhooks.log_attempts` on (the default) the job writes to the new table, and
+every failed attempt writes `last_failed_at`. Changing `secret` to nullable
+uses the schema builder's `change()`, which on MySQL and PostgreSQL alters the
+column in place.
+
+Nothing a receiver sees changes with the defaults: same headers, signature,
+body bytes and retry schedule. New keys, all optional, under
+`base-tenant.webhooks` -- copy them into a published config if you want them
+visible:
+
+| Key | Default | Effect |
+|---|---|---|
+| `log_attempts` | `true` | one row per attempt in `outbound_webhook_attempts` |
+| `redact_errors` | `false` | URLs in stored errors cut down to their origin |
+| `allow_unsigned` | `false` | endpoints without a secret, sent with no signature header |
+| `degraded_cooldown` | `null` | seconds a degraded endpoint is paused after its last failure; due deliveries are postponed |
+| `json_flags` | `0` | flags for the body's `json_encode()` |
+| `models.attempt` | `OutboundWebhookAttempt::class` | must extend it |
+
+The package prunes neither deliveries nor attempts. If you delete old
+deliveries, delete their attempts too (`attempted_at`, or by `delivery_id`):
+there is no foreign key to cascade.
+
+Under strict tenancy, `DeliverWebhook` now runs under the delivery's account
+whatever the worker had in context. If you wrapped `Webhook::dispatch()` in
+`Tenant::runFor()` only to make the job work, it is no longer needed.
+
 ## From 3.0.x to 3.1.0
 
 ```bash

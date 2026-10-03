@@ -45,39 +45,55 @@ class GenerateFileVariants implements ShouldQueue
             return;
         }
 
+        // What the previous renditions occupied, measured before they are
+        // overwritten: a retry or a regeneration replaces them, and only the
+        // difference belongs on the gauge.
+        $before = $file->variantsSize();
+        $previous = $file->variants ?? [];
+
         $written = $renderer->generate($file, $this->variants);
 
         if ($written === []) {
             return;
         }
 
+        $this->removeStale($file, $previous, $written);
+
         $file->variants = $written;
         $file->saveQuietly();
 
-        $this->meterRenditions($file, $written);
+        $this->meterRenditions($file, $file->variantsSize() - $before);
+    }
+
+    /**
+     * Renditions that are no longer declared would otherwise stay on the
+     * disk with nothing pointing at them, and off the gauge.
+     *
+     * @param  array<string, string>  $previous
+     * @param  array<string, string>  $written
+     */
+    protected function removeStale(File $file, array $previous, array $written): void
+    {
+        $stale = array_diff(array_values($previous), array_values($written), [$file->path]);
+
+        if ($stale !== []) {
+            $file->storage()->delete(array_values($stale));
+        }
     }
 
     /**
      * Renditions take space too. Counting only originals would make the gauge
      * disagree with the bill from the object store, and by a factor that grows
      * with every variant the product adds.
-     *
-     * @param  array<string, string>  $written
      */
-    protected function meterRenditions(File $file, array $written): void
+    protected function meterRenditions(File $file, int $delta): void
     {
-        if (! Module::enabled(Module::METERING) || ! $file->account) {
+        if ($delta === 0 || ! Module::enabled(Module::METERING) || ! $file->account) {
             return;
         }
 
-        $bytes = 0;
-
-        foreach ($written as $path) {
-            $bytes += (int) $file->storage()->size($path);
-        }
-
-        if ($bytes > 0) {
-            Meter::for($file->account)->increment(FileStore::METRIC, $bytes, ['subject' => $file]);
-        }
+        $delta > 0
+            ? Meter::for($file->account)->increment(FileStore::METRIC, $delta, ['subject' => $file])
+            : Meter::for($file->account)->decrement(FileStore::METRIC, -$delta, ['subject' => $file]);
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Models;
 
+use Base\Tenant\Files\ActiveContent;
 use Base\Tenant\Files\FileCollection;
 use Base\Tenant\Traits\BelongsToAccount;
 use Illuminate\Contracts\Filesystem\Filesystem;
@@ -114,8 +115,15 @@ class File extends Model
             return null;
         }
 
+        // A signed URL cannot carry a CSP, so active content (an SVG, an HTML
+        // page) is asked to arrive as a download instead of being rendered.
+        // S3 honours the override; disks that cannot simply ignore it.
+        $options = $variant === null && ActiveContent::is($this->mime_type)
+            ? ['ResponseContentDisposition' => 'attachment']
+            : [];
+
         try {
-            return $this->storage()->temporaryUrl($path, now()->addMinutes($minutes));
+            return $this->storage()->temporaryUrl($path, now()->addMinutes($minutes), $options);
         } catch (RuntimeException) {
             return null;
         }
@@ -234,6 +242,33 @@ class File extends Model
     public function paths(): array
     {
         return [$this->path, ...array_values($this->variants ?? [])];
+    }
+
+    /**
+     * Bytes the renditions occupy on the disk right now.
+     *
+     * Read from the disk rather than stored, so a rendition that was never
+     * written, or was already removed, counts as nothing.
+     */
+    public function variantsSize(): int
+    {
+        $bytes = 0;
+
+        foreach (array_unique(array_values($this->variants ?? [])) as $path) {
+            if (! is_string($path) || $path === $this->path) {
+                continue;
+            }
+
+            // One request per rendition: a missing object throws rather than
+            // being asked about twice.
+            try {
+                $bytes += (int) $this->storage()->size($path);
+            } catch (Throwable) {
+                continue;
+            }
+        }
+
+        return $bytes;
     }
 
     /**

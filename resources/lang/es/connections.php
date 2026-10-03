@@ -40,4 +40,14 @@ return [
         'action' => 'Revisar conexiones',
     ],
 
+    'webhooks' => [
+        'unsigned_refused' => 'El endpoint no tiene secreto de firma y no se permiten webhooks sin firmar.',
+        'postponed' => 'El endpoint está en pausa tras fallar repetidamente. Próximo intento: :until.',
+        'attempt_outcomes' => [
+            'delivered' => 'Entregado',
+            'failed' => 'Fallido',
+            'postponed' => 'Pospuesto',
+        ],
+    ],
+
 ];

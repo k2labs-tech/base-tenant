@@ -9,6 +9,7 @@ use Base\Tenant\Traits\BelongsToAccount;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 /**
  * One attempt to tell one endpoint about one event.
@@ -65,6 +66,17 @@ class OutboundWebhookDelivery extends Model
     public function original(): BelongsTo
     {
         return $this->belongsTo(static::class, 'redelivery_of');
+    }
+
+    /**
+     * Every try at this delivery, oldest first, while `webhooks.log_attempts`
+     * is on. The row itself keeps only the last response.
+     */
+    public function attempts(): HasMany
+    {
+        return $this->hasMany(app(WebhookManager::class)->attemptModel(), 'delivery_id')
+            ->orderBy('attempted_at')
+            ->orderBy('id');
     }
 
     public function isRedelivery(): bool
