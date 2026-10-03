@@ -13,6 +13,7 @@ use Base\Tenant\Jobs\GenerateFileVariants;
 use Base\Tenant\Metering\MetricRegistry;
 use Base\Tenant\Models\File;
 use Illuminate\Support\Facades\Bus;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 
@@ -381,6 +382,187 @@ test('reconciliar también baja a cero a quien ya no tiene ficheros', function (
     $fichero->forceDelete();
 
     $this->artisan('k2labs-base:reconcile-storage')->assertSuccessful();
+
+    expect(Meter::for($cuenta)->current('storage.bytes'))->toBe(0);
+});
+
+// ------------------------------------------- Medidor: original y variantes
+
+/**
+ * Las variantes suman al medidor cuando se generan. Si el borrado solo resta
+ * el original, la diferencia se queda en el contador hasta la reconciliación.
+ */
+test('borrar descuenta también lo que ocupaban las variantes', function () {
+    $cuenta = $this->createAccount();
+
+    $fichero = app(FileStore::class)->finalize(
+        key: subirTemporal(pngDeUnPixel()),
+        collection: FileCollection::make('library'),
+        name: 'foto.png',
+        account: $cuenta,
+    );
+
+    Storage::disk('s3')->put($fichero->directory().'/thumb.png', str_repeat('t', 300));
+    Storage::disk('s3')->put($fichero->directory().'/preview.png', str_repeat('p', 700));
+
+    $fichero->variants = [
+        'thumb' => $fichero->directory().'/thumb.png',
+        'preview' => $fichero->directory().'/preview.png',
+    ];
+    $fichero->saveQuietly();
+
+    Meter::for($cuenta)->increment('storage.bytes', 1000);
+
+    expect(Meter::for($cuenta)->current('storage.bytes'))->toBe($fichero->size + 1000);
+
+    app(FileStore::class)->delete($fichero);
+
+    expect(Meter::for($cuenta)->current('storage.bytes'))->toBe(0);
+});
+
+test('regenerar las variantes no las cuenta dos veces', function () {
+    $cuenta = $this->createAccount();
+
+    $fichero = app(FileStore::class)->finalize(
+        key: subirTemporal(pngDeUnPixel()),
+        collection: FileCollection::make('library'),
+        name: 'foto.png',
+        account: $cuenta,
+    );
+
+    $variantes = ['thumb' => ['width' => 8, 'height' => 8, 'fit' => 'cover']];
+
+    (new GenerateFileVariants($fichero->getKey(), $variantes))->handle(app(ImageVariants::class));
+
+    $trasLaPrimera = Meter::for($cuenta)->current('storage.bytes');
+
+    (new GenerateFileVariants($fichero->getKey(), $variantes))->handle(app(ImageVariants::class));
+
+    expect(Meter::for($cuenta)->current('storage.bytes'))->toBe($trasLaPrimera);
+
+    // Y una variante que deja de declararse se borra y sale del medidor.
+    (new GenerateFileVariants($fichero->getKey(), ['mini' => ['width' => 4, 'height' => 4, 'fit' => 'cover']]))
+        ->handle(app(ImageVariants::class));
+
+    $fichero->refresh();
+
+    expect($fichero->variants)->toHaveKeys(['mini'])->not->toHaveKey('thumb')
+        ->and(Meter::for($cuenta)->current('storage.bytes'))->toBe($fichero->size + $fichero->variantsSize());
+
+    app(FileStore::class)->delete($fichero);
+
+    expect(Meter::for($cuenta)->current('storage.bytes'))->toBe(0);
+})->skip(! extension_loaded('gd'), 'Requiere la extensión GD.');
+
+// ------------------------------------------ Bomba de descompresión
+
+/**
+ * La cabecera de un PNG que declara un lienzo enorme. Pesa unos bytes;
+ * decodificarlo pediría a GD cuatro bytes por píxel declarado.
+ */
+function cabeceraPng(int $ancho, int $alto): string
+{
+    $ihdr = pack('NNCCCCC', $ancho, $alto, 8, 6, 0, 0, 0);
+
+    return "\x89PNG\r\n\x1a\n"
+        .pack('N', strlen($ihdr)).'IHDR'.$ihdr.pack('N', crc32('IHDR'.$ihdr))
+        .pack('N', 0).'IEND'.pack('N', crc32('IEND'));
+}
+
+test('una imagen con más píxeles de los permitidos no genera variantes y queda registrada', function () {
+    Log::spy();
+
+    $cuenta = $this->createAccount();
+
+    $fichero = app(FileStore::class)->finalize(
+        key: subirTemporal(cabeceraPng(50_000, 50_000)),
+        collection: FileCollection::make('library'),
+        name: 'bomba.png',
+        account: $cuenta,
+    );
+
+    expect($fichero->mime_type)->toBe('image/png');
+
+    $medidor = Meter::for($cuenta)->current('storage.bytes');
+
+    (new GenerateFileVariants($fichero->getKey(), ['thumb' => ['width' => 8, 'height' => 8, 'fit' => 'cover']]))
+        ->handle(app(ImageVariants::class));
+
+    $fichero->refresh();
+
+    expect($fichero->variants)->toBeNull()
+        ->and(Meter::for($cuenta)->current('storage.bytes'))->toBe($medidor);
+
+    // El original se conserva.
+    Storage::disk('s3')->assertExists($fichero->path);
+
+    Log::shouldHaveReceived('warning')
+        ->withArgs(fn (string $mensaje, array $contexto) => str_contains($mensaje, 'max_image_pixels')
+            && $contexto['file'] === $fichero->getKey()
+            && $contexto['pixels'] === 2_500_000_000)
+        ->once();
+});
+
+test('el límite de píxeles se lee de la configuración y se puede quitar', function () {
+    expect(ImageVariants::maxPixels())->toBe(40_000_000);
+
+    config(['base-tenant.files.max_image_pixels' => 100]);
+    expect(ImageVariants::maxPixels())->toBe(100);
+
+    config(['base-tenant.files.max_image_pixels' => null]);
+    expect(ImageVariants::maxPixels())->toBeNull();
+
+    config(['base-tenant.files.max_image_pixels' => 0]);
+    expect(ImageVariants::maxPixels())->toBeNull();
+});
+
+test('una imagen dentro del límite sí genera sus variantes', function () {
+    config(['base-tenant.files.max_image_pixels' => 1]);
+
+    $cuenta = $this->createAccount();
+
+    $fichero = app(FileStore::class)->finalize(
+        key: subirTemporal(pngDeUnPixel()),
+        collection: FileCollection::make('library'),
+        name: 'foto.png',
+        account: $cuenta,
+    );
+
+    (new GenerateFileVariants($fichero->getKey(), ['thumb' => ['width' => 8, 'height' => 8, 'fit' => 'cover']]))
+        ->handle(app(ImageVariants::class));
+
+    expect($fichero->refresh()->variants)->toHaveKey('thumb');
+})->skip(! extension_loaded('gd'), 'Requiere la extensión GD.');
+
+/**
+ * Si la reconciliación solo contara los originales, quitaría las variantes
+ * del medidor y cada borrado posterior lo dejaría por debajo de la realidad.
+ */
+test('reconciliar cuenta también las variantes que hay en el disco', function () {
+    $cuenta = $this->createAccount();
+
+    $fichero = app(FileStore::class)->finalize(
+        key: subirTemporal(pngDeUnPixel()),
+        collection: FileCollection::make('library'),
+        name: 'foto.png',
+        account: $cuenta,
+    );
+
+    Storage::disk('s3')->put($fichero->directory().'/thumb.png', str_repeat('t', 300));
+
+    $fichero->variants = [
+        'thumb' => $fichero->directory().'/thumb.png',
+        'perdida' => $fichero->directory().'/no-existe.png',
+    ];
+    $fichero->saveQuietly();
+
+    Meter::for($cuenta)->set('storage.bytes', 1);
+
+    $this->artisan('k2labs-base:reconcile-storage')->assertSuccessful();
+
+    expect(Meter::for($cuenta)->current('storage.bytes'))->toBe($fichero->size + 300);
+
+    app(FileStore::class)->delete($fichero);
 
     expect(Meter::for($cuenta)->current('storage.bytes'))->toBe(0);
 });

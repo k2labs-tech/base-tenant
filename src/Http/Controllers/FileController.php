@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Http\Controllers;
 
 use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Files\ActiveContent;
 use Base\Tenant\Files\FileCollection;
 use Base\Tenant\Files\FileStore;
 use Base\Tenant\Models\File;
@@ -124,9 +125,10 @@ class FileController extends Controller
 
         abort_unless($model->storage()->exists($path), 404);
 
-        return $model->storage()->response($path, $model->name, [
-            'Content-Type' => $model->mime_type,
-        ]);
+        // Inline, so an image still opens in the tab; active content comes
+        // with a sandboxing policy that keeps its script from running in the
+        // application's origin.
+        return $model->storage()->response($path, $model->name, ActiveContent::headers($model->mime_type));
     }
 
     public function destroy(string $file): JsonResponse

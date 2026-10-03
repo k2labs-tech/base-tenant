@@ -74,12 +74,20 @@ final class FileCollection
     /**
      * An image collection with the two renditions almost every one of them
      * wants, so the common case is one call and not five arguments.
+     *
+     * SVG is left out unless `svg` says otherwise: it is a document that can
+     * carry script, not a picture, and `image/*` never matches it.
      */
-    public static function images(string $name, ?int $maxSize = null, bool $single = false, bool $public = false): self
-    {
+    public static function images(
+        string $name,
+        ?int $maxSize = null,
+        bool $single = false,
+        bool $public = false,
+        bool $svg = false,
+    ): self {
         return new self(
             name: $name,
-            accepts: ['image/*'],
+            accepts: $svg ? ['image/*', 'image/svg+xml'] : ['image/*'],
             maxSize: $maxSize,
             single: $single,
             variants: [
@@ -96,6 +104,10 @@ final class FileCollection
      * An empty list accepts anything, which is the right default for a
      * general-purpose attachment and the wrong one for an avatar -- hence the
      * named constructors above.
+     *
+     * A wildcard never matches active content (SVG, HTML, XML, scripts; see
+     * ActiveContent): `image/*` means pictures, and a collection that really
+     * wants an SVG names `image/svg+xml`.
      */
     public function accepts(string $mimeType): bool
     {
@@ -105,7 +117,7 @@ final class FileCollection
 
         foreach ($this->accepts as $pattern) {
             if (str_ends_with($pattern, '/*')) {
-                if (str_starts_with($mimeType, substr($pattern, 0, -1))) {
+                if (str_starts_with($mimeType, substr($pattern, 0, -1)) && ! ActiveContent::is($mimeType)) {
                     return true;
                 }
 

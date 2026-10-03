@@ -12,6 +12,84 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.2.0] - 2026-10-03
+
+### Security
+
+- **Uploaded SVGs could run script in the application's origin.**
+  `FileCollection::images()` accepted `image/*`, which includes
+  `image/svg+xml`, and `files.public` served the file inline with no CSP: an
+  SVG carrying `<script>` in a public collection was a stored XSS behind a
+  link that needs no session. Two layers now:
+  - a MIME wildcard (`image/*`, `text/*`, `application/*`) never matches active
+    content -- SVG, HTML, XHTML, XML (`*+xml` included) and JavaScript. A
+    collection that wants one names it, or uses `images(..., svg: true)`.
+  - `files.public` and `files.show` serve active content with
+    `Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; sandbox`
+    and `X-Content-Type-Options: nosniff` (now on every file);
+    `files.public` sends it as `attachment`. Scripts are served as
+    `text/plain`. Signed URLs for active content request
+    `ResponseContentDisposition: attachment`.
+- **Image renditions are protected against decompression bombs.** A small PNG
+  declaring a huge canvas made GD allocate gigabytes and killed the worker.
+  `ImageVariants` now reads the dimensions from the header first and skips the
+  renditions above `files.max_image_pixels`, keeping the original and logging
+  a warning.
+
+### Added
+
+- `files.max_image_pixels` (`BASE_TENANT_FILES_MAX_IMAGE_PIXELS`), default
+  40,000,000; `0` or `null` removes the limit.
+- `FileCollection::images(..., svg: true)`.
+- `Base\Tenant\Files\ActiveContent` -- the list of types served sandboxed,
+  and the headers they get.
+- `File::variantsSize()` -- bytes the renditions occupy on the disk.
+- **Outbound webhook attempt history.** New table `outbound_webhook_attempts`
+  and model `OutboundWebhookAttempt` (`webhooks.models.attempt`): one row per
+  try with `attempt`, `outcome` (`delivered`, `failed`, `postponed`),
+  `status_code`, `error`, `duration_ms` and `attempted_at`.
+  `OutboundWebhookDelivery::attempts()`. On by default (`webhooks.log_attempts`);
+  the delivery row is unchanged and still keeps the last response. Not pruned
+  by the package.
+- `webhooks.redact_errors` (default `false`): stored errors, on the attempt and
+  the delivery, have every URL cut down to `scheme://host[:port]`. Errors on
+  attempts are capped at 2000 characters. `Webhook::redactError()`.
+- **Unsigned endpoints.** `webhooks.allow_unsigned` (default `false`) and
+  `Webhook::register(..., signed: false)`: an endpoint without a secret gets
+  its deliveries with no signature header. `outbound_webhooks.secret` is
+  nullable; `OutboundWebhook::isSigned()`. Off, an endpoint with no secret is
+  refused as before.
+- **Pause for degraded endpoints.** `webhooks.degraded_cooldown` (seconds,
+  default `null`): a degraded endpoint receives nothing for that long after
+  its last failed attempt. Deliveries due in the pause are postponed -- left
+  pending until it ends, with no attempt spent and a `postponed` attempt row --
+  never dropped. New column `outbound_webhooks.last_failed_at`;
+  `OutboundWebhook::pausedUntil()`, `Webhook::recordFailedAttempt()`.
+- `webhooks.json_flags` (default `0`): flags for the `json_encode()` that
+  builds a body, e.g. `JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE`. The
+  signature is over the bytes sent, and retries and redeliveries send the
+  stored bytes.
+
+### Fixed
+
+- **The `storage.bytes` gauge drifted upwards with every deleted image.**
+  Renditions were added to it when generated, but `FileStore::delete()` only
+  took off the original. It now takes off the renditions too, measured on the
+  disk before they are removed. Regenerating renditions meters only the
+  difference and removes the ones no longer declared, so a retry no longer
+  counts them twice.
+- `k2labs-base:reconcile-storage` counted only originals, so it took the
+  renditions off the gauge and every later delete pushed it below the real
+  figure. It now adds the renditions of each file, read from the disk.
+- **Outbound webhooks failed under strict tenancy outside `Tenant::runFor()`.**
+  With `tenancy.strict` and `on_missing_tenant = throw`, `DeliverWebhook`
+  wrote to its delivery with whatever account the worker had -- none, or the
+  caller's -- and threw `MissingTenantException` or
+  `CrossAccountWriteException`. The job now runs each attempt under the
+  delivery's account, and `Webhook::dispatch(..., $account)` and
+  `Webhook::redeliver()` queue it under that account, so both work from a
+  console command, a scheduled task or another account's context.
+
 ## [3.1.0] - 2026-10-01
 
 The package's sign-in can now be used on its own: a host application can keep

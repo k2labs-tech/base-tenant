@@ -87,10 +87,10 @@ registration, which nobody should get by upgrading a package.
 | Key | Setting | Default |
 |---|---|---|
 | `metering` | `metrics` — every metric the product may record, keyed by name, with `type` (`counter`/`gauge`), `reset`, `feature`, `scale`, `stripe_meter`. An undeclared key is refused | `storage.bytes` (gauge, `max_storage_gb`, scale `1073741824`) |
-| `files` | `driver` (`vapor` direct-to-S3, or `local`), `disk`, `stream_fallback`, `collections` (`accepts`, `max_size`, `single`, `variants`, `public`) | `vapor`, `s3`, one `library` collection: any MIME, 100 MB, `thumb` 200×200 cover + `preview` 1200 contain |
+| `files` | `driver` (`vapor` direct-to-S3, or `local`), `disk`, `stream_fallback`, `max_image_pixels`, `collections` (`accepts`, `max_size`, `single`, `variants`, `public`) | `vapor`, `s3`, `true`, `40_000_000`, one `library` collection: any MIME, 100 MB, `thumb` 200×200 cover + `preview` 1200 contain |
 | `transfer` | `retention_days` (applied by `k2labs-base:prune-transfers`), `prune_schedule`, `csv.escape_formulas`, `imports`, `exports` — handler classes keyed by the name that appears in a URL | `30`, `false`, `true`, `[]`, `[]` |
 | `connections` | `connectors` — connector classes keyed by name | `[]` |
-| `webhooks` | `headers.{signature,event,delivery}`, `signature_prefix`, `payload_builder`, `attempts`, `backoff`, `timeout`, `failure_limit`, `on_failure_limit` (`disable`/`degrade`), `models.{endpoint,delivery}` | `X-BaseTenant-*`, no prefix, `DefaultPayloadBuilder`, 5 attempts at 300/1800/7200/43200 s, 15 s, 20, `disable`, package models |
+| `webhooks` | `headers.{signature,event,delivery}`, `signature_prefix`, `payload_builder`, `attempts`, `backoff`, `timeout`, `failure_limit`, `on_failure_limit` (`disable`/`degrade`), `degraded_cooldown`, `allow_unsigned`, `json_flags`, `log_attempts`, `redact_errors`, `models.{endpoint,delivery,attempt}` | `X-BaseTenant-*`, no prefix, `DefaultPayloadBuilder`, 5 attempts at 300/1800/7200/43200 s, 15 s, 20, `disable`, no cooldown (`null`), `false`, `0`, `true`, `false`, package models |
 | `languages` | `reference` locale, `langsyncer.{url,key,project,webhook_secret}`, `seed` | `en`; LangSyncer at `https://langsyncer.com` with no credentials; seeds `en` (default), `es`, `ca` (disabled) |
 | `social` | `allowed_domains` — restrict sign-up to these email domains. A provider appears when its credentials exist in `config/services.php`; there is no second switch | `[]` |
 | `sequences` | nothing but the switch | — |
@@ -162,6 +162,7 @@ Every variable the config file reads, in file order.
 | `BASE_TENANT_FILES_DRIVER` | `vapor` | upload flow: `vapor` or `local` |
 | `BASE_TENANT_FILES_DISK` | `s3` | filesystem disk |
 | `BASE_TENANT_FILES_STREAM_FALLBACK` | `true` | fall back to the streaming route when the disk cannot sign |
+| `BASE_TENANT_FILES_MAX_IMAGE_PIXELS` | `40000000` | most pixels an image may have for renditions; `0` removes the limit |
 | `BASE_TENANT_TRANSFER_ENABLED` | `true` | M3 |
 | `BASE_TENANT_TRANSFER_RETENTION_DAYS` | `30` | days transfers and their generated files are kept |
 | `BASE_TENANT_TRANSFER_PRUNE_SCHEDULE` | `false` | schedule `k2labs-base:prune-transfers` daily |

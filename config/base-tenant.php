@@ -15,6 +15,7 @@ use Base\Tenant\Gdpr\Exporters\ProfileExporter;
 use Base\Tenant\Gdpr\Exporters\SessionExporter;
 use Base\Tenant\Models\Account;
 use Base\Tenant\Models\OutboundWebhook;
+use Base\Tenant\Models\OutboundWebhookAttempt;
 use Base\Tenant\Models\OutboundWebhookDelivery;
 use Base\Tenant\Models\Permission;
 use Base\Tenant\Models\Role;
@@ -926,11 +927,22 @@ return [
         'stream_fallback' => env('BASE_TENANT_FILES_STREAM_FALLBACK', true),
 
         /*
+        | The most pixels (width x height) an image may have for renditions
+        | to be generated. Read from the header before decoding, so a small
+        | file declaring a huge canvas cannot exhaust the worker's memory.
+        | Over it, the original is kept without renditions and a warning is
+        | logged. 0 or null removes the limit.
+        */
+        'max_image_pixels' => env('BASE_TENANT_FILES_MAX_IMAGE_PIXELS', 40_000_000),
+
+        /*
         | Collections for files that belong to the account rather than to one
         | of its records -- the media library. Files attached to a model take
         | their rules from that model's `fileCollections()` instead.
         |
-        |   accepts   MIME patterns; `image/*` matches a family, [] takes all
+        |   accepts   MIME patterns; `image/*` matches a family, [] takes all.
+        |             A wildcard never matches SVG, HTML, XML or scripts:
+        |             name `image/svg+xml` to take SVG.
         |   max_size  bytes
         |   single    replace rather than accumulate
         |   variants  renditions derived from images
@@ -1057,12 +1069,48 @@ return [
         'on_failure_limit' => 'disable',
 
         /*
+        | Seconds a degraded endpoint is left alone after its last failed
+        | attempt. Deliveries due in that window are postponed, not dropped:
+        | they stay pending until it ends, without spending an attempt.
+        | null or 0: degraded endpoints keep receiving (3.1).
+        */
+        'degraded_cooldown' => null,
+
+        /*
+        | Send to endpoints registered without a secret, with no signature
+        | header. Off: an endpoint with no secret is refused (3.1).
+        */
+        'allow_unsigned' => false,
+
+        /*
+        | Flags for the json_encode() that builds a body, e.g.
+        | JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE. Retries and
+        | redeliveries send the stored bytes, never a re-encoding.
+        */
+        'json_flags' => 0,
+
+        /*
+        | Write every attempt to outbound_webhook_attempts (outcome, status,
+        | error, duration). The package does not prune it: see
+        | docs/agents/14-connections.md.
+        */
+        'log_attempts' => true,
+
+        /*
+        | Cut every URL in a stored error down to scheme://host[:port]: the
+        | HTTP client puts the full request URI, credentials included, in
+        | connection errors.
+        */
+        'redact_errors' => false,
+
+        /*
         | Models the manager and the delivery job use. They must extend the
         | package's.
         */
         'models' => [
             'endpoint' => OutboundWebhook::class,
             'delivery' => OutboundWebhookDelivery::class,
+            'attempt' => OutboundWebhookAttempt::class,
         ],
     ],
 

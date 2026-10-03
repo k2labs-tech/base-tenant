@@ -10,10 +10,12 @@ use Base\Tenant\Files\FileStore;
 use Base\Tenant\Models\File;
 use Base\Tenant\Support\Module;
 use Illuminate\Console\Command;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 /**
- * Recompute the `storage.bytes` gauge from the files table.
+ * Recompute the `storage.bytes` gauge from the files table and the renditions
+ * on the disk.
  *
  * The gauge is maintained by increments, and increments can be lost: a
  * finalize that dies between the move and the meter, a file removed straight
@@ -51,6 +53,8 @@ class ReconcileStorageCommand extends Command
             ->groupBy('account_id')
             ->select('account_id', DB::raw('sum(size) as total'))
             ->pluck('total', 'account_id');
+
+        $totals = $this->withRenditions($totals);
 
         // An account whose files have all been removed still holds a counter,
         // and it has to come down to zero. Reading only the accounts that have
@@ -91,5 +95,32 @@ class ReconcileStorageCommand extends Command
                 : "Corrected {$drifted} accounts."));
 
         return self::SUCCESS;
+    }
+
+    /**
+     * Add what the renditions occupy, which the table does not record.
+     *
+     * The gauge counts them when they are generated and `FileStore::delete()`
+     * takes them off again; a recount of originals alone would leave every
+     * later delete taking off more than the gauge holds. Read from the disk,
+     * one request per rendition, and only for files that have any.
+     *
+     * @param  Collection<array-key, mixed>  $totals
+     * @return Collection<array-key, mixed>
+     */
+    protected function withRenditions(Collection $totals): Collection
+    {
+        File::query()
+            ->acrossAccounts()
+            ->when($this->option('account'), fn ($query, $account) => $query->where('account_id', $account))
+            ->whereNotNull('variants')
+            ->select(['id', 'account_id', 'disk', 'path', 'variants'])
+            ->chunkById(500, function ($files) use ($totals): void {
+                foreach ($files as $file) {
+                    $totals[$file->account_id] = (int) ($totals[$file->account_id] ?? 0) + $file->variantsSize();
+                }
+            });
+
+        return $totals;
     }
 }

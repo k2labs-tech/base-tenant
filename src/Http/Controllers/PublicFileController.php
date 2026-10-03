@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Base\Tenant\Http\Controllers;
 
+use Base\Tenant\Files\ActiveContent;
 use Base\Tenant\Models\File;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -41,10 +42,15 @@ class PublicFileController extends Controller
 
         abort_unless($model->storage()->exists($path), 404);
 
+        // Active content (an SVG logo, an HTML page) is sandboxed and handed
+        // over as a download: this route needs no session, so a link to it is
+        // the easiest XSS to send. An `<img>` ignores the disposition, so an
+        // embedded SVG still renders.
+        $disposition = ActiveContent::is($model->mime_type) ? 'attachment' : 'inline';
+
         return $model->storage()->response($path, $model->name, [
-            'Content-Type' => $model->mime_type,
+            ...ActiveContent::headers($model->mime_type),
             'Cache-Control' => 'public, max-age='.self::CACHE_SECONDS,
-            'X-Content-Type-Options' => 'nosniff',
-        ], 'inline');
+        ], $disposition);
     }
 }

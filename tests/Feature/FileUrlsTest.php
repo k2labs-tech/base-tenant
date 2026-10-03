@@ -181,3 +181,110 @@ test('la publicidad de un fichero con dueño la decide la colección del modelo'
     $this->get($logo->publicUrl())->assertOk();
     $this->get(route('base-tenant.files.public', ['file' => $contrato->getKey()]))->assertNotFound();
 });
+
+// ------------------------------------------------- Contenido activo (SVG)
+
+function svgConScript(): string
+{
+    return '<svg xmlns="http://www.w3.org/2000/svg"><script>alert(document.cookie)</script></svg>';
+}
+
+/**
+ * Un SVG es un documento con script, no una imagen. Si `image/*` lo dejara
+ * pasar, cualquier colección de imágenes pública sería un XSS almacenado.
+ */
+test('una colección de imágenes no acepta SVG salvo que lo pida', function () {
+    expect(FileCollection::images('fotos')->accepts('image/svg+xml'))->toBeFalse()
+        ->and(FileCollection::images('fotos')->accepts('image/png'))->toBeTrue()
+        ->and(FileCollection::images('fotos', svg: true)->accepts('image/svg+xml'))->toBeTrue()
+        ->and(FileCollection::make('x', accepts: ['image/svg+xml'])->accepts('image/svg+xml'))->toBeTrue();
+});
+
+test('un comodín nunca acepta HTML, XML ni scripts', function (string $tipo) {
+    $coleccion = FileCollection::make('x', accepts: ['text/*', 'application/*', 'image/*']);
+
+    expect($coleccion->accepts($tipo))->toBeFalse()
+        ->and(FileCollection::make('x', accepts: [$tipo])->accepts($tipo))->toBeTrue();
+})->with([
+    'text/html',
+    'application/xhtml+xml',
+    'text/xml',
+    'application/xml',
+    'application/rss+xml',
+    'text/javascript',
+    'application/javascript',
+]);
+
+test('finalizar rechaza un SVG en una colección de imágenes', function () {
+    $clave = FileStore::TMP_PREFIX.'/'.Str::uuid();
+    Storage::disk('s3')->put($clave, svgConScript());
+
+    expect(fn () => app(FileStore::class)->finalize(
+        key: $clave,
+        collection: FileCollection::images('logo', public: true),
+        name: 'logo.svg',
+        account: $this->createAccount(),
+    ))->toThrow(InvalidArgumentException::class, 'image/svg+xml');
+});
+
+/**
+ * Aunque llegue -- una colección sin restricciones, una aceptada a propósito
+ * --, la ruta pública no lo sirve como documento del origen de la aplicación.
+ */
+test('la ruta pública sirve un SVG en sandbox y como descarga', function () {
+    $fichero = ficheroEn('marca', $this->createAccount(), svgConScript());
+
+    expect($fichero->mime_type)->toBe('image/svg+xml');
+
+    $respuesta = $this->get($fichero->publicUrl())->assertOk();
+
+    expect($respuesta->headers->get('Content-Security-Policy'))->toBe("default-src 'none'; style-src 'unsafe-inline'; sandbox")
+        ->and($respuesta->headers->get('X-Content-Type-Options'))->toBe('nosniff')
+        ->and($respuesta->headers->get('Content-Disposition'))->toStartWith('attachment');
+});
+
+test('la ruta pública sirve HTML en sandbox y como descarga', function () {
+    $fichero = ficheroEn('marca', $this->createAccount(), '<!DOCTYPE html><html><script>alert(1)</script></html>');
+
+    expect($fichero->mime_type)->toBe('text/html');
+
+    $respuesta = $this->get($fichero->publicUrl())->assertOk();
+
+    expect($respuesta->headers->get('Content-Security-Policy'))->toContain('sandbox')
+        ->and($respuesta->headers->get('Content-Disposition'))->toStartWith('attachment');
+});
+
+test('una imagen corriente se sigue sirviendo en línea y sin política', function () {
+    $fichero = ficheroEn('marca', $this->createAccount(), 'logotipo');
+
+    $respuesta = $this->get($fichero->publicUrl())->assertOk();
+
+    expect($respuesta->headers->get('Content-Disposition'))->toStartWith('inline')
+        ->and($respuesta->headers->get('X-Content-Type-Options'))->toBe('nosniff')
+        ->and($respuesta->headers->has('Content-Security-Policy'))->toBeFalse();
+});
+
+test('la ruta de streaming también sirve el contenido activo en sandbox', function () {
+    $cuenta = $this->createAccount();
+    $this->syncPermissions();
+    $usuaria = $this->createUser($cuenta, 'customer-admin');
+
+    $svg = ficheroEn('library', $cuenta, svgConScript());
+    $script = ficheroEn('library', $cuenta, 'alert(1)');
+    $script->forceFill(['mime_type' => 'application/javascript'])->save();
+
+    $this->actingAsTenant($usuaria, $cuenta);
+
+    $respuesta = $this->get(route('base-tenant.files.show', ['file' => $svg->getKey()]))->assertOk();
+
+    expect($respuesta->headers->get('Content-Security-Policy'))->toBe("default-src 'none'; style-src 'unsafe-inline'; sandbox")
+        ->and($respuesta->headers->get('X-Content-Type-Options'))->toBe('nosniff')
+        ->and($respuesta->headers->get('Content-Type'))->toStartWith('image/svg+xml');
+
+    // Un script propio del origen podría cargarse con `<script src>` y saltarse
+    // la CSP de la aplicación: se entrega como texto.
+    $respuesta = $this->get(route('base-tenant.files.show', ['file' => $script->getKey()]))->assertOk();
+
+    expect($respuesta->headers->get('Content-Type'))->toStartWith('text/plain')
+        ->and($respuesta->headers->get('Content-Security-Policy'))->toContain('sandbox');
+});
