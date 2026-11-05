@@ -87,180 +87,183 @@
     </template>
 </div>
 
-@once
-    @push('scripts')
-        <script>
-            function baseTenantUploader(config) {
-                return {
-                    dragging: false,
-                    queue: [],
-                    active: 0,
+{{-- `@assets` y no `@push('scripts')`: una pila sólo llega a la página en
+     una carga completa, así que un subidor que aparece después (en un modal
+     que abre una acción de Livewire, tras un paso de un formulario) no
+     encontraba `baseTenantUploader`. Livewire manda los assets en cualquier
+     render, una vez por página y antes de aplicar el morph. --}}
+@assets
+    <script>
+        function baseTenantUploader(config) {
+            return {
+                dragging: false,
+                queue: [],
+                active: 0,
 
-                    // Tres a la vez. Una sola conexión desaprovecha el ancho de
-                    // banda en ficheros grandes; abrir una por fichero satura la
-                    // subida y las hace competir entre ellas.
-                    concurrency: 3,
+                // Tres a la vez. Una sola conexión desaprovecha el ancho de
+                // banda en ficheros grandes; abrir una por fichero satura la
+                // subida y las hace competir entre ellas.
+                concurrency: 3,
 
-                    add(fileList) {
-                        for (const file of fileList) {
-                            if (config.maxSize && file.size > config.maxSize) {
-                                this.queue.push({
-                                    id: crypto.randomUUID(),
-                                    file,
-                                    name: file.name,
-                                    progress: 0,
-                                    status: 'error',
-                                    attempts: 0,
-                                    error: @js(__('base-tenant::files.too_large')),
-                                });
-
-                                continue;
-                            }
-
+                add(fileList) {
+                    for (const file of fileList) {
+                        if (config.maxSize && file.size > config.maxSize) {
                             this.queue.push({
                                 id: crypto.randomUUID(),
                                 file,
                                 name: file.name,
                                 progress: 0,
-                                status: 'waiting',
+                                status: 'error',
                                 attempts: 0,
-                                error: null,
+                                error: @js(__('base-tenant::files.too_large')),
                             });
+
+                            continue;
                         }
 
-                        this.pump();
-                    },
-
-                    pump() {
-                        while (this.active < this.concurrency) {
-                            const next = this.queue.find((item) => item.status === 'waiting');
-
-                            if (! next) return;
-
-                            this.active++;
-                            this.send(next).finally(() => {
-                                this.active--;
-                                this.pump();
-                            });
-                        }
-                    },
-
-                    retry(item) {
-                        item.status = 'waiting';
-                        item.error = null;
-                        item.progress = 0;
-                        this.pump();
-                    },
-
-                    async send(item) {
-                        item.status = 'uploading';
-
-                        try {
-                            const signature = await this.post(config.signUrl, {
-                                name: item.file.name,
-                                content_type: item.file.type || 'application/octet-stream',
-                                size: item.file.size,
-                                collection: config.collection,
-                                fileable_type: config.fileableType,
-                                fileable_id: config.fileableId,
-                            });
-
-                            await this.put(signature.url, item, signature.headers || {});
-
-                            const stored = await this.post(config.finalizeUrl, {
-                                key: signature.key,
-                                name: item.file.name,
-                                collection: config.collection,
-                                fileable_type: config.fileableType,
-                                fileable_id: config.fileableId,
-                            });
-
-                            item.progress = 100;
-                            item.status = 'done';
-
-                            this.$wire.uploaded(stored.id);
-
-                            // Se va sola al terminar: una lista que solo crece
-                            // acaba tapando la zona de soltar.
-                            setTimeout(() => {
-                                this.queue = this.queue.filter((queued) => queued.id !== item.id);
-                            }, 1500);
-                        } catch (error) {
-                            // Tres intentos con espera creciente: un corte de red
-                            // en mitad de una subida larga es lo normal, no una
-                            // excepción, y volver a empezar a mano es peor que
-                            // esperar dos segundos.
-                            if (item.attempts < 2 && error.retryable !== false) {
-                                item.attempts++;
-                                item.progress = 0;
-
-                                await new Promise((resolve) => setTimeout(resolve, 1000 * item.attempts));
-
-                                return this.send(item);
-                            }
-
-                            item.status = 'error';
-                            item.error = error.message || @js(__('base-tenant::files.upload_failed'));
-                        }
-                    },
-
-                    put(url, item, headers) {
-                        return new Promise((resolve, reject) => {
-                            const request = new XMLHttpRequest();
-
-                            request.open('PUT', url);
-
-                            for (const [header, value] of Object.entries(headers)) {
-                                request.setRequestHeader(header, value);
-                            }
-
-                            // El progreso viene de la subida, no de la respuesta:
-                            // sin esto la barra salta de 0 a 100 y no informa de
-                            // nada durante el minuto que dura.
-                            request.upload.onprogress = (event) => {
-                                if (event.lengthComputable) {
-                                    item.progress = Math.round((event.loaded / event.total) * 95);
-                                }
-                            };
-
-                            request.onload = () => request.status < 400
-                                ? resolve()
-                                : reject(new Error(`HTTP ${request.status}`));
-
-                            request.onerror = () => reject(new Error(@js(__('base-tenant::files.network_error'))));
-
-                            request.send(item.file);
+                        this.queue.push({
+                            id: crypto.randomUUID(),
+                            file,
+                            name: file.name,
+                            progress: 0,
+                            status: 'waiting',
+                            attempts: 0,
+                            error: null,
                         });
-                    },
+                    }
 
-                    async post(url, body) {
-                        const response = await fetch(url, {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'Accept': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
-                            },
-                            body: JSON.stringify(body),
+                    this.pump();
+                },
+
+                pump() {
+                    while (this.active < this.concurrency) {
+                        const next = this.queue.find((item) => item.status === 'waiting');
+
+                        if (! next) return;
+
+                        this.active++;
+                        this.send(next).finally(() => {
+                            this.active--;
+                            this.pump();
+                        });
+                    }
+                },
+
+                retry(item) {
+                    item.status = 'waiting';
+                    item.error = null;
+                    item.progress = 0;
+                    this.pump();
+                },
+
+                async send(item) {
+                    item.status = 'uploading';
+
+                    try {
+                        const signature = await this.post(config.signUrl, {
+                            name: item.file.name,
+                            content_type: item.file.type || 'application/octet-stream',
+                            size: item.file.size,
+                            collection: config.collection,
+                            fileable_type: config.fileableType,
+                            fileable_id: config.fileableId,
                         });
 
-                        const payload = await response.json().catch(() => ({}));
+                        await this.put(signature.url, item, signature.headers || {});
 
-                        if (! response.ok) {
-                            const error = new Error(payload.message || `HTTP ${response.status}`);
+                        const stored = await this.post(config.finalizeUrl, {
+                            key: signature.key,
+                            name: item.file.name,
+                            collection: config.collection,
+                            fileable_type: config.fileableType,
+                            fileable_id: config.fileableId,
+                        });
 
-                            // Un 4xx no mejora repitiéndolo: el fichero es
-                            // demasiado grande, o del tipo que no se acepta, o
-                            // la cuota está llena.
-                            error.retryable = response.status >= 500;
+                        item.progress = 100;
+                        item.status = 'done';
 
-                            throw error;
+                        this.$wire.uploaded(stored.id);
+
+                        // Se va sola al terminar: una lista que solo crece
+                        // acaba tapando la zona de soltar.
+                        setTimeout(() => {
+                            this.queue = this.queue.filter((queued) => queued.id !== item.id);
+                        }, 1500);
+                    } catch (error) {
+                        // Tres intentos con espera creciente: un corte de red
+                        // en mitad de una subida larga es lo normal, no una
+                        // excepción, y volver a empezar a mano es peor que
+                        // esperar dos segundos.
+                        if (item.attempts < 2 && error.retryable !== false) {
+                            item.attempts++;
+                            item.progress = 0;
+
+                            await new Promise((resolve) => setTimeout(resolve, 1000 * item.attempts));
+
+                            return this.send(item);
                         }
 
-                        return payload;
-                    },
-                };
-            }
-        </script>
-    @endpush
-@endonce
+                        item.status = 'error';
+                        item.error = error.message || @js(__('base-tenant::files.upload_failed'));
+                    }
+                },
+
+                put(url, item, headers) {
+                    return new Promise((resolve, reject) => {
+                        const request = new XMLHttpRequest();
+
+                        request.open('PUT', url);
+
+                        for (const [header, value] of Object.entries(headers)) {
+                            request.setRequestHeader(header, value);
+                        }
+
+                        // El progreso viene de la subida, no de la respuesta:
+                        // sin esto la barra salta de 0 a 100 y no informa de
+                        // nada durante el minuto que dura.
+                        request.upload.onprogress = (event) => {
+                            if (event.lengthComputable) {
+                                item.progress = Math.round((event.loaded / event.total) * 95);
+                            }
+                        };
+
+                        request.onload = () => request.status < 400
+                            ? resolve()
+                            : reject(new Error(`HTTP ${request.status}`));
+
+                        request.onerror = () => reject(new Error(@js(__('base-tenant::files.network_error'))));
+
+                        request.send(item.file);
+                    });
+                },
+
+                async post(url, body) {
+                    const response = await fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content ?? '',
+                        },
+                        body: JSON.stringify(body),
+                    });
+
+                    const payload = await response.json().catch(() => ({}));
+
+                    if (! response.ok) {
+                        const error = new Error(payload.message || `HTTP ${response.status}`);
+
+                        // Un 4xx no mejora repitiéndolo: el fichero es
+                        // demasiado grande, o del tipo que no se acepta, o
+                        // la cuota está llena.
+                        error.retryable = response.status >= 500;
+
+                        throw error;
+                    }
+
+                    return payload;
+                },
+            };
+        }
+    </script>
+@endassets

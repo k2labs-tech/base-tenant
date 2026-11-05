@@ -197,6 +197,22 @@ test('el subidor pinta su zona y su javascript', function () {
 });
 
 /**
+ * Un subidor que aparece tras una acción de Livewire (un modal, el segundo
+ * paso de un formulario) no pasa por las pilas de la página: su javascript
+ * tiene que viajar como asset de Livewire o el navegador no lo encuentra.
+ */
+test('el javascript del subidor viaja como asset de livewire', function () {
+    $cuenta = $this->createAccount();
+    $usuaria = $this->createUser($cuenta, 'customer-admin');
+
+    $this->actingAsTenant($usuaria, $cuenta);
+
+    $subidor = Livewire::test(Uploader::class, ['collection' => 'library']);
+
+    expect($subidor->snapshot['memo']['assets'] ?? [])->not->toBeEmpty();
+});
+
+/**
  * El id que manda el navegador es una afirmación sobre un registro que puede
  * no ser suyo: se busca, no se cree.
  */
