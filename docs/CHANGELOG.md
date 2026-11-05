@@ -12,6 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.2.1] - 2026-11-05
+
+### Fixed
+
+- **The uploader did nothing when it appeared after a Livewire update.** Its
+  `baseTenantUploader` factory was pushed to the `scripts` stack, which only
+  reaches the page on a full load: an uploader rendered later -- in a modal
+  opened by an action, after the first step of a form -- found no factory and
+  every drop or pick failed silently. The factory now travels as a Livewire
+  `@assets` block, sent once per page on any render and loaded before the
+  morph. Uploaders present on the first load behave as before; nothing to
+  change in the app.
+
 ## [3.2.0] - 2026-10-03
 
 ### Security
