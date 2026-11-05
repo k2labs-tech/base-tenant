@@ -7,6 +7,7 @@ namespace Base\Tenant\Models;
 use Base\Tenant\Database\Factories\UserFactory;
 use Base\Tenant\Exceptions\NoAccountException;
 use Base\Tenant\Facades\Tenant;
+use Base\Tenant\Support\UserTime;
 use Base\Tenant\Traits\HasRolesAndPermissions;
 use Base\Tenant\Traits\HasSettings;
 use Base\Tenant\Traits\PurgesPersonalData;
@@ -206,7 +207,7 @@ class User extends Authenticatable
     public function applyTimeZone(mixed $dateTime): string
     {
         if ($this->timezone == '') {
-            $this->timezone = config('app.timezone');
+            $this->timezone = UserTime::timezoneFor(null);
             $this->save();
         }
 

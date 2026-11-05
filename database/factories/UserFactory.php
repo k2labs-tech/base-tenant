@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Base\Tenant\Database\Factories;
 
 use Base\Tenant\Models\User;
+use Base\Tenant\Support\UserTime;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -39,7 +40,7 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
-            'timezone' => config('app.timezone', 'UTC'),
+            'timezone' => UserTime::timezoneFor(null),
             'locale' => config('app.locale', 'en'),
             'currency' => 'USD',
             'decimal_places' => 2,
