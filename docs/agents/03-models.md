@@ -188,7 +188,7 @@ Role::manageable()->get();    // what the editor lists: staff see assignable,
                               // everyone else only their own account's roles
 Role::system()->get();  Role::nonSystem()->get();     // is_system
 $role->account;               // null for a global role
-$role->isGlobal();  $role->label;   // label = display_name, falling back to name
+$role->isGlobal();  $role->label;   // roles.labels.{name} if translated, else display_name, else name
 
 Permission::inGroup('users')->get();
 Permission::configured();          // Collection keyed by group, from config

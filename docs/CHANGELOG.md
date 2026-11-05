@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.2.3] - 2026-11-05
+
+### Added
+
+- **Role labels per language.** `Role::$label` reads
+  `base-tenant::roles.labels.{name}` when the app translates it, so a role
+  shows in the reader's language instead of the single `display_name` of the
+  config. Without a translation nothing changes: `display_name`, then `name`.
+
 ## [3.2.2] - 2026-11-05
 
 ### Fixed
