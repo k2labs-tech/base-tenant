@@ -29,6 +29,19 @@ test('role falls back to its name when no label is given', function () {
     expect($role->label)->toBe('plain');
 });
 
+test('role reads in the reader\'s language when the app translates it', function () {
+    $role = Role::create(['name' => 'it_agent', 'display_name' => 'IT agent', 'guard_name' => 'web', 'account_id' => null]);
+
+    app('translator')->addLines(['roles.labels.it_agent' => 'Tècnic d\'informàtica'], 'ca', 'base-tenant');
+    app()->setLocale('ca');
+
+    expect($role->label)->toBe('Tècnic d\'informàtica');
+
+    app()->setLocale('en');
+
+    expect($role->label)->toBe('IT agent');
+});
+
 test('role has extensible roles trait', function () {
     expect(class_uses(Role::class))->toContain(HasExtensibleRoles::class);
 });

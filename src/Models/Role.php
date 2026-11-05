@@ -12,6 +12,7 @@ use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Lang;
 use Spatie\Permission\Models\Role as SpatieRole;
 
 /**
@@ -109,10 +110,19 @@ class Role extends SpatieRole
     }
 
     /**
-     * Label for the interface, falling back to the identifier.
+     * Label for the interface: the app's translation in
+     * `base-tenant::roles.labels.{name}` when it has one, so a role reads in
+     * the reader's language, and otherwise the configured name or the
+     * identifier.
      */
     public function getLabelAttribute(): string
     {
+        $key = "base-tenant::roles.labels.{$this->name}";
+
+        if (Lang::has($key)) {
+            return __($key);
+        }
+
         return $this->display_name ?: $this->name;
     }
 }
