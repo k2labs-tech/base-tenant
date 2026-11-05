@@ -15,15 +15,18 @@
         @endif
     @else
         <flux:dropdown position="bottom" align="start">
-            <flux:button size="sm" icon="building-office-2" icon:trailing="chevron-down" class="max-w-56">
-                <span class="truncate">
+            {{-- Flux envuelve el contenido en un span que no encoge: sin el
+                 `flex` y el `min-w-0`, un nombre largo se sale del botón y
+                 tapa lo que tiene al lado en la cabecera. --}}
+            <flux:button size="sm" icon="building-office-2" icon:trailing="chevron-down" class="max-w-56 [&>span]:flex [&>span]:min-w-0 [&>span]:items-center [&>span]:gap-2">
+                <span class="min-w-0 truncate">
                     {{ $current?->name ?? __('base-tenant::accounts.no_account') }}
                 </span>
 
                 @if($isStaff)
                     {{-- Que el personal de plataforma sepa siempre que está
                          mirando datos de un cliente y no los suyos. --}}
-                    <flux:badge size="sm" color="amber" inset="top bottom">
+                    <flux:badge size="sm" color="amber" inset="top bottom" class="shrink-0">
                         {{ __('base-tenant::accounts.staff') }}
                     </flux:badge>
                 @endif

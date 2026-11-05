@@ -60,6 +60,21 @@ test('el personal de plataforma ve todas las cuentas', function () {
         ->and($componente->viewData('isStaff'))->toBeTrue();
 });
 
+/**
+ * Flux envuelve el contenido del botón en un span que no encoge: sin estas
+ * clases, un nombre largo se sale del botón y tapa la cabecera.
+ */
+test('un nombre de cuenta largo se recorta dentro del botón', function () {
+    $this->createAccount(['name' => 'Universitat Internacional de Catalunya']);
+
+    $this->actingAs(administradorDePlataforma());
+
+    $html = Livewire::test(AccountSwitcher::class)->html();
+
+    expect($html)->toContain('span]:min-w-0')
+        ->and($html)->toContain('min-w-0 truncate');
+});
+
 test('el personal de plataforma puede entrar en cualquier cuenta', function () {
     $cuenta = $this->createAccount(['name' => 'Cliente']);
     $admin = administradorDePlataforma();
