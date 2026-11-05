@@ -128,6 +128,7 @@ use Base\Tenant\Settings\SettingsManager;
 use Base\Tenant\Social\SocialLoginService;
 use Base\Tenant\Support\Module;
 use Base\Tenant\Support\ScheduledTasks;
+use Base\Tenant\Support\UserTime;
 use Base\Tenant\Suppressions\BlockSuppressedRecipients;
 use Base\Tenant\Suppressions\SuppressionManager;
 use Base\Tenant\Tenancy\QueueTenancy;
@@ -181,6 +182,9 @@ class BaseTenantServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        // Before the scaffold check: copied views may read dates through it too.
+        UserTime::register();
+
         $this->registerPublishing();
 
         // Once the code has been copied into the application, the generated

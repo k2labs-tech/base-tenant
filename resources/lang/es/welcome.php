@@ -1,13 +1,13 @@
 <?php
 
 return [
-    'title' => 'Bienvenido a Tu Aplicación',
+    'title' => 'Bienvenido a tu aplicación',
     'subtitle' => 'Construye cosas increíbles con Laravel',
-    'dashboard' => 'Ir al Panel de Control',
-    'login' => 'Iniciar Sesión',
+    'dashboard' => 'Ir al panel de control',
+    'login' => 'Iniciar sesión',
     'register' => 'Registrarse',
     'get_started' => 'Comenzar',
-    'learn_more' => 'Aprender Más',
+    'learn_more' => 'Aprender más',
     'features' => 'Características',
     'documentation' => 'Documentación',
     'support' => 'Soporte',

@@ -259,7 +259,7 @@
 
                                 <td class="px-4 {{ $rowPadding }}">
                                     <div class="whitespace-nowrap text-sm tabular-nums text-zinc-900 dark:text-white">
-                                        {{ $file->created_at?->isoFormat('D MMM YYYY') }}
+                                        {{ $file->created_at?->userTime()->isoFormat('D MMM YYYY') }}
                                     </div>
                                     <div class="whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
                                         {{ $file->created_at?->diffForHumans() }}

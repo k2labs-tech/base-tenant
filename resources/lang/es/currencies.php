@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'usd' => 'Dólar Estadounidense',
+    'usd' => 'Dólar estadounidense',
     'eur' => 'Euro',
-    'gbp' => 'Libra Esterlina',
+    'gbp' => 'Libra esterlina',
 ];

@@ -22,11 +22,11 @@ return [
     'permissions_updated' => 'Permisos actualizados',
 
     'administrator' => 'Administrador',
-    'administrator-finance' => 'Administrador de Finanzas',
-    'administrator-tech' => 'Administrador Técnico',
-    'customer-admin' => 'Administrador de Cliente',
-    'customer-user' => 'Usuario de Cliente',
-    'customer-viewer' => 'Consultor de Cliente',
-    'customer-finance' => 'Finanzas de Cliente',
+    'administrator-finance' => 'Administrador de finanzas',
+    'administrator-tech' => 'Administrador técnico',
+    'customer-admin' => 'Administrador de cliente',
+    'customer-user' => 'Usuario de cliente',
+    'customer-viewer' => 'Consultor de cliente',
+    'customer-finance' => 'Finanzas de cliente',
 
 ];

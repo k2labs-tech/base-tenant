@@ -34,3 +34,34 @@
         </flux:sidebar.group>
     @endforeach
 </flux:sidebar.nav>
+
+{{-- Un contador que baja sin recargar: cualquier componente puede lanzar
+     `menu-badges-refresh` (p. ej. `$this->dispatch('menu-badges-refresh')`
+     tras completar una tarea) y la barra pide los números de nuevo. Sólo
+     actualiza los contadores que ya se ven; uno que aparece de cero llega con
+     la siguiente navegación. --}}
+<script data-navigate-once>
+    window.addEventListener('menu-badges-refresh', () => {
+        clearTimeout(window.__baseTenantMenuBadges);
+        window.__baseTenantMenuBadges = setTimeout(async () => {
+            const response = await fetch(@js(route('base-tenant.menu.badges')), { headers: { Accept: 'application/json' } });
+
+            if (! response.ok) {
+                return;
+            }
+
+            const badges = await response.json();
+
+            document.querySelectorAll('[data-menu-badge]').forEach((badge) => {
+                const value = badges[badge.dataset.menuBadge];
+
+                if (value === undefined) {
+                    return;
+                }
+
+                badge.textContent = value ?? '';
+                badge.hidden = value === null;
+            });
+        }, 300);
+    });
+</script>

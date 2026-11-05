@@ -77,7 +77,7 @@
                             <flux:select.option value="">{{ __('base-tenant::activity.all_actions') }}</flux:select.option>
 
                             @foreach($actions as $action)
-                                <flux:select.option value="{{ $action }}">{{ ucfirst($action) }}</flux:select.option>
+                                <flux:select.option value="{{ $action }}">{{ \Base\Tenant\Models\ActivityLog::actionLabel($action) }}</flux:select.option>
                             @endforeach
                         </flux:select>
                     </div>
@@ -181,7 +181,7 @@
 
                 @if($filterAction !== '')
                     <flux:badge size="sm" color="zinc">
-                        {{ __('base-tenant::activity.action') }}: {{ ucfirst($filterAction) }}
+                        {{ __('base-tenant::activity.action') }}: {{ \Base\Tenant\Models\ActivityLog::actionLabel($filterAction) }}
                         <flux:badge.close wire:click="$set('filterAction', '')" />
                     </flux:badge>
                 @endif
@@ -330,7 +330,7 @@
                                     </div>
 
                                     <div class="whitespace-nowrap text-xs tabular-nums text-zinc-500 dark:text-zinc-400">
-                                        {{ $activity->created_at?->isoFormat('D MMM YYYY, HH:mm') }}
+                                        {{ $activity->created_at?->userTime()->isoFormat('D MMM YYYY, HH:mm') }}
                                     </div>
                                 </td>
 
@@ -361,7 +361,7 @@
                                 <td class="px-4 {{ $rowPadding }}">
                                     <span class="inline-flex items-center gap-1.5 text-sm text-zinc-600 dark:text-zinc-300" data-action="{{ $activity->action }}">
                                         <span class="size-1.5 rounded-full {{ $actionDot }}"></span>
-                                        {{ ucfirst($activity->action) }}
+                                        {{ $activity->action_label }}
                                     </span>
                                 </td>
 
@@ -371,7 +371,7 @@
                                              truncado no identifica nada, y la descripción de la fila ya
                                              dice sobre quién se actuó. --}}
                                         <div class="truncate text-sm text-zinc-900 dark:text-white" title="{{ $activity->subject_id }}">
-                                            {{ class_basename($activity->subject_type) }}
+                                            {{ $activity->subject_label }}
                                         </div>
                                     @else
                                         <span class="text-xs text-zinc-400 dark:text-zinc-500">&mdash;</span>
