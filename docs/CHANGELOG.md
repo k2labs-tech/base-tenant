@@ -12,6 +12,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.2.2] - 2026-11-05
+
+### Fixed
+
+- **A long account name overflowed the account switcher.** Flux wraps a
+  button's content in a span that does not shrink, so the name's `truncate`
+  never applied and the name spilled over the language selector and the bell
+  next to it. The content is now a shrinking flex row: the name ends in an
+  ellipsis and the staff badge keeps its size.
+
 ## [3.2.1] - 2026-11-05
 
 ### Fixed
