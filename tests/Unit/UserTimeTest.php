@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use Base\Tenant\Models\User;
 use Carbon\Carbon;
 use Carbon\CarbonImmutable;
 
@@ -47,4 +48,10 @@ test('no cambia la fecha original, aunque sea mutable', function () {
     $moment->userTime((object) ['timezone' => 'Asia/Tokyo']);
 
     expect($moment->format('H:i e'))->toBe('10:00 UTC');
+});
+
+test('una persona nueva empieza en la zona de visualización, no en la de la aplicación', function () {
+    config(['app.timezone' => 'UTC', 'base-tenant.display_timezone' => 'Europe/Madrid']);
+
+    expect(User::factory()->make()->timezone)->toBe('Europe/Madrid');
 });

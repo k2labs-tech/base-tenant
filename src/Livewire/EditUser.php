@@ -10,6 +10,7 @@ use Base\Tenant\Models\Account;
 use Base\Tenant\Models\Role;
 use Base\Tenant\Models\User;
 use Base\Tenant\Notifications\WelcomeUserNotification;
+use Base\Tenant\Support\UserTime;
 use Flux\Flux;
 use Illuminate\Contracts\View\View;
 use Illuminate\Support\Collection;
@@ -340,7 +341,7 @@ class EditUser extends Component
 
     protected function applyDefaults(): void
     {
-        $this->timezone = config('app.timezone', 'UTC');
+        $this->timezone = UserTime::timezoneFor(null);
         $this->locale = config('app.locale', 'en');
         $this->currency = 'EUR';
         $this->decimal_places = 2;

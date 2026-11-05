@@ -12,6 +12,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.3.1] - 2026-11-05
+
+### Fixed
+
+- **New people started on the app's timezone.** A user created from the
+  admin screen, by the factory or completed by `applyTimeZone()` took
+  `app.timezone`, so an app storing UTC showed them UTC times. They now start
+  on `base-tenant.display_timezone` (else `app.timezone`).
+
 ## [3.3.0] - 2026-11-05
 
 ### Added
