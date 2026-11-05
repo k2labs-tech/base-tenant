@@ -4,6 +4,7 @@
         :icon="$item['icon']"
         :current="$item['active']"
         :badge="$item['badge']"
+        badge:data-menu-badge="{{ $item['key'] ?? '' }}"
         :target="$item['target']"
         wire:navigate
     >{{ $item['title'] }}</flux:sidebar.item>

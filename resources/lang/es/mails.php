@@ -3,9 +3,9 @@
 return [
     // Email subjects
     'welcome_subject' => 'Bienvenido a :app_name',
-    'password_reset_subject' => 'Notificación de Restablecimiento de Contraseña',
-    'email_verification_subject' => 'Verifica tu Dirección de Correo Electrónico',
-    'account_activated_subject' => 'Tu Cuenta ha sido Activada',
+    'password_reset_subject' => 'Notificación de restablecimiento de contraseña',
+    'email_verification_subject' => 'Verifica tu dirección de correo electrónico',
+    'account_activated_subject' => 'Tu cuenta ha sido activada',
     'invoice_subject' => 'Factura #:invoice_number',
 
     // Email greetings
@@ -23,14 +23,14 @@ return [
         'step_1' => 'Completa tu perfil',
         'step_2' => 'Explora las características',
         'step_3' => 'Invita a los miembros del equipo',
-        'action' => 'Ir al Panel de Control',
+        'action' => 'Ir al panel de control',
         'questions' => 'Si tienes alguna pregunta, no dudes en contactarnos.',
     ],
 
     // Password reset email
     'password_reset' => [
         'intro' => 'Estás recibiendo este correo porque recibimos una solicitud de restablecimiento de contraseña para tu cuenta.',
-        'action' => 'Restablecer Contraseña',
+        'action' => 'Restablecer contraseña',
         'expire' => 'Este enlace de restablecimiento de contraseña expirará en :count minutos.',
         'no_action' => 'Si no solicitaste un restablecimiento de contraseña, no se requiere ninguna acción adicional.',
     ],
@@ -38,7 +38,7 @@ return [
     // Email verification
     'email_verification' => [
         'intro' => 'Por favor haz clic en el botón a continuación para verificar tu dirección de correo electrónico.',
-        'action' => 'Verificar Dirección de Correo',
+        'action' => 'Verificar dirección de correo',
         'no_action' => 'Si no creaste una cuenta, no se requiere ninguna acción adicional.',
     ],
 
@@ -59,7 +59,7 @@ return [
 
     // Footer
     'footer' => [
-        'company' => 'Tu Empresa',
+        'company' => 'Tu empresa',
         'address' => 'Tu dirección',
         'phone' => 'Teléfono: :phone',
         'email' => 'Correo: :email',

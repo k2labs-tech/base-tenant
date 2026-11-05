@@ -22,4 +22,20 @@ return [
     'description_line' => 'Todo lo que ha pasado en la cuenta, quién lo hizo y sobre qué.',
     'empty_description' => 'Las entradas aparecen aquí a medida que se trabaja en la cuenta.',
 
+    // Recorded actions; an app adds its own here (ActivityLog::actionLabel()).
+    'actions' => [
+        'created' => 'Creado',
+        'updated' => 'Actualizado',
+        'deleted' => 'Eliminado',
+        'account' => [
+            'entered' => 'Entrada en la cuenta',
+        ],
+    ],
+
+    // What an entry is about, by class basename; an app names its own models here.
+    'subjects' => [
+        'Account' => 'Cuenta',
+        'User' => 'Usuario',
+        'File' => 'Fichero',
+    ],
 ];

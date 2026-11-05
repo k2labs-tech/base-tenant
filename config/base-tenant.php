@@ -57,6 +57,20 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Display timezone
+    |--------------------------------------------------------------------------
+    |
+    | The clock dates are shown in (`$date->userTime()`) for someone with no
+    | timezone of their own, or when nobody is signed in. Null falls back to
+    | `app.timezone`. Set it when the app stores UTC and its people read local
+    | time: `APP_TIMEZONE=UTC`, `BASE_TENANT_DISPLAY_TIMEZONE=Europe/Madrid`.
+    |
+    */
+
+    'display_timezone' => env('BASE_TENANT_DISPLAY_TIMEZONE'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Installation State
     |--------------------------------------------------------------------------
     |

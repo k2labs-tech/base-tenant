@@ -28,7 +28,7 @@ return [
         'remove' => 'Eliminar',
         'remove_title' => 'Eliminar dominio',
         'remove_confirm' => '¿Eliminar :hostname? Dejará de servir tu cuenta de inmediato.',
-        'instructions' => 'Publica este registro TXT en tu DNS y pulsa Verificar. Propagarse puede tardar unos minutos.',
+        'instructions' => 'Publica este registro TXT en tu DNS y pulsa «Verificar». Propagarse puede tardar unos minutos.',
         'cname_hint' => 'Apunta también el dominio aquí con un CNAME a :target.',
         'empty_title' => 'Todavía no hay dominios',
         'empty_description' => 'Añade un dominio tuyo para servir la cuenta desde él.',

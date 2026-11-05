@@ -150,6 +150,34 @@ test('badges are resolved on every render', function () {
     expect(Menu::tree('main')->firstWhere('key', 'invitations')['badge'])->toBe('1');
 });
 
+test('the badges endpoint answers the counts the sidebar shows, to refresh them in place', function () {
+    $account = $this->createAccount();
+    $admin = $this->createUser($account, 'customer-admin');
+
+    $this->actingAsTenant($admin, $account);
+
+    $this->getJson(route('base-tenant.menu.badges'))
+        ->assertOk()
+        ->assertJson(['invitations' => null]);
+
+    Tenant::runFor($account, fn () => UserInvite::create([
+        'email' => 'someone@example.com',
+        'token' => Str::random(64),
+        'expires_at' => now()->addWeek(),
+    ]));
+
+    $this->getJson(route('base-tenant.menu.badges'))->assertJson(['invitations' => '1']);
+
+    $barra = view('base-tenant::layouts.navigation-items')->render();
+
+    expect($barra)->toContain('data-menu-badge="invitations"')
+        ->and($barra)->toContain("addEventListener('menu-badges-refresh'");
+});
+
+test('the badges endpoint is only for people signed in', function () {
+    $this->getJson(route('base-tenant.menu.badges'))->assertUnauthorized();
+});
+
 test('nested entries are returned as a tree', function () {
     Menu::register('main', function (MenuBuilder $menu): void {
         $menu->item('reports')

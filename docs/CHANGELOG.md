@@ -12,6 +12,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - API routes with per-account keys, scopes and rate limits
 - Trace id propagation and structured JSON logging
 
+## [3.3.0] - 2026-11-05
+
+### Added
+
+- **`$date->userTime()`**, a Carbon macro that shows a moment in the reader's
+  clock: their `timezone`, else the new `base-tenant.display_timezone`
+  (`BASE_TENANT_DISPLAY_TIMEZONE`), else `app.timezone`. It lets an app store
+  UTC (`APP_TIMEZONE=UTC`) and show local time. The package's screens use it.
+  With the app and its people on one timezone, nothing changes.
+- **Activity log labels.** Actions read from
+  `base-tenant::activity.actions.{action}` and models from
+  `activity.subjects.{ClassBasename}`, falling back to what was recorded.
+- **Menu badges refreshed in place.** `GET /menu/badges`
+  (`base-tenant.menu.badges`) answers the sidebar's counts, and the sidebar
+  asks again on a `menu-badges-refresh` browser event.
+
+### Changed
+
+- Spanish strings use sentence case ("Cerrar sesión", not "Cerrar Sesión").
+
 ## [3.2.3] - 2026-11-05
 
 ### Added

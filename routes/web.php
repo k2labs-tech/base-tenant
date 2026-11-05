@@ -5,6 +5,7 @@ declare(strict_types=1);
 use Base\Tenant\Facades\Presale;
 use Base\Tenant\Http\Controllers\FileController;
 use Base\Tenant\Http\Controllers\LangSyncerWebhookController;
+use Base\Tenant\Http\Controllers\MenuBadgeController;
 use Base\Tenant\Http\Controllers\NotificationController;
 use Base\Tenant\Http\Controllers\PublicFileController;
 use Base\Tenant\Http\Controllers\SuppressionWebhookController;
@@ -189,5 +190,9 @@ Route::prefix($prefix)->middleware($middleware)->group(function () {
             ->name('base-tenant.notifications.mark-as-read');
         Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])
             ->name('base-tenant.notifications.mark-all-read');
+
+        // The menu's badges, refreshed in place after an action (menu-badges-refresh)
+        Route::get('/menu/badges', MenuBadgeController::class)
+            ->name('base-tenant.menu.badges');
     });
 });

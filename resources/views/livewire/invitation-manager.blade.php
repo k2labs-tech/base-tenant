@@ -337,13 +337,13 @@
 
                                 <td class="px-4 {{ $rowPadding }}">
                                     <span class="whitespace-nowrap text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
-                                        {{ $invite->created_at?->isoFormat('D MMM YYYY') }}
+                                        {{ $invite->created_at?->userTime()->isoFormat('D MMM YYYY') }}
                                     </span>
                                 </td>
 
                                 <td class="px-4 {{ $rowPadding }}">
                                     <div class="whitespace-nowrap text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
-                                        {{ $invite->expires_at?->isoFormat('D MMM YYYY') }}
+                                        {{ $invite->expires_at?->userTime()->isoFormat('D MMM YYYY') }}
                                     </div>
 
                                     <div class="whitespace-nowrap text-xs text-zinc-400 dark:text-zinc-500">

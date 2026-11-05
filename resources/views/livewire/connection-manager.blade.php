@@ -197,7 +197,7 @@
                                 <td class="px-4 {{ $rowPadding }}">
                                     @if($connection->checked_at)
                                         <div class="whitespace-nowrap text-sm tabular-nums text-zinc-900 dark:text-white">
-                                            {{ $connection->checked_at->isoFormat('D MMM YYYY') }}
+                                            {{ $connection->checked_at->userTime()->isoFormat('D MMM YYYY') }}
                                         </div>
                                         <div class="whitespace-nowrap text-xs text-zinc-500 dark:text-zinc-400">
                                             {{ $connection->checked_at->diffForHumans() }}

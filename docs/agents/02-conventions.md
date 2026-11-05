@@ -99,6 +99,10 @@ Then `php artisan k2labs-base:sync-menus`.
 translated string — the account would be stuck in whatever language the
 command ran in.
 
+A badge is resolved when the page renders. After an action that changes it
+without leaving the page, `$this->dispatch('menu-badges-refresh')`: the sidebar
+asks `base-tenant.menu.badges` for the counts again.
+
 ---
 
 ## Settings
@@ -139,7 +143,9 @@ class Booking extends Model
 ```
 
 Records creates, updates and deletes with the causer, the account and the
-changed attributes.
+changed attributes. The log reads an action from
+`base-tenant::activity.actions.{action}` and a model from
+`activity.subjects.{ClassBasename}`; add yours there, in every locale.
 
 These attributes are stripped before anything is written: `password`,
 `remember_token`, `two_factor_secret`, `two_factor_recovery_codes`,
@@ -161,6 +167,9 @@ messages, mail, toasts, empty states.
   is missing from either.
 - A key built at runtime (`__('x.names.'.$key)`) cannot be checked by that
   test, so give it a fallback in code.
+- Dates on screen go through `$date->userTime()` (the reader's `timezone`,
+  else `base-tenant.display_timezone`, else `app.timezone`), so an app can
+  store UTC and still show local time.
 
 ---
 

@@ -2,7 +2,7 @@
 
 return [
     // Management
-    'management_title' => 'Gestión de Cuentas',
+    'management_title' => 'Gestión de cuentas',
     'management_description' => 'Todas las cuentas a las que llegas, con su plan y cuánta gente hay en cada una.',
     'created' => 'Creada',
     'empty_description' => 'Crea la primera cuenta para empezar a trabajar.',
@@ -11,11 +11,11 @@ return [
     'subscription_active' => 'Activa',
     'subscription_trialling' => 'En prueba',
     'subscription_none' => 'Sin suscripción',
-    'add_new' => 'Agregar Nueva Cuenta',
+    'add_new' => 'Agregar nueva cuenta',
     'search_placeholder' => 'Buscar cuentas...',
 
     // Table headers
-    'name' => 'Nombre de la Cuenta',
+    'name' => 'Nombre de la cuenta',
     'users_count' => 'Usuarios',
     'status' => 'Estado',
     'actions' => 'Acciones',
@@ -36,49 +36,49 @@ return [
 
     // Messages
     'no_accounts_found' => 'No se encontraron cuentas.',
-    'account_created' => 'Cuenta Creada',
+    'account_created' => 'Cuenta creada',
     'created_successfully' => 'La cuenta se ha creado exitosamente.',
-    'account_updated' => 'Cuenta Actualizada',
+    'account_updated' => 'Cuenta actualizada',
     'updated_successfully' => 'La cuenta se ha actualizado exitosamente.',
-    'account_removed' => 'Cuenta Eliminada',
+    'account_removed' => 'Cuenta eliminada',
     'removed_successfully' => 'La cuenta se ha eliminado exitosamente.',
-    'error_deleting_account' => 'Error al Eliminar Cuenta',
+    'error_deleting_account' => 'Error al eliminar cuenta',
     'cannot_delete_with_users' => 'No se puede eliminar una cuenta que tiene usuarios. Por favor, elimine todos los usuarios primero.',
     'cannot_delete_with_projects' => 'No se puede eliminar una cuenta que tiene proyectos. Por favor, elimine todos los proyectos primero.',
     'cannot_delete_with_translations' => 'No se puede eliminar una cuenta que tiene traducciones. Por favor, elimine todas las traducciones primero.',
     'cannot_delete_with_relations' => 'No se puede eliminar una cuenta que tiene datos relacionados en las siguientes tablas: :tables',
 
     // Delete confirmation
-    'delete_account' => 'Eliminar Cuenta',
+    'delete_account' => 'Eliminar cuenta',
     'delete_confirmation' => '¿Está seguro de que desea eliminar esta cuenta? Esta acción no se puede deshacer.',
 
     // Edit/Create
-    'back_to_accounts' => 'Volver a Cuentas',
-    'create_new_account' => 'Crear Nueva Cuenta',
-    'edit_account_title' => 'Editar Cuenta: :name',
-    'create_account' => 'Crear Cuenta',
-    'save_account' => 'Guardar Cambios',
+    'back_to_accounts' => 'Volver a cuentas',
+    'create_new_account' => 'Crear nueva cuenta',
+    'edit_account_title' => 'Editar cuenta: :name',
+    'create_account' => 'Crear cuenta',
+    'save_account' => 'Guardar cambios',
 
     // Form fields
-    'account_information' => 'Información de la Cuenta',
-    'owner' => 'Propietario de la Cuenta',
+    'account_information' => 'Información de la cuenta',
+    'owner' => 'Propietario de la cuenta',
     'select_owner' => 'Seleccionar propietario...',
-    'email' => 'Correo Electrónico',
+    'email' => 'Correo electrónico',
     'phone' => 'Teléfono',
     'address' => 'Dirección',
     'city' => 'Ciudad',
-    'state' => 'Estado/Provincia',
+    'state' => 'Estado/provincia',
     'country' => 'País',
-    'postal_code' => 'Código Postal',
+    'postal_code' => 'Código postal',
     'vat' => 'CIF/NIF',
 
     // Account users
     'edit_account_description' => 'Todo lo de esta página se guarda junto. Las personas de la cuenta se listan abajo, pero se editan desde su propia ficha.',
     'account_information_description' => 'El nombre por el que se conoce la cuenta, quién la posee y si se puede usar siquiera.',
-    'contact_details' => 'Contacto y Facturación',
+    'contact_details' => 'Contacto y facturación',
     'contact_details_description' => 'Dónde se localiza a la cuenta y qué va en sus facturas. Nada de esto es obligatorio.',
     'active_description' => 'Una cuenta inactiva conserva todos sus datos, pero nadie puede trabajar dentro.',
-    'account_users' => 'Usuarios de la Cuenta',
+    'account_users' => 'Usuarios de la cuenta',
     'account_users_description' => 'Usuarios pertenecientes a esta cuenta.',
 
     // Force password change

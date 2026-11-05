@@ -16,6 +16,7 @@ use Illuminate\Support\Facades\Facade;
  * @method static array<int, \Base\Tenant\Menu\MenuItemDefinition> build(string $menu)
  * @method static array{menus: int, items: int} sync()
  * @method static Collection<int, array<string, mixed>> tree(string $menu, ?Authorizable $user = null)
+ * @method static array<string, string|null> badges(?Authorizable $user = null)
  * @method static void flush()
  * @method static void bootBadgeResolvers()
  *

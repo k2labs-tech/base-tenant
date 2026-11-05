@@ -292,7 +292,7 @@
 
                                 <td class="px-4 {{ $rowPadding }}">
                                     <span class="whitespace-nowrap text-sm tabular-nums text-zinc-500 dark:text-zinc-400">
-                                        {{ $user->created_at?->isoFormat('D MMM YYYY') }}
+                                        {{ $user->created_at?->userTime()->isoFormat('D MMM YYYY') }}
                                     </span>
                                 </td>
 

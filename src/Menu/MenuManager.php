@@ -120,6 +120,33 @@ class MenuManager
     }
 
     /**
+     * The badge of every entry with a resolver that the person sees, by key,
+     * null for no badge: what `menu-badges-refresh` puts back in the sidebar.
+     *
+     * @return array<string, string|null>
+     */
+    public function badges(?Authorizable $user = null): array
+    {
+        $badges = [];
+
+        $walk = function (iterable $items) use (&$walk, &$badges): void {
+            foreach ($items as $item) {
+                if (isset($this->badgeResolvers[$item['key']])) {
+                    $badges[$item['key']] = $item['badge'];
+                }
+
+                $walk($item['children'] ?? []);
+            }
+        };
+
+        foreach (config('base-tenant.menu.default_menus', ['main', 'settings']) as $menu) {
+            $walk($this->tree($menu, $user));
+        }
+
+        return $badges;
+    }
+
+    /**
      * Invalidate every cached tree, for every account, by bumping the version
      * stamp the cache keys are built from.
      */
